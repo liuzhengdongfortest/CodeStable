@@ -41,6 +41,8 @@ easysdd/
 ├── tricks/                     ← 技巧库目录（空目录，.gitkeep）
 ├── explores/                   ← 探索归档目录（空目录，.gitkeep）
 └── tools/                      ← 跨工作流共享的脚本工具（由 onboarding 从技能包释放）
+    ├── search-yaml.py          ← 通用 YAML frontmatter 搜索工具
+    └── validate-yaml.py        ← YAML 语法校验工具
 ```
 
 > `AGENTS.md` 在项目根目录，不在 `easysdd/` 里。onboarding 会检查它是否存在，不存在时提醒用户，但**不代替用户写它**——AGENTS.md 的内容高度项目相关，必须由人来填。

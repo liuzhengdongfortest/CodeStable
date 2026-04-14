@@ -201,6 +201,7 @@ A: ...
 | `easysdd-architecture-check` | 检测到 design 与代码不一致时，对应 guide 应同步标记 `status=outdated` |
 | `easysdd-decisions` | dev-guide 里引用的技术选型原则应来自 decisions 目录，不独立发明 |
 | `easysdd-tricks` | dev-guide 里的用法示例若与 tricks 目录已有记录重合，可交叉引用而不重复写 |
+| `easysdd-libdoc` | guide 内引用 libdoc 条目做详细参考（"完整 props 见 xxx"）；libdoc 是零件级参考（reference），guidedoc 是任务级教程（how-to），互补不替代 |
 
 ---
 
