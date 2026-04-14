@@ -37,6 +37,7 @@ easysdd/
     └── {feature}/              ← feature 目录
         ├── brainstorm.md       ← brainstorm note（Stage 0，可选）
         ├── design.md           ← 方案 doc（Stage 1，含 YAML frontmatter + 测试设计）
+        ├── checklist.yaml      ← 行动清单（Stage 1 生成，Stage 2/3 更新）
         └── acceptance.md       ← 验收报告（Stage 3）
 ```
 
@@ -61,7 +62,7 @@ easysdd/
 | 阶段 | 子技能 | 主导者 | 产出 |
 |---|---|---|---|
 | ⓪ brainstorm（可选） | `easysdd-feature-brainstorm` | AI 做思考伙伴，用户拍板 | brainstorm note |
-| ① 方案设计（含测试设计） | `easysdd-feature-design` | AI 起草，用户整体 review 拍板 | 方案 doc（YAML frontmatter + 三层结构 + 测试设计） |
+| ① 方案设计（含测试设计） | `easysdd-feature-design` | AI 起草，用户整体 review 拍板 | 方案 doc（YAML frontmatter + 三层结构 + 测试设计）+ checklist.yaml |
 | ② 分步实现 | `easysdd-feature-implement` | AI 按方案执行 | 代码 + 阶段汇报 |
 | ③ 验收闭环 | `easysdd-feature-acceptance` | AI 逐层核对方案，用户终审 | 验收报告 + 架构归并 + 收尾提交确认 |
 
@@ -81,7 +82,7 @@ easysdd/
 |---|---|
 | 用户说"快速模式"、"fastforward"、"直接开干"、"别那么多步骤" | `easysdd-feature-fastforward` |
 
-fastforward 的 `design.md` 与标准流程共用同一 feature 目录，但同样必须带统一 YAML frontmatter；正文内容是精简的 4 节结构（需求摘要 + 设计方案 + **验收标准** + 推进步骤），验收标准在这里就写好，不留占位，后续 `easysdd-feature-acceptance` 直接从中抽取验收点。
+fastforward 的 `design.md` 与标准流程共用同一 feature 目录，但同样必须带统一 YAML frontmatter；正文内容是精简的 4 节结构（需求摘要 + 设计方案 + **验收标准** + 推进步骤），验收标准在这里就写好，不留占位，后续 `easysdd-feature-acceptance` 直接从中抽取验收点；确认后同样生成 `checklist.yaml`。
 
 **不适合 fastforward 的情况**：跨多个子系统、有术语撞车风险、推进步骤超过 4 步——遇到这些情况告知用户走标准流程。
 

@@ -1,6 +1,6 @@
 ---
 name: easysdd-feature-implement
-description: Feature 工作流阶段二：按方案 doc 分步实现代码，完成后输出汇报。触发场景："方案确认了开始实现"、"按方案写代码"、"开工"，且方案 doc（第 3 节含测试设计）已存在。前置依赖 easysdd-feature-design。
+description: Feature 工作流阶段二：按方案 doc 分步实现代码，完成后输出汇报。触发场景："方案确认了开始实现"、"按方案写代码"、"开工"，且方案 doc（标准设计含测试设计，或 fastforward 设计含验收标准）已 approved。前置依赖 easysdd-feature-design 或 easysdd-feature-fastforward。
 ---
 
 # easysdd-feature-implement
@@ -90,7 +90,7 @@ description: Feature 工作流阶段二：按方案 doc 分步实现代码，完
 
 汇报完后**停下来**等用户 review。用户提出修改意见后按意见修订,修订完再次发出简短确认,直到用户明确放行进入验收阶段。
 
-### 规则 4:不做方案外的改动
+### 规则 3:不做方案外的改动
 
 阅读代码时若发现值得重构的点(AGENTS.md "边实现边识别" 一节),如果**不在本次功能影响面内**,记录成后续 issue,**不要顺手改**。
 
@@ -100,7 +100,7 @@ description: Feature 工作流阶段二：按方案 doc 分步实现代码，完
 > 顺手发现:{文件:行号} {问题简述}。不在本次范围,记录待后续 issue。
 ```
 
-### 规则 5:术语守护
+### 规则 4:术语守护
 
 - 新写的类型名 / 函数名 / 变量名都要去方案 doc 第 0 节对照
 - 不允许出现 doc 里没有的新概念

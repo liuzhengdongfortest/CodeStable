@@ -251,7 +251,7 @@ easysdd/
 
 ## 七、退出条件
 
-- [ ] `easysdd/` 目录骨架完整（五个子目录都存在）
+- [ ] `easysdd/` 目录骨架完整（八个子目录都存在：`architecture/`、`features/`、`issues/`、`learnings/`、`decisions/`、`tricks/`、`explores/`、`tools/`）
 - [ ] `easysdd/architecture/DESIGN.md` 已创建（哪怕是占位内容）
 - [ ] 迁移路径：每一条映射都有明确处理结果（迁移 / 保留原位）
 - [ ] 迁移路径：没有未经用户确认就移动的文件

@@ -188,7 +188,7 @@ tags: [export, csv, orders]
 - [ ] 用户确认后，frontmatter 的 `status` 已更新为 `approved`
 - [ ] `checklist.yaml` 已从 design.md 提取生成，且通过 `validate-yaml.py` 校验
 
-**文件路径**：`easysdd/features/{feature}/design.md` 和 `easysdd/features/{feature}/checklist.yaml`（feature 目录不存在就创建，命名格式 `YYYY-MM-DD-{英文 slug}`，日期前缀用今天的日期；目录约定见主技能 `easysdd` 第二节"目录安排"）
+**文件路径**：方案 doc 和 checklist.yaml（feature 目录不存在则创建；两者聚合在同一 feature 目录，目录位置见主技能 `easysdd` 第二节"目录安排"）
 
 ---
 

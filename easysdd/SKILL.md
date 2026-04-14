@@ -126,7 +126,7 @@ easysdd/
 | 阶段 | 子技能 | 产出 |
 |---|---|---|
 | ⓪ brainstorm（可选） | `easysdd-feature-brainstorm` | brainstorm note |
-| ① 方案设计 | `easysdd-feature-design` | 方案 doc（含 YAML frontmatter） |
+| ① 方案设计 | `easysdd-feature-design` | 方案 doc（含 YAML frontmatter）+ checklist.yaml |
 | ② 分步实现 | `easysdd-feature-implement` | 代码 + 阶段汇报 |
 | ③ 验收闭环 | `easysdd-feature-acceptance` | 验收报告 + 架构归并 |
 
@@ -198,7 +198,8 @@ graph TD
     report -.->|快速通道| fix
   end
 
-  fastforward["fastforward"] --> implement
+  brainstorm -.->|快速通道| fastforward["fastforward"]
+  fastforward --> implement
 
   subgraph archival["归档类（共享阶段模式，见第五节约束 10）"]
     compound["compound"]
