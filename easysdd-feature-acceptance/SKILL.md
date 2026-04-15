@@ -14,7 +14,7 @@ description: feature 流程的阶段 3——做完整验收闭环。两件事：
 
 验收报告是工作流的闭环凭证。**没产出报告 = 工作流未完成**。这条不是仪式——后人查"上次这个功能到底验收时确认了哪些行为"，没有报告就只能去翻 git diff 重新推断。
 
-> 共享路径与命名约定看根技能 `easysdd` 第二节。
+> 共享路径与命名约定看根技能 `easysdd-core` 第二节。
 
 ---
 
@@ -42,7 +42,7 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 
 ### 3. checklist.yaml 状态
 
-`checklist.yaml` 的生命周期看 `easysdd/reference/shared-conventions.md`。本阶段只核对并更新 `checks` 一段：
+`checklist.yaml` 的生命周期看 `easysdd-core/reference/shared-conventions.md`。本阶段只核对并更新 `checks` 一段：
 
 - 文件存在，`feature` 字段跟当前 feature 目录一致
 - `steps` 所有条目 status 为 `done`（有 `pending` 说明 implement 没完成，先退回）
@@ -65,7 +65,7 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 
 ## 验收报告模板
 
-逐节填写，**别跳节**。报告路径在 feature 目录下，跟 design.md 聚合（具体位置看根技能 `easysdd` 第二节"目录安排"）。
+逐节填写，**别跳节**。报告路径在 feature 目录下，跟 design.md 聚合（具体位置看根技能 `easysdd-core` 第二节"目录安排"）。
 
 ```markdown
 # {功能名称} 验收报告
@@ -194,7 +194,7 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 
 ## 收尾提交
 
-按根技能 `easysdd` 第五节约束 9"收尾提交（scoped-commit）"的规则执行。本阶段的特定要点：
+按根技能 `easysdd-core` 第五节约束 9"收尾提交（scoped-commit）"的规则执行。本阶段的特定要点：
 
 - **提交范围**：功能代码 + 方案 doc + 验收报告 + 本次实际更新过的架构 doc。代码交付要带文档，否则下次做 feature 的人查不到上下文。
 - 验收通过后告诉用户"验收报告已完成、架构归并已完成"，紧接着问是否需要 commit
@@ -207,7 +207,7 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 
 然后**补问一次**是否需要代为提交本次代码和文档。用户同意时，按收尾提交规则执行到 commit 完成。
 
-同时按 `easysdd/reference/shared-conventions.md` 的收尾推荐规则各问一句话（用户说"不用"立刻跳过）：
+同时按 `easysdd-core/reference/shared-conventions.md` 的收尾推荐规则各问一句话（用户说"不用"立刻跳过）：
 
 - 本次 feature 暴露出值得复用的坑点或经验 → "需要沉淀一条 learnings 吗？（走 `easysdd-compound`）"
 - 引入了超出单个功能的长期约束 / 技术选型 → "需要把这条决定归档吗？（走 `easysdd-decisions`）"

@@ -7,7 +7,7 @@ description: feature 流程的阶段 1——为新功能起草一份方案文件
 
 这一阶段的产出是一份方案文件 `design.md`，加上从中抽出的行动清单 `checklist.yaml`。这两份东西后面会被两个阶段消费——implement 照着推进、acceptance 照着核对，所以这里写错或写漏，下游就跟着错。
 
-> 共享的路径和命名约定看根技能 `easysdd` 第二节。本阶段一般 feature 目录已经由 brainstorm 创建好了；没有的话在这一步建。
+> 共享的路径和命名约定看根技能 `easysdd-core` 第二节。本阶段一般 feature 目录已经由 brainstorm 创建好了；没有的话在这一步建。
 
 理解这个角色之后，下面有三件事要先搞清楚——为什么这么写、按什么顺序做、退出的标准是什么。
 
@@ -36,7 +36,7 @@ description: feature 流程的阶段 1——为新功能起草一份方案文件
 1. **需求输入是否清晰**——确认至少有用户目标、核心行为、成功标准、明确不做这四项。缺了就先补；用户自己也说不清就回退到 brainstorm。
 2. **是否已有同名方案文件**——存在的话先确认是接着改还是新建。
 3. **读前置资料**——动笔前必读 `AGENTS.md`、项目架构总入口、架构索引、与需求相关的现有代码和子系统架构 doc。读这一步是为了让你写的方案和现有代码能接得上，不读直接动手大概率写出脱离实际的方案。
-4. **归档检索**——值不值得搜、优先搜哪些目录，规则在根技能 `easysdd` 第五节约束 7。本阶段至少考虑这几个目录：
+4. **归档检索**——值不值得搜、优先搜哪些目录，规则在根技能 `easysdd-core` 第五节约束 7。本阶段至少考虑这几个目录：
 
    - 技巧库：`python easysdd/tools/search-yaml.py --dir easysdd/tricks --filter status=active --query "{关键词}"`
    - 探索归档：`python easysdd/tools/search-yaml.py --dir easysdd/explores --query "{关键词}"`
@@ -80,7 +80,7 @@ description: feature 流程的阶段 1——为新功能起草一份方案文件
 
 ### 5. 生成 checklist.yaml
 
-方案确认后，从 design.md 里抽出行动清单，落到同目录 `checklist.yaml`。这份清单的生命周期看 `easysdd/reference/shared-conventions.md`：本阶段负责生成，implement 只推进 `steps`，acceptance 只核对 `checks`。三个阶段各管一段，互不越界——这样每个阶段都能从 yaml 上看出自己的工作进度。
+方案确认后，从 design.md 里抽出行动清单，落到同目录 `checklist.yaml`。这份清单的生命周期看 `easysdd-core/reference/shared-conventions.md`：本阶段负责生成，implement 只推进 `steps`，acceptance 只核对 `checks`。三个阶段各管一段，互不越界——这样每个阶段都能从 yaml 上看出自己的工作进度。
 
 `design.md` 和 `checklist.yaml` 的完整模板、frontmatter 示例、节锚点、提取格式都在同目录 `reference.md` 里。本技能只保留提取原则：
 
@@ -130,7 +130,7 @@ description: feature 流程的阶段 1——为新功能起草一份方案文件
 - [ ] `checklist.yaml` 已从 design.md 抽出生成，且通过 `validate-yaml.py` 校验
 - [ ] `checklist.yaml` 的 steps 条目数和第 3 节推进顺序一致
 
-文件路径：方案文件在 `easysdd/features/{feature}/` 下；feature 目录不存在就在这一步建。命名约定看根技能 `easysdd` 第二节。
+文件路径：方案文件在 `easysdd/features/{feature}/` 下；feature 目录不存在就在这一步建。命名约定看根技能 `easysdd-core` 第二节。
 
 ---
 

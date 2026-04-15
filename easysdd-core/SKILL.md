@@ -1,9 +1,9 @@
 ---
-name: easysdd
+name: easysdd-core
 description: easysdd 工作流家族的根技能——介绍工作流体系并把用户路由到正确子技能。触发场景：用户提到"easysdd"、"sdd"、"规约驱动"、"怎么用这套流程"、"我该用哪个技能"、"从哪开始"，或描述了新功能但还没决定切入阶段。已知意图（brainstorm/设计/实现/验收/BUG/探索等）优先触发对应子技能而非本技能。
 ---
 
-# easysdd
+# easysdd-core
 
 **Easy Spec-Driven Development** —— 本项目的规约驱动开发工作流家族的根技能。
 
@@ -358,11 +358,11 @@ graph TD
 - `shared-conventions.md` —— 共享元数据口径、`checklist.yaml` 生命周期、阶段收尾推荐
 - `tools.md` —— `search-yaml.py` / `validate-yaml.py` 的完整用法参考
 
-**子技能层**（与 SKILL.md 同目录的 `reference.md`）：各子技能专属的模板、长示例、写法说明，随技能目录一起存放。子技能引用自己的模板时写"同目录 `reference.md`"（即与当前 SKILL.md 在同一目录下的 reference.md），引用共享规则时写 `easysdd/reference/shared-conventions.md`，不再写"见根技能第五节约束 X"这类脆弱表述。
+**子技能层**（与 SKILL.md 同目录的 `reference.md`）：各子技能专属的模板、长示例、写法说明，随技能目录一起存放。子技能引用自己的模板时写"同目录 `reference.md`"（即与当前 SKILL.md 在同一目录下的 reference.md），引用共享规则时写 `easysdd-core/reference/shared-conventions.md`，不再写"见根技能第五节约束 X"这类脆弱表述。
 
 ### 12. 维护者参考
 
-`easysdd/reference/maintainer-notes.md` 维护根技能不适合继续展开的维护者说明，例如断点恢复策略、扩展点登记规则。
+`easysdd-core/reference/maintainer-notes.md` 维护根技能不适合继续展开的维护者说明，例如断点恢复策略、扩展点登记规则。
 
 > 约束 10–12 仍由本节维护；共享口径、工具手册和维护者说明已拆到 `easysdd/reference/`，子技能如果与这些 reference 文档冲突，以 reference 文档为准。
 
@@ -392,7 +392,7 @@ graph TD
 
 ## 八、扩展点(给未来的自己)
 
-扩展维护说明已拆到 `easysdd/reference/maintainer-notes.md`。根技能这里只保留原则：新增子工作流、共享约束、共享模板、共享术语或全局状态机制时，先改目录安排和中心索引，再改子技能，避免信息散落。
+扩展维护说明已拆到 `easysdd-core/reference/maintainer-notes.md`。根技能这里只保留原则：新增子工作流、共享约束、共享模板、共享术语或全局状态机制时，先改目录安排和中心索引，再改子技能，避免信息散落。
 
 ---
 

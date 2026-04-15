@@ -68,7 +68,7 @@ claude skills add liuzhengdongfortest/easysdd
 >
 > 或者：「这里有个 bug，走 easysdd-issue 流程」
 
-没说清楚用哪个子技能也行，Claude 会从根技能 `easysdd` 自己路由到合适的那一个。
+没说清楚用哪个子技能也行，Claude 会从根技能 `easysdd-core` 自己路由到合适的那一个。
 
 ---
 
@@ -82,8 +82,8 @@ claude skills add liuzhengdongfortest/easysdd
 
 ## 想看得更深
 
-- 根技能讲解：[`easysdd/SKILL.md`](easysdd/SKILL.md)
-- 共享约定（目录结构、YAML frontmatter、checklist 怎么用、最后怎么 commit）：[`easysdd/reference/shared-conventions.md`](easysdd/reference/shared-conventions.md)
+- 根技能讲解：[`easysdd-core/SKILL.md`](easysdd/SKILL.md)
+- 共享约定（目录结构、YAML frontmatter、checklist 怎么用、最后怎么 commit）：[`easysdd-core/reference/shared-conventions.md`](easysdd/reference/shared-conventions.md)
 - 项目架构入口：[`easysdd/architecture/DESIGN.md`](easysdd/architecture/DESIGN.md)
 
 ---

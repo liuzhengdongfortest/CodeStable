@@ -28,7 +28,7 @@ guidedoc 就是从 spec 和代码出发，写成读者真正能用的指南。
 
 | 情境 | 说明 |
 |---|---|
-| feature-acceptance 结束 | 按 `easysdd/reference/shared-conventions.md` 主动推："第 2 节有接口变更 → 需要更新 dev-guide 吗？"、"第 1 节有用户可见行为变更 → 需要更新 user-guide 吗？" |
+| feature-acceptance 结束 | 按 `easysdd-core/reference/shared-conventions.md` 主动推："第 2 节有接口变更 → 需要更新 dev-guide 吗？"、"第 1 节有用户可见行为变更 → 需要更新 user-guide 吗？" |
 | 用户主动触发 | "写文档"、"guidedoc"、"补一份开发者指南" |
 | onboarding 完成后 | 新仓库可触发本工作流补全基础文档骨架 |
 

@@ -22,7 +22,7 @@ description: 对仓库做一次定向代码探索，把"提问 → 读代码 →
 - 已经是可复用处方总结 → 该用 `easysdd-tricks`
 - 已经在做 bug 修复并且根因明确 → 直接走 `easysdd-issue-fix`
 
-> 共享路径与命名约定看根技能 `easysdd` 第二节。文件命名 `YYYY-MM-DD-{slug}.md`。
+> 共享路径与命名约定看根技能 `easysdd-core` 第二节。文件命名 `YYYY-MM-DD-{slug}.md`。
 
 ---
 
@@ -88,7 +88,7 @@ description: 对仓库做一次定向代码探索，把"提问 → 读代码 →
 
 ## 搜索工具
 
-> 完整语法和示例见 `easysdd/reference/tools.md`。本节只列 explore 特有的典型查询。
+> 完整语法和示例见 `easysdd-core/reference/tools.md`。本节只列 explore 特有的典型查询。
 
 ```bash
 # 按类型筛选
@@ -123,7 +123,7 @@ python easysdd/tools/search-yaml.py --dir easysdd/explores --query "{关键词}"
 
 ## 容易踩的坑
 
-> 归档类工作流共享守护规则（只增不删、宁缺毋滥、不替用户写、可发现性、归档后查重叠）见根技能 `easysdd` 第五节约束 10。本技能特有的反模式：
+> 归档类工作流共享守护规则（只增不删、宁缺毋滥、不替用户写、可发现性、归档后查重叠）见根技能 `easysdd-core` 第五节约束 10。本技能特有的反模式：
 
 - 不读代码直接给结论
 - 证据只写"看起来像"，不写文件:行号

@@ -110,6 +110,6 @@ fastforward 的 design.md 跟标准流程共用同一个 feature 目录，frontm
 
 ## 相关文档
 
-- `easysdd/SKILL.md` — easysdd 家族根技能，跨阶段共同约束在那里
+- `easysdd-core/SKILL.md` — easysdd 家族根技能，跨阶段共同约束在那里
 - `AGENTS.md` — 全项目代码规范，feature 实现时同样遵守
 - 项目架构总入口 — 方案设计阶段需要查
