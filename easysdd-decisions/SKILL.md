@@ -56,7 +56,7 @@ easysdd-decisions 的职责就是让每一条重要的"已经决定了"都有完
 
 ## 四、文档格式
 
-决策文档的 frontmatter、正文模板和示例已拆到 `easysdd-decisions/reference.md`。本技能只保留流程约束：
+决策文档的 frontmatter、正文模板和示例已拆到同目录 `reference.md`。本技能只保留流程约束：
 
 - `category` 仍然只允许 `tech-stack` / `architecture` / `constraint` / `convention`
 - `status` 仍然只允许 `active` / `superseded` / `deprecated`
@@ -141,7 +141,7 @@ python easysdd/tools/search-yaml.py --dir easysdd/decisions --query "{关键词}
 
 ## 八、产物示例
 
-完整示例已拆到 `easysdd-decisions/reference.md`。本技能正文不再嵌入长示例。
+完整示例已拆到同目录 `reference.md`。本技能正文不再嵌入长示例。
 
 ---
 

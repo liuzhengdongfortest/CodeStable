@@ -70,7 +70,7 @@ description: Feature 工作流阶段一：起草方案 doc（三层结构+测试
 | 需要微重构（extract file / extract function） | 纳入第 3 节推进顺序作为**第 1 步**，scope 锁死为"只搬不改行为"，退出信号为"搬完后既有功能不变" |
 | 需要架构级变更（职责重划分、模块拆合、接口重新设计） | 在第 1 节记录为**前置依赖**，建议拆成独立 feature 先解决；当前 feature 暂缓或标注"等前置完成后再推进" |
 
-评估结论写进方案 doc 第 3 节"改动计划"的开头（见 `easysdd-feature-design/reference.md`）。如果是"健康，直接加"，不需要写——只在有动作时才记录。
+评估结论写进方案 doc 第 3 节"改动计划"的开头（见同目录 `reference.md`）。如果是"健康，直接加"，不需要写——只在有动作时才记录。
 
 ### 3) 一次性起草
 
@@ -84,7 +84,7 @@ description: Feature 工作流阶段一：起草方案 doc（三层结构+测试
 
 方案 doc 确认后，从 design.md 中提取行动清单，落盘为同目录下的 `checklist.yaml`。这份清单的生命周期以 `easysdd/reference/shared-conventions.md` 为准：本阶段负责生成，implement 只推进 `steps`，acceptance 只核对 `checks`。
 
-`design.md` / `checklist.yaml` 的完整模板、frontmatter 示例、节锚点、提取格式见 `easysdd-feature-design/reference.md`。本阶段只保留提取原则：
+`design.md` / `checklist.yaml` 的完整模板、frontmatter 示例、节锚点、提取格式见同目录 `reference.md`。本阶段只保留提取原则：
 
 - `steps`：从第 3 节"推进顺序"逐步提取，每步一条
 - `checks`：从以下来源综合提取——
@@ -102,7 +102,7 @@ description: Feature 工作流阶段一：起草方案 doc（三层结构+测试
 
 ## 三、模板与格式
 
-`design.md` / `checklist.yaml` 的完整参考已拆到 `easysdd-feature-design/reference.md`，包括：
+`design.md` / `checklist.yaml` 的完整参考已拆到同目录 `reference.md`，包括：
 
 - YAML frontmatter 示例
 - 顶层节锚点要求
@@ -115,7 +115,7 @@ description: Feature 工作流阶段一：起草方案 doc（三层结构+测试
 
 ## 四、review 提示
 
-整体 review 提示词见 `easysdd-feature-design/reference.md`。本阶段要求仍然不变：只能发一次整体 review，不逐节拆开确认。
+整体 review 提示词见同目录 `reference.md`。本阶段要求仍然不变：只能发一次整体 review，不逐节拆开确认。
 
 ---
 
