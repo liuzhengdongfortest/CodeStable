@@ -92,7 +92,7 @@ easysdd/
 
 创建以下内容（顺序执行，每步完成后继续，不等用户逐步确认——骨架是整体一次性的）：
 
-- `easysdd/architecture/DESIGN.md`（填入占位模板，见 `easysdd/reference/onboarding-reference.md`）
+- `easysdd/architecture/DESIGN.md`（填入占位模板，见 `easysdd-onboarding/reference.md`）
 - `easysdd/features/.gitkeep`
 - `easysdd/issues/.gitkeep`
 - `easysdd/learnings/.gitkeep`
@@ -108,7 +108,7 @@ easysdd/
 
 > `AGENTS.md` 还不存在。它是 easysdd 所有子工作流的"项目硬约束入口"——记录代码规范、已知坑、禁止事项。建议现在创建一个最小版本。你想现在填，还是之后自己创建？
 
-用户选"现在填"：提供最小模板（见 `easysdd/reference/onboarding-reference.md`），引导用户填写关键字段后保存。  
+用户选"现在填"：提供最小模板（见 `easysdd-onboarding/reference.md`），引导用户填写关键字段后保存。  
 用户选"之后"：记录在汇报里，告诉用户"下次触发 feature/issue 工作流前记得补上"。
 
 **步骤 4：验收汇报**
@@ -188,7 +188,7 @@ easysdd/
 
 ## 六、骨架文件模板
 
-`DESIGN.md` 占位模板和 `AGENTS.md` 最小模板已拆到 `easysdd/reference/onboarding-reference.md`。本技能正文只保留流程，不再内嵌长模板。
+`DESIGN.md` 占位模板和 `AGENTS.md` 最小模板已拆到 `easysdd-onboarding/reference.md`。本技能正文只保留流程，不再内嵌长模板。
 
 ---
 

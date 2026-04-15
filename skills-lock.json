@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "skills": {
+    "easysdd": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "2d8cd0dcf9d48461ba56caad54b0b6eacbe916a4a62aa21cf98ab91d6029b3f5"
+    },
+    "easysdd-architecture-check": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "53a44af1d92f4b479f369e69f15687dabf988af0f1b641b0732bd51121f3bab3"
+    },
+    "easysdd-compound": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "06a46435f433ceb85c4d36ed7f07a6ab4a1750e3630d15a2e58b908a674a80e5"
+    },
+    "easysdd-decisions": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "ee513d10167d59ef9da8c94edee17f9b4e311a5f75b2c9aa6fece74f34258b79"
+    },
+    "easysdd-explore": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "86275b0c1e8785d7ed8d759a2110b81c591a37450f26934b7cb98ef7594ff00c"
+    },
+    "easysdd-feature": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "19e673517ad8ebc5e9804f6f87667ddddebafff2d07ec2b96b7ca551301f14af"
+    },
+    "easysdd-feature-acceptance": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "b05123546ab0165f1d04f8e084a5d6422c156044fb2b97eb6c8d1ca3d85e66a3"
+    },
+    "easysdd-feature-brainstorm": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "efb6fc86c5f04c2f1adbb6315d38034a8de1beb60831d06eaffa66fc352bb9af"
+    },
+    "easysdd-feature-design": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "18bfcdaf79e41be676da59b59c7593c4b7b7e51e29ab845d49e604b463f2c406"
+    },
+    "easysdd-feature-fastforward": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "baefbc3e74dd5e48360374b5482a14b73c01c2ed5453a887fb5d8c8ee4d002e1"
+    },
+    "easysdd-feature-implement": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "83d0b2ad7c0a865f6334a7996450729f123f75d74618448e0e35a00c6d2c3227"
+    },
+    "easysdd-guidedoc": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "f13c27b16bd4623748c16919bdf6f056f1721a36d44c7bae9485508708686cbb"
+    },
+    "easysdd-issue": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "de13f9fbc39337ccf196d07e30465c3b4bfd426ead8c9b19c588d335b6ff3a42"
+    },
+    "easysdd-issue-analyze": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "02891c5a94c806550bcb1050262ecfb0a8bdd8b19a402017f3d5ad92598edc06"
+    },
+    "easysdd-issue-fix": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "6f4a06ccbaf4f8b3f773fd05b6be8355f31bcc76db48565801c15aa5b7adc20f"
+    },
+    "easysdd-issue-report": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "70252129b001e7f5dc22fa332211db45ae2c4200fd942be92c85db189cae108b"
+    },
+    "easysdd-libdoc": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "fc061d9c5bef073a52815eb9d8462d8ef8a38f61c138f3206bd315f2ca2c2e58"
+    },
+    "easysdd-onboarding": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "e4a63d9fb2c6114e93f1dcce8f164b962f61c5167363db0f2a1034d55974169c"
+    },
+    "easysdd-tricks": {
+      "source": "liuzhengdongfortest/easysdd",
+      "sourceType": "github",
+      "computedHash": "e594cdea5ac76cdb75dae2820247bc68410f0e5c6ee1c88f42b2fb67821242d1"
+    }
+  }
+}

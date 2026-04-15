@@ -67,7 +67,7 @@ description: Feature 工作流阶段一：起草方案 doc（三层结构+测试
 
 方案 doc 确认后，从 design.md 中提取行动清单，落盘为同目录下的 `checklist.yaml`。这份清单的生命周期以 `easysdd/reference/shared-conventions.md` 为准：本阶段负责生成，implement 只推进 `steps`，acceptance 只核对 `checks`。
 
-`design.md` / `checklist.yaml` 的完整模板、frontmatter 示例、节锚点、提取格式见 `easysdd/reference/feature-design-reference.md`。本阶段只保留提取原则：
+`design.md` / `checklist.yaml` 的完整模板、frontmatter 示例、节锚点、提取格式见 `easysdd-feature-design/reference.md`。本阶段只保留提取原则：
 
 - `steps`：从第 3 节"推进顺序"逐步提取，每步一条
 - `checks`：从以下来源综合提取——
@@ -85,7 +85,7 @@ description: Feature 工作流阶段一：起草方案 doc（三层结构+测试
 
 ## 三、模板与格式
 
-`design.md` / `checklist.yaml` 的完整参考已拆到 `easysdd/reference/feature-design-reference.md`，包括：
+`design.md` / `checklist.yaml` 的完整参考已拆到 `easysdd-feature-design/reference.md`，包括：
 
 - YAML frontmatter 示例
 - 顶层节锚点要求
@@ -98,7 +98,7 @@ description: Feature 工作流阶段一：起草方案 doc（三层结构+测试
 
 ## 四、review 提示
 
-整体 review 提示词见 `easysdd/reference/feature-design-reference.md`。本阶段要求仍然不变：只能发一次整体 review，不逐节拆开确认。
+整体 review 提示词见 `easysdd-feature-design/reference.md`。本阶段要求仍然不变：只能发一次整体 review，不逐节拆开确认。
 
 ---
 

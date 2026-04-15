@@ -49,7 +49,7 @@ easysdd-compound 在每次非 trivial 的工程实践后补一张"学习卡"：
 
 适用于：发现的最佳实践、工作流改进、架构洞见、可复用的设计模式……一切"以后应该默认这样做"的学习。
 
-两条轨道的 frontmatter、正文模板和完整示例已拆到 `easysdd/reference/compound-reference.md`。本技能只保留判断与流程规则：坑点轨道写"本来应该好但没好"，知识轨道写"以后默认这样做"。
+两条轨道的 frontmatter、正文模板和完整示例已拆到 `easysdd-compound/reference.md`。本技能只保留判断与流程规则：坑点轨道写"本来应该好但没好"，知识轨道写"以后默认这样做"。
 
 ---
 
@@ -102,7 +102,7 @@ easysdd-compound 在每次非 trivial 的工程实践后补一张"学习卡"：
 
 ## 五、产物示例
 
-完整示例已拆到 `easysdd/reference/compound-reference.md`。本技能正文不再嵌入长示例。
+完整示例已拆到 `easysdd-compound/reference.md`。本技能正文不再嵌入长示例。
 
 ---
 
