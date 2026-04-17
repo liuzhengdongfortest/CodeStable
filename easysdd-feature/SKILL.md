@@ -25,10 +25,10 @@ description: 做新功能开发时进入这套子流程——把"加个 X 能力
 easysdd/
 └── features/
     └── {feature}/
-        ├── brainstorm.md       ← 阶段 0 的产物（可选）
-        ├── design.md           ← 阶段 1 的方案文件（带 YAML frontmatter + 测试设计）
-        ├── checklist.yaml      ← 阶段 1 顺手生成，2/3 阶段更新
-        └── acceptance.md       ← 阶段 3 的验收报告
+        ├── {slug}-brainstorm.md       ← 阶段 0 的产物（可选）
+        ├── {slug}-design.md           ← 阶段 1 的方案文件（带 YAML frontmatter + 测试设计）
+        ├── {slug}-checklist.yaml      ← 阶段 1 顺手生成，2/3 阶段更新
+        └── {slug}-acceptance.md       ← 阶段 3 的验收报告
 ```
 
 目录命名是 `YYYY-MM-DD-{英文 slug}`：
@@ -46,10 +46,10 @@ easysdd/
 
 | 阶段 | 子技能 | 产出 | 谁主导 |
 |---|---|---|---|
-| 0 brainstorm（可选） | `easysdd-feature-brainstorm` | brainstorm.md | AI 做思考伙伴，用户拍板 |
-| 1 方案设计 | `easysdd-feature-design` | design.md + checklist.yaml | AI 起草，用户整体 review |
+| 0 brainstorm（可选） | `easysdd-feature-brainstorm` | {slug}-brainstorm.md | AI 做思考伙伴，用户拍板 |
+| 1 方案设计 | `easysdd-feature-design` | {slug}-design.md + {slug}-checklist.yaml | AI 起草，用户整体 review |
 | 2 分步实现 | `easysdd-feature-implement` | 代码 + 阶段汇报 | AI 按方案执行 |
-| 3 验收闭环 | `easysdd-feature-acceptance` | acceptance.md | AI 逐层核对，用户终审 |
+| 3 验收闭环 | `easysdd-feature-acceptance` | {slug}-acceptance.md | AI 逐层核对，用户终审 |
 
 阶段之间有人工 checkpoint。为什么要这样卡？一是让用户在每个阶段结束时有一次明确的把关机会，二是防止 AI 一口气从需求跑到代码、跑出来用户才发现走偏了。所以默认情况下，上一个阶段没拿到用户明确放行，下一个阶段就别开始。
 
@@ -60,12 +60,12 @@ easysdd/
 需求已经很清楚、范围又小的时候，走完整四阶段会嫌啰嗦。这时候有 fastforward：
 
 ```
-用户说需求 → AI 写一份精简 design.md（包含验收标准）→ 用户一次确认 → 直接实现
+用户说需求 → AI 写一份精简 {slug}-design.md（包含验收标准）→ 用户一次确认 → 直接实现
 ```
 
 触发：用户说"快速模式"、"fastforward"、"直接开干"、"别那么多步骤"这一类，去 `easysdd-feature-fastforward`。
 
-fastforward 的 design.md 跟标准流程共用同一个 feature 目录，frontmatter 也一致，只是正文压成 4 节（需求摘要 + 设计方案 + 验收标准 + 推进步骤）。验收标准在这里就要写好，不留占位——因为后面 acceptance 阶段会直接从这里抽。
+fastforward 的 `{slug}-design.md` 跟标准流程共用同一个 feature 目录，frontmatter 也一致，只是正文压成 4 节（需求摘要 + 设计方案 + 验收标准 + 推进步骤）。验收标准在这里就要写好，不留占位——因为后面 acceptance 阶段会直接从这里抽。
 
 什么时候**别**走 fastforward：跨多个子系统、有术语撞车风险、推进步骤超过 4 步。遇到这几种情况就劝用户走标准流程，原因是范围一大，跳过 design 阶段意味着 AI 和用户在同一份方案上没对齐过，实现完很容易发现彼此理解的不是同一回事。
 
@@ -81,11 +81,11 @@ fastforward 的 design.md 跟标准流程共用同一个 feature 目录，frontm
 | 想法清晰（知道做什么、为谁、怎么算成功） | `easysdd-feature-design` |
 | 用户主动说"先 brainstorm 一下" | `easysdd-feature-brainstorm` |
 | 用户说"快速模式"、"fastforward"等 | `easysdd-feature-fastforward` |
-| brainstorm.md 已存在，用户说可以进设计了 | `easysdd-feature-design` |
-| design.md 三层结构完整、代码还没动 | `easysdd-feature-implement` |
-| fastforward design.md 已确认 | `easysdd-feature-implement` |
+| `{slug}-brainstorm.md` 已存在，用户说可以进设计了 | `easysdd-feature-design` |
+| `{slug}-design.md` 三层结构完整、代码还没动 | `easysdd-feature-implement` |
+| fastforward `{slug}-design.md` 已确认 | `easysdd-feature-implement` |
 | 代码已写完，要做验收 | `easysdd-feature-acceptance` |
-| 不确定 design.md 是否完整 | 自己读一遍，按上面对号入座 |
+| 不确定 `{slug}-design.md` 是否完整 | 自己读一遍，按上面对号入座 |
 
 ### 怎么判断用户该不该走阶段 0
 
@@ -111,6 +111,6 @@ fastforward 的 design.md 跟标准流程共用同一个 feature 目录，frontm
 ## 相关文档
 
 - `easysdd-core/SKILL.md` — easysdd 家族根技能，场景路由在那里
-- `easysdd/reference/shared-conventions.md` — 跨阶段共享口径、目录结构、checklist.yaml 生命周期
+- `easysdd/reference/shared-conventions.md` — 跨阶段共享口径、目录结构、{slug}-checklist.yaml 生命周期
 - `AGENTS.md` — 全项目代码规范，feature 实现时同样遵守
 - 项目架构总入口 — 方案设计阶段需要查

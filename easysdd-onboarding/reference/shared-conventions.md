@@ -16,15 +16,15 @@ easysdd/
 │   └── DESIGN.md          架构总入口
 ├── features/              feature spec 聚合根
 │   └── YYYY-MM-DD-{slug}/  每个 feature 一个目录
-│       ├── brainstorm.md  （可选）
-│       ├── design.md
-│       ├── checklist.yaml
-│       └── acceptance.md
+│       ├── {slug}-brainstorm.md  （可选）
+│       ├── {slug}-design.md
+│       ├── {slug}-checklist.yaml
+│       └── {slug}-acceptance.md
 ├── issues/                issue spec 聚合根
 │   └── YYYY-MM-DD-{slug}/  每个 issue 一个目录
-│       ├── report.md
-│       ├── analysis.md    （根因不显然时才有）
-│       └── fix-note.md
+│       ├── {slug}-report.md
+│       ├── {slug}-analysis.md    （根因不显然时才有）
+│       └── {slug}-fix-note.md
 ├── compound/              沉淀类文档统一目录
 │   └── YYYY-MM-DD-{doc_type}-{slug}.md
 │                          doc_type ∈ {learning, trick, decision, explore}
@@ -50,12 +50,12 @@ easysdd/
 
 ### feature spec
 
-- `design.md` / `acceptance.md` 共用 `doc_type`、`feature`、`status`、`summary`、`tags` 这组核心字段
+- `{slug}-design.md` / `{slug}-acceptance.md` 共用 `doc_type`、`feature`、`status`、`summary`、`tags` 这组核心字段
 - 子技能只补充本阶段特有字段，不重复改写这组字段的含义
 
 ### issue spec
 
-- `report.md` / `analysis.md` / `fix-note.md` 共用 `doc_type`、`issue`、`status`、`tags` 这组核心字段
+- `{slug}-report.md` / `{slug}-analysis.md` / `{slug}-fix-note.md` 共用 `doc_type`、`issue`、`status`、`tags` 这组核心字段
 - `severity`、`root_cause_type`、`path` 等属于阶段特有字段，由对应阶段按需补充
 
 ### 归档类文档
@@ -80,10 +80,10 @@ easysdd/
 
 ---
 
-## 2. checklist.yaml 生命周期
+## 2. {slug}-checklist.yaml 生命周期
 
-- `checklist.yaml` 是 feature 工作流的唯一执行清单
-- 由 `easysdd-feature-design` 或 `easysdd-feature-fastforward` 在 `design.md` 确认通过后一次生成
+- `{slug}-checklist.yaml` 是 feature 工作流的唯一执行清单
+- 由 `easysdd-feature-design` 或 `easysdd-feature-fastforward` 在 `{slug}-design.md` 确认通过后一次生成
 
 ### design / fastforward 的职责
 
@@ -104,7 +104,7 @@ easysdd/
 
 ### 写作约束
 
-- 子技能描述 `checklist.yaml` 时，只补充本阶段具体要读/写哪一部分
+- 子技能描述 `{slug}-checklist.yaml` 时，只补充本阶段具体要读/写哪一部分
 - 不重新定义整份文件的生命周期
 
 ---
@@ -197,6 +197,6 @@ feature-design / issue-analyze / issue-fix 在动手前要到 `easysdd/compound/
 
 ### 停下来之后
 
-反射检查**只负责把问题提出来**，结论用户定。如果停下来想清楚后的动作（拆文件 / 新建文件 / 重命名 / 抽共用层）会让这次改动超出 `checklist.yaml` 里现有步骤的范围，跟用户对齐再决定——要么纳入当前 feature / fix 的推进计划，要么记成顺手发现留到后续。
+反射检查**只负责把问题提出来**，结论用户定。如果停下来想清楚后的动作（拆文件 / 新建文件 / 重命名 / 抽共用层）会让这次改动超出 `{slug}-checklist.yaml` 里现有步骤的范围，跟用户对齐再决定——要么纳入当前 feature / fix 的推进计划，要么记成顺手发现留到后续。
 
 不许偷偷拆完继续写，也不许忽略信号硬冲。默认动作是停、问、再继续。

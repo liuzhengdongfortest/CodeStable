@@ -132,7 +132,7 @@ easysdd/
 | 现有文件 | 推测内容类型 | 建议归入 easysdd 位置 | 置信度 |
 |---|---|---|---|
 | `docs/DESIGN.md` | 项目架构文档 | `easysdd/architecture/DESIGN.md` | 高 |
-| `docs/feature-auth.md` | 某功能的设计稿 | `easysdd/features/YYYY-MM-DD-auth/design.md` | 中 |
+| `docs/feature-auth.md` | 某功能的设计稿 | `easysdd/features/YYYY-MM-DD-auth/auth-design.md` | 中 |
 | `SPEC.md` | 功能需求文档？ | 需用户确认 | 低 |
 | ... | ... | ... | ... |
 

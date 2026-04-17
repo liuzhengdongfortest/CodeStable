@@ -15,7 +15,7 @@ Usage examples:
   python easysdd/tools/validate-yaml.py --dir easysdd/features
 
   # Validate a single file
-  python easysdd/tools/validate-yaml.py --file easysdd/features/2026-04-11-auth/design.md
+  python easysdd/tools/validate-yaml.py --file easysdd/features/2026-04-11-auth/auth-design.md
 
   # Check that required fields exist in frontmatter
   python easysdd/tools/validate-yaml.py --dir easysdd/features --require doc_type --require status

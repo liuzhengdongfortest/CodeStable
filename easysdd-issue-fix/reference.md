@@ -1,6 +1,6 @@
 # issue-fix 参考模板
 
-本文件提供 `easysdd-issue-fix` 使用的修复汇报模板、日志调试脚手架和 `fix-note.md` 模板。
+本文件提供 `easysdd-issue-fix` 使用的修复汇报模板、日志调试脚手架和 `{slug}-fix-note.md` 模板。
 
 ## 1. 修复汇报模板
 
@@ -20,7 +20,7 @@
 {是 / 否}
 
 ### 复现步骤走一遍
-{按 report.md 第 2 节复现步骤走一遍，结果是否符合期望行为?}
+{按 {slug}-report.md 第 2 节复现步骤走一遍，结果是否符合期望行为?}
 ```
 
 ## 2. 日志调试升级
@@ -44,7 +44,7 @@
 2. 复制控制台/日志文件里从 [打点标记 A] 到 [打点标记 B] 的输出
 ```
 
-## 3. `fix-note.md` 标准路径模板
+## 3. `{slug}-fix-note.md` 标准路径模板
 
 ```markdown
 ---
@@ -52,7 +52,7 @@ doc_type: issue-fix
 issue: {issue 目录名}
 path: standard
 fix_date: YYYY-MM-DD
-related: [{analysis.md 相对路径}]
+related: [{slug-analysis.md 相对路径}]
 tags: []
 ---
 
@@ -67,7 +67,7 @@ tags: []
 ## 4. 遗留事项
 ```
 
-## 4. `fix-note.md` 快速通道模板
+## 4. `{slug}-fix-note.md` 快速通道模板
 
 ```markdown
 ---

@@ -1,11 +1,11 @@
 ---
 name: easysdd-feature-design
-description: feature 流程的阶段 1——为新功能起草一份方案文件，作为后续实现和验收的唯一输入。先收集证据（读架构、读相关代码、grep 防术语撞车、查归档），然后一次性写出完整初稿（含 YAML frontmatter + 三层结构 + 测试设计），交给用户整体 review，迭代到拍板。拍板后从 design.md 里抽出 checklist.yaml 给后面两个阶段用。触发场景："开始设计方案"、"写 design doc"、"准备实现 XX"，前提是已经知道做什么、为谁做、怎么算成功。
+description: feature 流程的阶段 1——为新功能起草一份方案文件，作为后续实现和验收的唯一输入。先收集证据（读架构、读相关代码、grep 防术语撞车、查归档），然后一次性写出完整初稿（含 YAML frontmatter + 三层结构 + 测试设计），交给用户整体 review，迭代到拍板。拍板后从 {slug}-design.md 里抽出 {slug}-checklist.yaml 给后面两个阶段用。触发场景："开始设计方案"、"写 design doc"、"准备实现 XX"，前提是已经知道做什么、为谁做、怎么算成功。
 ---
 
 # easysdd-feature-design
 
-这一阶段的产出是一份方案文件 `design.md`，加上从中抽出的行动清单 `checklist.yaml`。这两份东西后面会被两个阶段消费——implement 照着推进、acceptance 照着核对，所以这里写错或写漏，下游就跟着错。
+这一阶段的产出是一份方案文件 `{slug}-design.md`，加上从中抽出的行动清单 `{slug}-checklist.yaml`。这两份东西后面会被两个阶段消费——implement 照着推进、acceptance 照着核对，所以这里写错或写漏，下游就跟着错。
 
 > 共享路径和命名约定看 `easysdd/reference/shared-conventions.md`。本阶段一般 feature 目录已经由 brainstorm 创建好了；没有的话在这一步建。
 
@@ -15,7 +15,7 @@ description: feature 流程的阶段 1——为新功能起草一份方案文件
 
 ## 方案文件是给人扫的，不是给人读的
 
-整个 design 的写作风格都围绕这个原则。读者打开 design.md 是想 5 分钟内抓到要点，需要细节时知道去哪查——不是要逐字精读。这条原则推出几条具体做法：
+整个 design 的写作风格都围绕这个原则。读者打开 `{slug}-design.md` 是想 5 分钟内抓到要点，需要细节时知道去哪查——不是要逐字精读。这条原则推出几条具体做法：
 
 1. **每节超过 1 屏就该砍或拆**。一屏装不下意味着读者会失去定位感。
 2. **术语先锁死**。所有新增术语在动笔前做一遍 grep，覆盖代码、架构中心目录、所有 feature 的方案文件。术语撞车的代价是后面别人查代码找错地方——预防的成本远低于事后理顺的成本。
@@ -48,7 +48,7 @@ description: feature 流程的阶段 1——为新功能起草一份方案文件
 
    命中后优先复用，并在方案文件里记下引用来源——这样后人看到这份方案能顺着引用一路追回去。
 
-5. **断点恢复**——`design.md` 已经存在且有部分内容时：
+5. **断点恢复**——`{slug}-design.md` 已经存在且有部分内容时：
    - `status=draft` 且各节基本完整 → 上次写完了还没 review，跳到整体 review 步骤
    - 部分节缺失 → 汇报"上次方案写到第 X 节，我补齐剩下的再统一给你 review"，只补缺失的，不重写已完成的
 
@@ -101,11 +101,11 @@ AI 在这一步默认会翻的车是**不思考就往眼前最顺手的文件里
 
 向用户发一次整体 review 提示。用户对任意部分提修改意见，你按意见改完再次确认，反复直到用户明确"方案可以了"。用户放行后把 frontmatter 的 `status` 从 `draft` 改成 `approved`。
 
-### 6. 生成 checklist.yaml
+### 6. 生成 {slug}-checklist.yaml
 
-方案确认后，从 design.md 里抽出行动清单，落到同目录 `checklist.yaml`。这份清单的生命周期看 `easysdd/reference/shared-conventions.md`：本阶段负责生成，implement 只推进 `steps`，acceptance 只核对 `checks`。三个阶段各管一段，互不越界——这样每个阶段都能从 yaml 上看出自己的工作进度。
+方案确认后，从 `{slug}-design.md` 里抽出行动清单，落到同目录 `{slug}-checklist.yaml`。这份清单的生命周期看 `easysdd/reference/shared-conventions.md`：本阶段负责生成，implement 只推进 `steps`，acceptance 只核对 `checks`。三个阶段各管一段，互不越界——这样每个阶段都能从 yaml 上看出自己的工作进度。
 
-`design.md` 和 `checklist.yaml` 的完整模板、frontmatter 示例、节锚点、提取格式都在同目录 `reference.md` 里。本技能只保留提取原则：
+`{slug}-design.md` 和 `{slug}-checklist.yaml` 的完整模板、frontmatter 示例、节锚点、提取格式都在同目录 `reference.md` 里。本技能只保留提取原则：
 
 - `steps`：从第 3 节"推进顺序"逐步抽，一步一条
 - `checks`：从这几处综合抽——
@@ -113,7 +113,7 @@ AI 在这一步默认会翻的车是**不思考就往眼前最顺手的文件里
   - 第 2 节关键接口契约 → 接口一致性检查项
   - 第 3 节测试设计的每条测试约束 → 测试验证检查项
 
-落盘后用 `validate-yaml.py --file {checklist.yaml 路径} --yaml-only` 校验语法。
+落盘后用 `validate-yaml.py --file {slug-checklist.yaml 路径} --yaml-only` 校验语法。
 
 ### 7. 退出
 
@@ -123,11 +123,11 @@ AI 在这一步默认会翻的车是**不思考就往眼前最顺手的文件里
 
 ## 模板和格式
 
-`design.md` / `checklist.yaml` 的完整参考拆到了同目录 `reference.md`：
+`{slug}-design.md` / `{slug}-checklist.yaml` 的完整参考拆到了同目录 `reference.md`：
 
 - YAML frontmatter 示例
 - 顶层节锚点要求
-- `checklist.yaml` 完整格式与状态语义
+- `{slug}-checklist.yaml` 完整格式与状态语义
 - 第 0-4 节各自该写什么
 
 本技能只保留流程层面的约束：按那份参考一次性起草完整初稿，不分批吐半成品。
@@ -150,8 +150,8 @@ AI 在这一步默认会翻的车是**不思考就往眼前最顺手的文件里
 - [ ] 测试设计按功能点组织，每个功能点都有测试约束 / 验证方式 / 关键用例骨架
 - [ ] 记录了高风险实现约束
 - [ ] 用户确认通过后，frontmatter 的 `status` 改成了 `approved`
-- [ ] `checklist.yaml` 已从 design.md 抽出生成，且通过 `validate-yaml.py` 校验
-- [ ] `checklist.yaml` 的 steps 条目数和第 3 节推进顺序一致
+- [ ] `{slug}-checklist.yaml` 已从 `{slug}-design.md` 抽出生成，且通过 `validate-yaml.py` 校验
+- [ ] `{slug}-checklist.yaml` 的 steps 条目数和第 3 节推进顺序一致
 
 文件路径：方案文件在 `easysdd/features/{feature}/` 下；feature 目录不存在就在这一步建。命名约定看 `easysdd/reference/shared-conventions.md` 第 0 节。
 

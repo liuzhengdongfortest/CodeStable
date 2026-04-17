@@ -1,6 +1,6 @@
 ---
 name: easysdd-feature-brainstorm
-description: feature 流程的可选阶段 0——想法还模糊时用对话把它磨清晰到能进 design 的程度。AI 在这里是思考伙伴，不是问卷机：主动提议、主动挑战假设、主动给方案空间。聊完产出 brainstorm.md 落盘。触发场景：用户说"有个想法没想清楚"、"先 brainstorm"、"功能方向还在摇摆"。想法已经清晰就跳过直接走 design，不要拉着用户做他觉得多余的发散。也不处理 bug 和重构。
+description: feature 流程的可选阶段 0——想法还模糊时用对话把它磨清晰到能进 design 的程度。AI 在这里是思考伙伴，不是问卷机：主动提议、主动挑战假设、主动给方案空间。聊完产出 {slug}-brainstorm.md 落盘。触发场景：用户说"有个想法没想清楚"、"先 brainstorm"、"功能方向还在摇摆"。想法已经清晰就跳过直接走 design，不要拉着用户做他觉得多余的发散。也不处理 bug 和重构。
 ---
 
 # easysdd-feature-brainstorm
@@ -17,8 +17,8 @@ description: feature 流程的可选阶段 0——想法还模糊时用对话把
 
 1. **确认这是新功能 brainstorm**——bug 应该走 issue，重构走独立方案，已经想清楚的需求直接进 design。走错入口比拒绝触发还坏。
 2. **确认真的有模糊度**——如果你已经能写出 design 第 1 节"需求摘要"的初稿，老实告诉用户跳过 brainstorm 直接进 design 更省事。这一阶段最大的反模式是揽下不属于自己的活。
-3. **看一下已有产物**——Glob 一下 `easysdd/features/` 下面有没有名字相近的 `brainstorm.md` 或 `design.md`。有的话先确认是接着改还是另起一个，不要默默覆盖别人的工作。
-4. **断点恢复**——如果已经有一份有内容的 `brainstorm.md`（不是空模板），读完后简短汇报一句："上次聊到了 {选定方向 / 最后那个话题}，要接着聊还是推翻重来？"用户选接着聊就从那儿继续，别重问已经回答过的问题。
+3. **看一下已有产物**——Glob 一下 `easysdd/features/` 下面有没有名字相近的 `{slug}-brainstorm.md` 或 `{slug}-design.md`。有的话先确认是接着改还是另起一个，不要默默覆盖别人的工作。
+4. **断点恢复**——如果已经有一份有内容的 `{slug}-brainstorm.md`（不是空模板），读完后简短汇报一句："上次聊到了 {选定方向 / 最后那个话题}，要接着聊还是推翻重来？"用户选接着聊就从那儿继续，别重问已经回答过的问题。
 
 ---
 
@@ -44,7 +44,7 @@ description: feature 流程的可选阶段 0——想法还模糊时用对话把
 
 ## 聊完落盘
 
-对话收敛后写 brainstorm note 到 `easysdd/features/{feature}/brainstorm.md`。
+对话收敛后写 brainstorm note 到 `easysdd/features/{feature}/{slug}-brainstorm.md`。
 
 ### feature 目录怎么建
 

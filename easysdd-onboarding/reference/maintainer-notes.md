@@ -8,12 +8,12 @@
 
 AI 对话随时可能中断（token 超限、网络断开、用户换设备）。各阶段发现自己不是从零开始时，必须优先检查已有产物的完成度，从上次停下的地方继续：
 
-- **brainstorm**：如 `brainstorm.md` 已有部分内容，读取后问用户"上次聊到 X，要接着聊还是推翻重来？"
-- **design**：如 `design.md` 已有部分节，逐节检查完成度，补齐缺失节，不重写已完成节
-- **implement**：`checklist.yaml` 中已 `done` 的步骤不重做，从第一个 `pending` 步骤开始
-- **acceptance**：如 `acceptance.md` 已有部分节，检查哪些节已填写（有实质 checklist 勾选），从下一个未完成节继续
-- **issue-analyze**：如 `analysis.md` 已存在，检查 5 节是否都有内容，缺失的补做，已有的不重写
-- **issue-fix**：如代码已改但 `fix-note.md` 不存在，直接进入验证 + 写 fix-note 环节
+- **brainstorm**：如 `{slug}-brainstorm.md` 已有部分内容，读取后问用户"上次聊到 X，要接着聊还是推翻重来？"
+- **design**：如 `{slug}-design.md` 已有部分节，逐节检查完成度，补齐缺失节，不重写已完成节
+- **implement**：`{slug}-checklist.yaml` 中已 `done` 的步骤不重做，从第一个 `pending` 步骤开始
+- **acceptance**：如 `{slug}-acceptance.md` 已有部分节，检查哪些节已填写（有实质 checklist 勾选），从下一个未完成节继续
+- **issue-analyze**：如 `{slug}-analysis.md` 已存在，检查 5 节是否都有内容，缺失的补做，已有的不重写
+- **issue-fix**：如代码已改但 `{slug}-fix-note.md` 不存在，直接进入验证 + 写 fix-note 环节
 
 恢复时先向用户简短汇报："检测到上次工作到 X 阶段，我从 Y 继续"。
 

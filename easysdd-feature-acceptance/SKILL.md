@@ -1,13 +1,13 @@
 ---
 name: easysdd-feature-acceptance
-description: feature 流程的阶段 3——做完整验收闭环。两件事：一是逐层对照 design.md 核对实现有没有走样，发现偏差就当场修不是写在报告里"记一下"；二是把这个 feature 归并到项目的整体架构文档里。最后产出一份 acceptance.md 作为整套流程的闭环凭证。前置依赖 easysdd-feature-implement 已完成。触发场景：用户说"功能写完了验收一下"、"做最后检查"、"准备 merge"、"出验收报告"。
+description: feature 流程的阶段 3——做完整验收闭环。两件事：一是逐层对照 {slug}-design.md 核对实现有没有走样，发现偏差就当场修不是写在报告里"记一下"；二是把这个 feature 归并到项目的整体架构文档里。最后产出一份 {slug}-acceptance.md 作为整套流程的闭环凭证。前置依赖 easysdd-feature-implement 已完成。触发场景：用户说"功能写完了验收一下"、"做最后检查"、"准备 merge"、"出验收报告"。
 ---
 
 # easysdd-feature-acceptance
 
 到这一步代码已经写完了，但流程没结束。这一阶段做两件事，缺一不可：
 
-1. **核对实现有没有偏离方案**——逐层对照 design.md 的四个节，发现偏差当场修，**不是在报告里"记一下"**就过去
+1. **核对实现有没有偏离方案**——逐层对照 `{slug}-design.md` 的四个节，发现偏差当场修，**不是在报告里"记一下"**就过去
 2. **把 feature 归并到整体架构**——对照方案 doc 第 4 节，实际去更新架构中心目录下的相关 doc
 
 为什么这两件事都重要？只做第一件，新功能加进去了但项目级架构 doc 还说着老结构，下一个 feature 的设计阶段读到的就是过期信息。只做第二件，可能把"实现已经偏离方案"的事实掩埋——架构 doc 写得很漂亮，代码却不是那么回事。
@@ -40,9 +40,9 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 | 4 术语一致性 | 方案第 0 节（术语约定） | 无术语表，检查代码命名一致性即可 |
 | 5 架构归并 | 方案第 4 节（架构关系） | 通常无架构变更，确实无关写"本次 fastforward 无架构维度变更" |
 
-### 3. checklist.yaml 状态
+### 3. {slug}-checklist.yaml 状态
 
-`checklist.yaml` 的生命周期看 `easysdd/reference/shared-conventions.md`。本阶段只核对并更新 `checks` 一段：
+`{slug}-checklist.yaml` 的生命周期看 `easysdd/reference/shared-conventions.md`。本阶段只核对并更新 `checks` 一段：
 
 - 文件存在，`feature` 字段跟当前 feature 目录一致
 - `steps` 所有条目 status 为 `done`（有 `pending` 说明 implement 没完成，先退回）
@@ -52,20 +52,20 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 ### 4. 把上下文读全
 
 - 方案 doc 全文（重点是第 1 节需求摘要 / 明确不做、第 2 节接口契约、第 3 节测试设计）
-- checklist.yaml
+- `{slug}-checklist.yaml`
 - 架构中心目录下方案 doc 第 4 节提到的所有 doc
 - `AGENTS.md`
 - 本次功能的代码改动（git log / git diff）
 
 ### 5. 断点恢复
 
-如果 `acceptance.md` 已存在且有部分填好的节，看哪些节已有实质内容（有 checklist 勾选或文字填写），从下一个未完成节继续。同时检查 `checklist.yaml` 的 `checks` 中已 `passed` 的项，跳过已验证完的检查。汇报一句："上次验收做到第 X 节，我从第 Y 节继续。"
+如果 `{slug}-acceptance.md` 已存在且有部分填好的节，看哪些节已有实质内容（有 checklist 勾选或文字填写），从下一个未完成节继续。同时检查 `{slug}-checklist.yaml` 的 `checks` 中已 `passed` 的项，跳过已验证完的检查。汇报一句："上次验收做到第 X 节，我从第 Y 节继续。"
 
 ---
 
 ## 验收报告模板
 
-逐节填写，**别跳节**。报告路径在 feature 目录下，跟 design.md 聚合（具体位置看 `easysdd/reference/shared-conventions.md` 第 0 节）。
+逐节填写，**别跳节**。报告路径在 feature 目录下，跟 `{slug}-design.md` 聚合（具体位置看 `easysdd/reference/shared-conventions.md` 第 0 节）。
 
 ```markdown
 # {功能名称} 验收报告
@@ -171,7 +171,7 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 4. 第 5 节（架构归并）——读完方案 doc 第 4 节后逐项执行。"整体不影响架构"一句话带过是反模式，要么找出影响在哪、要么明确写"X 节列出的某项确认无影响（理由）"
 5. 第 6 节（遗留）——把实现阶段攒下的"顺手发现"和已知限制都记进来
 
-各节核对完后，**逐条更新 `checklist.yaml` 的 `checks`**：
+各节核对完后，**逐条更新 `{slug}-checklist.yaml` 的 `checks`**：
 
 - 验证通过 → `status` 改为 `passed`
 - 验证失败 → `status` 改为 `failed`，先修代码 / 方案再改回 `passed`
@@ -187,7 +187,7 @@ git status / 最近提交里能看到本功能的代码改动。没看到就是 
 - [ ] 第 3 节测试约束核对全部勾选（未通过的有补救方案），前端改动已浏览器验证
 - [ ] 第 4 节术语一致性无遗漏
 - [ ] 第 5 节架构归并每条都有明确结论，需要更新的 doc 已实际写入
-- [ ] `checklist.yaml` 所有 checks 的 status 都已更新为 `passed`
+- [ ] `{slug}-checklist.yaml` 所有 checks 的 status 都已更新为 `passed`
 - [ ] 用户终审确认
 
 ---

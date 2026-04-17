@@ -1,8 +1,8 @@
 # feature-design 参考模板
 
-本文件提供 `easysdd-feature-design` 使用的 `design.md` / `checklist.yaml` 参考格式。
+本文件提供 `easysdd-feature-design` 使用的 `{slug}-design.md` / `{slug}-checklist.yaml` 参考格式。
 
-## 1. design.md frontmatter
+## 1. {slug}-design.md frontmatter
 
 ```markdown
 ---
@@ -24,7 +24,7 @@ tags: [auth, email, login]
 - `## 3. 实现提示`
 - `## 4. 与项目级架构文档的关系`
 
-## 3. checklist.yaml 格式
+## 3. {slug}-checklist.yaml 格式
 
 ```yaml
 feature: {feature 目录名}
@@ -45,7 +45,7 @@ checks:
 
 - `steps` 条目数必须与第 3 节推进顺序一致
 - `checks` 至少覆盖明确不做、关键接口契约、测试约束
-- 不允许编造 design.md 里不存在的条目
+- 不允许编造 `{slug}-design.md` 里不存在的条目
 
 ## 4. 各节写作要求
 

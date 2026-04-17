@@ -22,8 +22,8 @@
 
 | 要做的事 | 子技能 | 做完留下的文件 |
 |---|---|---|
-| 加新功能 | `easysdd-feature` | `design.md` + `acceptance.md` |
-| 修 bug | `easysdd-issue` | `report.md` + `analysis.md` + `fix-note.md` |
+| 加新功能 | `easysdd-feature` | `{slug}-design.md` + `{slug}-acceptance.md` |
+| 修 bug | `easysdd-issue` | `{slug}-report.md` + `{slug}-analysis.md` + `{slug}-fix-note.md` |
 | 把踩过的坑记下来 | `easysdd-learning` | `compound/YYYY-MM-DD-learning-*.md` |
 | 写"这种情况这么做"的参考 | `easysdd-tricks` | `compound/YYYY-MM-DD-trick-*.md` |
 | 定约束、记技术选型 | `easysdd-decisions` | `compound/YYYY-MM-DD-decision-*.md` |
@@ -39,7 +39,7 @@
 
 以"加用户登录功能"为例：
 
-1. 你说「做个登录功能」——AI 不会马上写代码，先进 design 阶段，产出一份 `design.md`：里面有个术语表（讲清楚什么叫"用户"、什么叫"会话"，防着跟老代码里的叫法对不上）、接口怎么约定、以及测试里那些"代码上线以后必须永远成立"的条件
+1. 你说「做个登录功能」——AI 不会马上写代码，先进 design 阶段，产出一份 `{slug}-design.md`：里面有个术语表（讲清楚什么叫"用户"、什么叫"会话"，防着跟老代码里的叫法对不上）、接口怎么约定、以及测试里那些"代码上线以后必须永远成立"的条件
 2. 你读这份 doc，改到满意，才拍板
 3. 进 implement 阶段，AI 按 doc 一步步写——每写完一段停一下让你看，不一口气写完几百行
 4. 最后进 acceptance 阶段，对着 doc 核一遍代码真的做到了当初答应的事；然后代码和 doc 一起 commit
