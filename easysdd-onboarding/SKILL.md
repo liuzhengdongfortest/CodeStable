@@ -94,8 +94,10 @@ easysdd/
 - `easysdd/features/.gitkeep`
 - `easysdd/issues/.gitkeep`
 - `easysdd/compound/.gitkeep`
-- `easysdd/tools/`（把本技能包 `easysdd-onboarding/tools/` 下的所有文件原样复制过去，不修改内容）
-- `easysdd/reference/`（把本技能包 `easysdd-onboarding/reference/` 下的所有文件原样复制过去，不修改内容——这是所有 easysdd 子技能在运行时共享参考文档的唯一方式）
+- `easysdd/tools/`（用 `cp -rf` / `Copy-Item -Recurse -Force` 整目录拷贝本技能包 `easysdd-onboarding/tools/` 下的所有文件，**不要 Read 再 Write**）
+- `easysdd/reference/`（同上，整目录拷贝本技能包 `easysdd-onboarding/reference/`——这是所有 easysdd 子技能在运行时共享参考文档的唯一方式）
+
+> **落盘用 shell 命令整目录覆盖**，不要 `Read` 一个文件再 `Write` 一个文件——这两个目录是机器共享资产，Read+Write 链路容易截断大文件、改缩进、吃空行，还慢还费 token。迁移路径步骤 4 里给了具体命令示例，空仓库路径也照着执行。
 
 **步骤 3：AGENTS.md 提醒**
 
@@ -172,6 +174,28 @@ easysdd/
 
 这一条是迁移路径里**唯一强制覆盖**的动作，其他所有已有文件（architecture / features / issues / compound / AGENTS.md 等）仍然遵守"不经用户确认不动"的原则。
 
+**落盘方式：直接用 shell 命令整目录覆盖，不要 Read 一遍再 Write。**
+
+正确做法（一条命令批量覆盖）：
+
+```bash
+# macOS / Linux
+cp -rf <技能包路径>/easysdd-onboarding/tools/.      easysdd/tools/
+cp -rf <技能包路径>/easysdd-onboarding/reference/.  easysdd/reference/
+
+# Windows PowerShell
+Copy-Item -Recurse -Force <技能包路径>\easysdd-onboarding\tools\*      easysdd\tools\
+Copy-Item -Recurse -Force <技能包路径>\easysdd-onboarding\reference\*  easysdd\reference\
+```
+
+错误做法（不要这样做）：
+
+- ❌ 用 Read 工具把技能包里的文件读出来，再用 Write 工具粘到项目里——文件稍大就会截断内容、改动缩进、吃掉空行，而且慢、费 token、容易抄错
+- ❌ 一个文件一个文件地 `cp`——多一步就多一个出错点
+- ❌ 先比 diff 再决定拷不拷——这两个目录的规则就是"无条件覆盖"，比 diff 是白费力
+
+技能包路径一般就是当前 skill 的安装目录（比如 `~/.claude/skills/easysdd-onboarding/` 或插件目录下的对应位置）。不确定就先 `ls` 定位一下，再执行拷贝。拷完跑一次 `ls easysdd/tools/ easysdd/reference/` 验证文件都在。
+
 **步骤 5：处理不迁移的文件**
 
 用户选择"跳过"的文件：**不移动、不删除、不重命名**，在汇报里标注"保留原位（未纳入 easysdd 体系）"。绝对不允许未经确认就移动或删除任何已有文件——理由很简单：onboarding 的入口只允许 AI 整理而不允许 AI 替用户做删除决定，删错了恢复成本极高。
@@ -216,6 +240,7 @@ easysdd/
 - **把低置信度的映射也直接执行**——置信度低 = 必须问，不问直接迁是在替用户做判断
 - **遇到部分存在的 `easysdd/` 结构就全部覆盖重建**——除 `tools/` 和 `reference/` 外，有内容的文件不允许覆盖，只补空缺
 - **对 `easysdd/tools/` 和 `easysdd/reference/` 也走"不覆盖"保守策略**——正好相反，这两个目录必须用技能包里的新版本覆盖旧版本，否则技能升级后用户项目会停留在过时脚本和过时口径上
+- **用 Read + Write 手工"搬运"文件内容**——必须用 `cp -rf` / `Copy-Item -Recurse -Force` 整目录覆盖。Read+Write 会截断长文件、吃掉空行、改缩进，而且一个个搬容易漏、容易慢、容易费 token
 - **Glob 时忘记排除 `node_modules/`、`.git/`**——这会让扫描结果充斥噪声，判断路径会出错
 
 ---
