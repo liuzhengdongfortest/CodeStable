@@ -139,58 +139,29 @@ class ValidationResult:
         return d
 
 
-def validate_markdown_file(
-    file_path: Path,
-    required_fields: list[str] | None = None,
-    base_dir: Path | None = None,
-) -> ValidationResult:
-    """Validate YAML frontmatter in a single markdown file."""
-    display_path = (
-        str(file_path.relative_to(base_dir)) if base_dir else str(file_path)
-    )
-    result = ValidationResult(display_path)
+def _check_required(parsed: dict | None, required_fields: list[str] | None, result: ValidationResult) -> None:
+    if not required_fields:
+        return
+    for field in required_fields:
+        if field not in (parsed or {}):
+            result.errors.append(f"Missing required field: '{field}'")
 
-    try:
-        text = file_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        result.errors.append(f"Cannot read file: {exc}")
-        return result
 
-    fm_text, extract_err = extract_frontmatter(text)
-    if extract_err:
-        result.errors.append(extract_err)
-        return result
-
-    parsed, parse_err = parse_yaml_text(fm_text)
-    if parse_err:
-        result.errors.append(f"YAML syntax error: {parse_err}")
-        return result
-
-    result.fields = list(parsed.keys()) if parsed else []
-
-    if required_fields:
-        for field in required_fields:
-            if field not in (parsed or {}):
-                result.errors.append(f"Missing required field: '{field}'")
-
+def _warn_if_builtin(result: ValidationResult) -> None:
     if not _HAS_PYYAML:
         result.warnings.append(
             "PyYAML not installed — using builtin fallback parser "
             "(may miss some syntax errors). Install with: pip install pyyaml"
         )
 
-    return result
 
-
-def validate_yaml_file(
+def _validate_file(
     file_path: Path,
-    required_fields: list[str] | None = None,
-    base_dir: Path | None = None,
+    required_fields: list[str] | None,
+    base_dir: Path | None,
+    mode: str,  # "markdown" | "yaml"
 ) -> ValidationResult:
-    """Validate a pure YAML file (not markdown with frontmatter)."""
-    display_path = (
-        str(file_path.relative_to(base_dir)) if base_dir else str(file_path)
-    )
+    display_path = str(file_path.relative_to(base_dir)) if base_dir else str(file_path)
     result = ValidationResult(display_path)
 
     try:
@@ -199,25 +170,33 @@ def validate_yaml_file(
         result.errors.append(f"Cannot read file: {exc}")
         return result
 
-    parsed, parse_err = parse_yaml_text(text)
+    if mode == "markdown":
+        yaml_text, extract_err = extract_frontmatter(text)
+        if extract_err:
+            result.errors.append(extract_err)
+            return result
+    else:
+        yaml_text = text
+
+    parsed, parse_err = parse_yaml_text(yaml_text)
     if parse_err:
         result.errors.append(f"YAML syntax error: {parse_err}")
         return result
 
     result.fields = list(parsed.keys()) if parsed else []
-
-    if required_fields:
-        for field in required_fields:
-            if field not in (parsed or {}):
-                result.errors.append(f"Missing required field: '{field}'")
-
-    if not _HAS_PYYAML:
-        result.warnings.append(
-            "PyYAML not installed — using builtin fallback parser. "
-            "Install with: pip install pyyaml"
-        )
-
+    _check_required(parsed, required_fields, result)
+    _warn_if_builtin(result)
     return result
+
+
+def validate_markdown_file(file_path, required_fields=None, base_dir=None):
+    """Validate YAML frontmatter in a single markdown file."""
+    return _validate_file(file_path, required_fields, base_dir, "markdown")
+
+
+def validate_yaml_file(file_path, required_fields=None, base_dir=None):
+    """Validate a pure YAML file (not markdown with frontmatter)."""
+    return _validate_file(file_path, required_fields, base_dir, "yaml")
 
 
 # ---------------------------------------------------------------------------
@@ -258,85 +237,65 @@ def print_json_results(results: list[ValidationResult]) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
-def main() -> None:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Validate YAML frontmatter in markdown files or pure YAML files.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-
     source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument(
-        "--dir",
-        type=str,
-        help="Directory to scan recursively for .md files",
-    )
-    source.add_argument(
-        "--file",
-        type=str,
-        help="Single file to validate",
-    )
+    source.add_argument("--dir", type=str, help="Directory to scan recursively for .md files")
+    source.add_argument("--file", type=str, help="Single file to validate")
+    parser.add_argument("--require", action="append", default=[], metavar="FIELD",
+                        help="Require this field in frontmatter (repeatable)")
+    parser.add_argument("--json", action="store_true", dest="json_output",
+                        help="Output results as JSON")
+    parser.add_argument("--yaml-only", action="store_true",
+                        help="Treat input as pure YAML (not markdown with frontmatter). "
+                             "Use for .yaml/.yml files like _manifest.yaml.")
+    return parser
 
-    parser.add_argument(
-        "--require",
-        action="append",
-        default=[],
-        metavar="FIELD",
-        help="Require this field in frontmatter (repeatable)",
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        dest="json_output",
-        help="Output results as JSON",
-    )
-    parser.add_argument(
-        "--yaml-only",
-        action="store_true",
-        help="Treat input as pure YAML (not markdown with frontmatter). "
-             "Use for .yaml/.yml files like _manifest.yaml.",
-    )
 
-    args = parser.parse_args()
-    results: list[ValidationResult] = []
+def _validate_single(path_str: str, require: list[str], yaml_only: bool) -> list[ValidationResult]:
+    fp = Path(path_str)
+    if not fp.exists():
+        print(f"Error: File not found: {fp}", file=sys.stderr)
+        sys.exit(2)
+    if yaml_only or fp.suffix in (".yaml", ".yml"):
+        return [validate_yaml_file(fp, require)]
+    return [validate_markdown_file(fp, require)]
+
+
+def _validate_directory(dir_str: str, require: list[str]) -> list[ValidationResult]:
+    dp = Path(dir_str)
+    if not dp.is_dir():
+        print(f"Error: Directory not found: {dp}", file=sys.stderr)
+        sys.exit(2)
+
+    md_files = sorted(dp.rglob("*.md"))
+    yaml_files = sorted(dp.rglob("*.yaml")) + sorted(dp.rglob("*.yml"))
+
+    if not md_files and not yaml_files:
+        print(f"No .md or .yaml files found under {dp}", file=sys.stderr)
+        sys.exit(2)
+
+    results = [validate_markdown_file(md, require, dp) for md in md_files]
+    results += [validate_yaml_file(yf, require, dp) for yf in yaml_files]
+    return results
+
+
+def main() -> None:
+    args = _build_parser().parse_args()
 
     if args.file:
-        fp = Path(args.file)
-        if not fp.exists():
-            print(f"Error: File not found: {fp}", file=sys.stderr)
-            sys.exit(2)
-
-        if args.yaml_only or fp.suffix in (".yaml", ".yml"):
-            results.append(validate_yaml_file(fp, args.require))
-        else:
-            results.append(validate_markdown_file(fp, args.require))
-
-    elif args.dir:
-        dp = Path(args.dir)
-        if not dp.is_dir():
-            print(f"Error: Directory not found: {dp}", file=sys.stderr)
-            sys.exit(2)
-
-        # Scan .md files
-        md_files = sorted(dp.rglob("*.md"))
-        # Also scan .yaml/.yml files if --yaml-only or auto-detect
-        yaml_files = sorted(dp.rglob("*.yaml")) + sorted(dp.rglob("*.yml"))
-
-        if not md_files and not yaml_files:
-            print(f"No .md or .yaml files found under {dp}", file=sys.stderr)
-            sys.exit(2)
-
-        for md in md_files:
-            results.append(validate_markdown_file(md, args.require, dp))
-
-        for yf in yaml_files:
-            results.append(validate_yaml_file(yf, args.require, dp))
+        results = _validate_single(args.file, args.require, args.yaml_only)
+    else:
+        results = _validate_directory(args.dir, args.require)
 
     if args.json_output:
         print_json_results(results)
     else:
         print_text_results(results)
 
-    # Exit code: 0 if all pass, 1 if any fail
     sys.exit(0 if all(r.ok for r in results) else 1)
 
 

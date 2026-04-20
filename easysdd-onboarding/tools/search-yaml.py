@@ -239,76 +239,70 @@ def print_json(results: list[dict], full: bool) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
-def main() -> None:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Generic YAML-frontmatter search across a directory of markdown files.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument(
-        "--dir", metavar="DIR", required=True,
-        help="Directory of .md files to search.",
-    )
-    parser.add_argument(
-        "--filter", "-f", metavar="EXPR", dest="filters",
-        type=parse_filter, action="append", default=[],
-        help=(
-            "Frontmatter filter expression. Repeatable (AND logic). "
-            "key=value for exact match; key~=value for substring (strings) or element-in (lists)."
-        ),
-    )
-    parser.add_argument(
-        "--query", "-q", metavar="TEXT",
-        help="Full-text search in document body and frontmatter values.",
-    )
-    parser.add_argument(
-        "--full", action="store_true",
-        help="Print full document body instead of just the frontmatter summary.",
-    )
-    parser.add_argument(
-        "--json", dest="as_json", action="store_true",
-        help="Output results as a JSON array.",
-    )
-    parser.add_argument(
-        "--sort-by", metavar="FIELD", dest="sort_by",
-        help=(
-            "Sort results by a frontmatter field (e.g. last_reviewed, date, updated_at). "
-            "ISO-8601 date strings and YAML-parsed dates both sort correctly. "
-            "Docs missing the field are pushed to the end."
-        ),
-    )
-    parser.add_argument(
-        "--order", choices=("asc", "desc"), default="desc",
-        help="Sort order when --sort-by is set. Default: desc (newest first).",
-    )
+    parser.add_argument("--dir", metavar="DIR", required=True,
+                        help="Directory of .md files to search.")
+    parser.add_argument("--filter", "-f", metavar="EXPR", dest="filters",
+                        type=parse_filter, action="append", default=[],
+                        help="Frontmatter filter expression. Repeatable (AND logic). "
+                             "key=value for exact match; key~=value for substring (strings) or element-in (lists).")
+    parser.add_argument("--query", "-q", metavar="TEXT",
+                        help="Full-text search in document body and frontmatter values.")
+    parser.add_argument("--full", action="store_true",
+                        help="Print full document body instead of just the frontmatter summary.")
+    parser.add_argument("--json", dest="as_json", action="store_true",
+                        help="Output results as a JSON array.")
+    parser.add_argument("--sort-by", metavar="FIELD", dest="sort_by",
+                        help="Sort results by a frontmatter field (e.g. last_reviewed, date, updated_at). "
+                             "ISO-8601 date strings and YAML-parsed dates both sort correctly. "
+                             "Docs missing the field are pushed to the end.")
+    parser.add_argument("--order", choices=("asc", "desc"), default="desc",
+                        help="Sort order when --sort-by is set. Default: desc (newest first).")
+    return parser
 
-    args = parser.parse_args()
 
-    directory = Path(args.dir)
+def _resolve_directory(dir_arg: str) -> Path:
+    directory = Path(dir_arg)
     if not directory.exists():
         print(f"[error] Directory not found: {directory}", file=sys.stderr)
         sys.exit(1)
     if not directory.is_dir():
         print(f"[error] Not a directory: {directory}", file=sys.stderr)
         sys.exit(1)
+    return directory
+
+
+def _sort_results(results: list[dict], sort_by: str, order: str) -> list[dict]:
+    def has_field(d: dict) -> bool:
+        return sort_by in d["meta"] and d["meta"][sort_by] is not None
+
+    present = [d for d in results if has_field(d)]
+    missing = [d for d in results if not has_field(d)]
+    present.sort(key=lambda d: _sort_key(d, sort_by), reverse=(order == "desc"))
+    return present + missing
+
+
+def main() -> None:
+    args = _build_parser().parse_args()
+    directory = _resolve_directory(args.dir)
 
     docs = load_documents(directory)
-
     if not docs:
         print(f"No .md files found in {directory}")
         return
 
     results = [d for d in docs if doc_matches(d, args.filters, args.query)]
-
     if not results:
         print("No matching documents found.")
         return
 
     if args.sort_by:
-        present = [d for d in results if args.sort_by in d["meta"] and d["meta"][args.sort_by] is not None]
-        missing = [d for d in results if d not in present]
-        present.sort(key=lambda d: _sort_key(d, args.sort_by), reverse=(args.order == "desc"))
-        results = present + missing
+        results = _sort_results(results, args.sort_by, args.order)
 
     if args.as_json:
         print_json(results, full=args.full)
