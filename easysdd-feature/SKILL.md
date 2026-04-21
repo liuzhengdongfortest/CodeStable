@@ -25,7 +25,8 @@ description: 做新功能开发时进入这套子流程——把"加个 X 能力
 easysdd/
 └── features/
     └── {feature}/
-        ├── {slug}-brainstorm.md       ← 阶段 0 的产物（可选）
+        ├── {slug}-brainstorm.md       ← 阶段 0 的产物（可选，AI 引导对话沉淀）
+        ├── {slug}-intent.md           ← 阶段 1 的可选前置草稿（用户自己写的半成品方案）
         ├── {slug}-design.md           ← 阶段 1 的方案文件（带 YAML frontmatter + 测试设计）
         ├── {slug}-checklist.yaml      ← 阶段 1 顺手生成，2/3 阶段更新
         └── {slug}-acceptance.md       ← 阶段 3 的验收报告
@@ -79,7 +80,9 @@ fastforward 的 `{slug}-design.md` 跟标准流程共用同一个 feature 目录
 |---|---|
 | 想法模糊，说不清真问题 / 边界 / 不做什么 | 问一下要不要先走 brainstorm（判断方法见下） |
 | 想法清晰（知道做什么、为谁、怎么算成功） | `easysdd-feature-design` |
+| 用户说"开一个新需求 / 起个草稿 / 新建一个 feature"，想自己写半成品方案 | `easysdd-feature-design` 的"初始化模式"（建目录 + 空 `{slug}-intent.md`，让用户填完再回来） |
 | 用户主动说"先 brainstorm 一下" | `easysdd-feature-brainstorm` |
+| `{slug}-intent.md` 已存在且填好，用户说可以进设计了 | `easysdd-feature-design`（读 intent 作输入） |
 | 用户说"快速模式"、"fastforward"等 | `easysdd-feature-fastforward` |
 | `{slug}-brainstorm.md` 已存在，用户说可以进设计了 | `easysdd-feature-design` |
 | `{slug}-design.md` 已 approved、代码还没动 | `easysdd-feature-implement` |
@@ -96,6 +99,15 @@ fastforward 的 `{slug}-design.md` 跟标准流程共用同一个 feature 目录
 - 有没有一条明确的"不做什么"
 
 三项有一项模糊，brainstorm 就值得走。但别强推——如果用户明确说"我想清楚了，直接做设计"，就尊重他的判断。不确定的时候问一句让用户选。宁可漏判（让用户直接进设计），也别误判（逼一个想清楚的用户做他觉得多余的发散）。
+
+### brainstorm 和 intent 怎么选
+
+两者都是 design 的前置，区别在**谁在主导收敛**：
+
+- brainstorm：用户脑子里还模糊，希望通过对话想清楚，AI 问用户答，产出是对话沉淀的 `{slug}-brainstorm.md`
+- intent：用户自己已经想好大致做法（比如一段 100 字的描述 + 相关数据结构），只是懒得口述，直接写成 `{slug}-intent.md` 给 AI 读
+
+用户说"开一个新需求"这种模糊触发时，默认问一句"你想先聊清楚（brainstorm）还是自己写草稿（intent）？"，别自己挑一个推进。
 
 ---
 
