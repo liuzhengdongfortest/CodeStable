@@ -134,6 +134,7 @@ status: current | draft | outdated
 last_reviewed: YYYY-MM-DD
 tags: []
 depends_on: []   # 其他 architecture doc 的 slug，可选
+implements: []   # 这块架构承载的 requirement slug 列表（`easysdd/requirements/` 下），可空——纯基础设施 / 工具层没有对应 requirement 是正常的
 ---
 ```
 
@@ -228,6 +229,7 @@ depends_on: []   # 其他 architecture doc 的 slug，可选
 
 | 方向 | 关系 |
 |---|---|
+| `easysdd-requirements` 配合 | requirement 描述"为什么要有这个能力"、本技能描述"用什么结构实现"；frontmatter `implements` 字段反向链到承载的 requirement slug |
 | `easysdd-feature-design` 上游 | design 写到"本 feature 和哪块架构对接"时读本技能产出的 doc |
 | `easysdd-feature-acceptance` 下游 | 验收时如果发现 feature 对某块架构有实质影响 → 可触发本技能 `update` 模式刷新那份 doc |
 | `easysdd-decisions` 配合 | 拍板一条架构决策后，本技能 `update` 可把引用补进相关架构 doc 的第 4 节 |

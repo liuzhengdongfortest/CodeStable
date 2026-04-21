@@ -8,6 +8,7 @@
 ---
 doc_type: feature-design
 feature: 2026-04-12-user-auth
+requirement: user-auth-email
 status: draft
 summary: 支持用户通过邮箱验证码登录后台
 tags: [auth, email, login]
@@ -15,6 +16,8 @@ tags: [auth, email, login]
 ```
 
 必填字段：`doc_type`、`feature`、`status`、`summary`、`tags`。
+
+`requirement` 字段：填本 feature 对应的 requirement slug（`easysdd/requirements/{slug}.md` 去掉 `.md` 后缀）。纯重构 / 技术债 / 工具链改造类 feature 不新增用户可感能力，允许留空，但要在第 1 节"决策与约束"里明确写"本 feature 不新增能力，无对应 requirement"。
 
 ## 2. 顶层节锚点
 

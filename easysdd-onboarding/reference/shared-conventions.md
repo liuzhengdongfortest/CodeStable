@@ -12,7 +12,9 @@ onboarding 完成后，项目里应当存在如下骨架（`easysdd-onboarding` 
 
 ```
 easysdd/
-├── architecture/          架构中心目录
+├── requirements/          需求中心目录（"为什么要有这个能力"）
+│   └── {slug}.md          一个能力一份，扁平（由 easysdd-requirements 产出）
+├── architecture/          架构中心目录（"用什么结构实现"）
 │   ├── DESIGN.md          架构总入口（索引 + 关键架构决定）
 │   └── {slug}.md          子系统 / 模块架构 doc（由 easysdd-architecture-gen 产出）
 ├── features/              feature spec 聚合根
@@ -35,6 +37,7 @@ easysdd/
 
 ### 命名规则
 
+- 需求文档：`easysdd/requirements/{slug}.md`（长效能力清单，不带日期前缀，扁平不分组）
 - feature 目录：`easysdd/features/YYYY-MM-DD-{slug}/`，日期用创建当天
 - issue 目录：`easysdd/issues/YYYY-MM-DD-{slug}/`，日期用报告当天
 - 沉淀类文档：`easysdd/compound/YYYY-MM-DD-{doc_type}-{slug}.md`，日期用**归档当天**（不是问题发生当天）
