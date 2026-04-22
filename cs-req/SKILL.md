@@ -1,13 +1,13 @@
 ---
-name: easysdd-requirements
-description: 为项目起草或更新 `easysdd/requirements/` 下的需求文档——用**用户故事 + 平铺语言**描述一个能力"因什么而产生、如何解决、边界在哪"，让非技术读者也能扫一眼看懂系统突出的地方。和 architecture 分层：requirement 是"问题空间"（为什么要有这个能力），architecture 是"解空间"（用什么结构实现它）。两种模式：new（从零起草一份新需求 doc）、update（按新素材或实现变化刷新已有 doc）。单目标规则——一次只动一份文档。触发场景：用户说"补一份需求 doc"、"把这块能力的需求写下来"、"更新 requirements 目录"，或 feature-design 阶段发现本次要实现的能力还没有对应的 requirement。
+name: cs-req
+description: 为项目起草或更新 `codestable/requirements/` 下的需求文档——用**用户故事 + 平铺语言**描述一个能力"因什么而产生、如何解决、边界在哪"，让非技术读者也能扫一眼看懂系统突出的地方。和 architecture 分层：requirement 是"问题空间"（为什么要有这个能力），architecture 是"解空间"（用什么结构实现它）。两种模式：new（从零起草一份新需求 doc）、update（按新素材或实现变化刷新已有 doc）。单目标规则——一次只动一份文档。触发场景：用户说"补一份需求 doc"、"把这块能力的需求写下来"、"更新 requirements 目录"，或 feature-design 阶段发现本次要实现的能力还没有对应的 requirement。
 ---
 
-# easysdd-requirements
+# cs-req
 
-`easysdd/requirements/` 是项目的"能力清单"——每份文档描述**一个能力因什么问题而产生、怎么解决、边界在哪**，写成人话，非技术读者也能扫一眼看懂。架构文档讲"怎么搭"，需求文档讲"为什么要有这个"。两者分开记录的好处是：单独讨论需求时不被实现细节干扰，单独讨论架构时也不被产品视角牵着走。
+`codestable/requirements/` 是项目的"能力清单"——每份文档描述**一个能力因什么问题而产生、怎么解决、边界在哪**，写成人话，非技术读者也能扫一眼看懂。架构文档讲"怎么搭"，需求文档讲"为什么要有这个"。两者分开记录的好处是：单独讨论需求时不被实现细节干扰，单独讨论架构时也不被产品视角牵着走。
 
-**requirement 是现状档案，不是计划档案**。只描述"这个能力现在已经存在、边界长这样"。默认只在 feature-acceptance 时跟着代码一起刷新（feature 实现改了边界 / 用户故事，回写到 req），必要时才由本技能主动 update 模式更新。**不记"打算做什么"、不记"下一步会加什么"**——那些属于 `easysdd-roadmap` 的规划层。用户说"我想要 X 能力"但 X 还没做出来时，不要在这里开新 req——要么能力已经在做且需要先把目标态写下来指导实现（走 roadmap 拆解 + 后续 feature-acceptance 回写 req），要么直接走 roadmap。
+**requirement 是现状档案，不是计划档案**。只描述"这个能力现在已经存在、边界长这样"。默认只在 feature-acceptance 时跟着代码一起刷新（feature 实现改了边界 / 用户故事，回写到 req），必要时才由本技能主动 update 模式更新。**不记"打算做什么"、不记"下一步会加什么"**——那些属于 `cs-roadmap` 的规划层。用户说"我想要 X 能力"但 X 还没做出来时，不要在这里开新 req——要么能力已经在做且需要先把目标态写下来指导实现（走 roadmap 拆解 + 后续 feature-acceptance 回写 req），要么直接走 roadmap。
 
 需求文档的价值在于**扫一眼就能抓到重点**——用户故事在最前面、痛点和解法各一段短的、边界用列表。AI 写需求文档最容易出的几种问题都会破坏"扫一眼就抓到重点"这个特性：
 
@@ -18,8 +18,8 @@ description: 为项目起草或更新 `easysdd/requirements/` 下的需求文档
 
 下面整套规则就是为了不让这四种情况发生。
 
-> 共享路径与命名约定看 `easysdd/reference/shared-conventions.md`。
-> 一份样例文档看 `easysdd/reference/requirement-example.md`——起草前读一遍对齐语气。
+> 共享路径与命名约定看 `codestable/reference/shared-conventions.md`。
+> 一份样例文档看 `codestable/reference/requirement-example.md`——起草前读一遍对齐语气。
 
 ---
 
@@ -31,11 +31,11 @@ description: 为项目起草或更新 `easysdd/requirements/` 下的需求文档
 
 不适用：
 
-- 用户要写的是"这个系统技术上怎么搭" → 转 `easysdd-architecture`
-- 用户要写的是单次 feature 的方案 → 转 `easysdd-feature-design`
-- 用户要拍板一条长期规约 / 选型 → 转 `easysdd-decisions`
-- 用户要写外部读者的"怎么用" → 转 `easysdd-guidedoc`
-- 用户抛出一块大需求想拆成几轮做（"我想要一个 X 系统"）→ 转 `easysdd-roadmap`——那是规划层，不往 req 里塞"待做能力"
+- 用户要写的是"这个系统技术上怎么搭" → 转 `cs-arch`
+- 用户要写的是单次 feature 的方案 → 转 `cs-feat-design`
+- 用户要拍板一条长期规约 / 选型 → 转 `cs-decide`
+- 用户要写外部读者的"怎么用" → 转 `cs-guide`
+- 用户抛出一块大需求想拆成几轮做（"我想要一个 X 系统"）→ 转 `cs-roadmap`——那是规划层，不往 req 里塞"待做能力"
 
 ---
 
@@ -43,7 +43,7 @@ description: 为项目起草或更新 `easysdd/requirements/` 下的需求文档
 
 每次只动一份文档，二选一：
 
-- **new**：起草一份新需求文档（`easysdd/requirements/{slug}.md`）
+- **new**：起草一份新需求文档（`codestable/requirements/{slug}.md`）
 - **update**：按新素材 / 实现变化刷新一份已有需求文档
 
 为什么不允许一次写多份？需求文档的价值在于**每份都被读过**——一次吐多份 AI 起草稿，用户没精力逐份仔细 review，最后要么全部粗糙合入、要么全部放着不看。
@@ -71,17 +71,17 @@ description: 为项目起草或更新 `easysdd/requirements/` 下的需求文档
 共同必读：
 
 - `AGENTS.md`
-- `easysdd/requirements/` 下的其他需求文档（判断"这份要不要和它们互相引用"、"有没有和哪份重复")
+- `codestable/requirements/` 下的其他需求文档（判断"这份要不要和它们互相引用"、"有没有和哪份重复")
 - 用户提供的素材（口述、产品想法、用户反馈、已有 feature 方案里散落的需求描述）
 
 按情况读：
 
-- 可能承载这个能力的 architecture doc（`easysdd/architecture/`）——用于 `implemented_by` 字段
+- 可能承载这个能力的 architecture doc（`codestable/architecture/`）——用于 `implemented_by` 字段
 - 和本能力相关的已有 feature 方案（了解这个能力最近是怎么演进的）
 - 相关的 compound 沉淀（explore / decision 里可能记过这块能力的背景）：
 
   ```bash
-  python easysdd/tools/search-yaml.py --dir easysdd/compound --query "{能力关键词}"
+  python codestable/tools/search-yaml.py --dir codestable/compound --query "{能力关键词}"
   ```
 
 **update 模式额外必读**：当前版本文档全文 + 该文档 `last_reviewed` 之后相关实现的变化（`git log` 粗扫 `implemented_by` 里那些 architecture doc 对应的代码模块即可）。
@@ -110,9 +110,9 @@ description: 为项目起草或更新 `easysdd/requirements/` 下的需求文档
 
 ### Phase 6：落盘 + 索引更新
 
-- new 模式：写入 `easysdd/requirements/{slug}.md`，frontmatter `status: current`，`last_reviewed` 填当天
+- new 模式：写入 `codestable/requirements/{slug}.md`，frontmatter `status: current`，`last_reviewed` 填当天
 - update 模式：覆盖已有文件，`last_reviewed` 更新为当天；如果结构性改动大，在文档末尾 `变更日志` 节加一条"YYYY-MM-DD：{一句话描述}"
-- **索引更新**：如果 `easysdd/requirements/` 下有 `README.md` 或索引文件，顺带加一行链接。没有就不强求——requirements 目前扁平，`ls` 本身就是索引
+- **索引更新**：如果 `codestable/requirements/` 下有 `README.md` 或索引文件，顺带加一行链接。没有就不强求——requirements 目前扁平，`ls` 本身就是索引
 
 ---
 
@@ -198,11 +198,11 @@ tags: []
 
 | 方向 | 关系 |
 |---|---|
-| `easysdd-architecture` 配合 | requirement 描述"为什么要有"、architecture 描述"怎么搭"；architecture doc 的 frontmatter 里用 `implements: [req-slug]` 反向链到承载的需求 |
-| `easysdd-feature-design` 上游 | feature 要新增 / 修改一个能力时，先确认对应 requirement 存在或触发本技能新建；纯重构 / 技术债的 feature 不强制要 req |
-| `easysdd-feature-acceptance` 下游 | 验收时发现 feature 改变了某个能力的边界或用户故事 → 触发本技能 `update` 模式刷新对应 req（现状档案跟着代码同步的主路径） |
-| `easysdd-roadmap` 配合 | req 记"这个能力现在是什么"，roadmap 记"打算怎么把它继续推进 / 从无到有做出来"。roadmap 拆解过程里如果发现缺 req，让用户先触发本技能；roadmap 不改 req |
-| `easysdd-onboarding` 创建者 | onboarding 阶段建 `easysdd/requirements/` 空目录，之后由本技能填实 |
+| `cs-arch` 配合 | requirement 描述"为什么要有"、architecture 描述"怎么搭"；architecture doc 的 frontmatter 里用 `implements: [req-slug]` 反向链到承载的需求 |
+| `cs-feat-design` 上游 | feature 要新增 / 修改一个能力时，先确认对应 requirement 存在或触发本技能新建；纯重构 / 技术债的 feature 不强制要 req |
+| `cs-feat-accept` 下游 | 验收时发现 feature 改变了某个能力的边界或用户故事 → 触发本技能 `update` 模式刷新对应 req（现状档案跟着代码同步的主路径） |
+| `cs-roadmap` 配合 | req 记"这个能力现在是什么"，roadmap 记"打算怎么把它继续推进 / 从无到有做出来"。roadmap 拆解过程里如果发现缺 req，让用户先触发本技能；roadmap 不改 req |
+| `cs-onboard` 创建者 | onboarding 阶段建 `codestable/requirements/` 空目录，之后由本技能填实 |
 
 ---
 

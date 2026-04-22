@@ -1,6 +1,6 @@
 # decisions 参考模板
 
-本文件提供 `easysdd-decisions` 使用的 frontmatter、正文模板和示例。
+本文件提供 `cs-decide` 使用的 frontmatter、正文模板和示例。
 
 ## 1. frontmatter
 
@@ -17,7 +17,7 @@ tags: []
 ---
 ```
 
-文件名：`easysdd/compound/YYYY-MM-DD-decision-{slug}.md`。
+文件名：`codestable/compound/YYYY-MM-DD-decision-{slug}.md`。
 
 ## 2. 正文模板
 

@@ -1,6 +1,6 @@
 # feature-design 参考模板
 
-本文件提供 `easysdd-feature-design` 使用的 `{slug}-design.md` / `{slug}-checklist.yaml` 参考格式。
+本文件提供 `cs-feat-design` 使用的 `{slug}-design.md` / `{slug}-checklist.yaml` 参考格式。
 
 ## 1. {slug}-design.md frontmatter
 
@@ -19,9 +19,9 @@ tags: [auth, email, login]
 
 必填字段：`doc_type`、`feature`、`status`、`summary`、`tags`。
 
-`requirement` 字段：填本 feature 对应的 requirement slug（`easysdd/requirements/{slug}.md` 去掉 `.md` 后缀）。纯重构 / 技术债 / 工具链改造类 feature 不新增用户可感能力，允许留空，但要在第 1 节"决策与约束"里明确写"本 feature 不新增能力，无对应 requirement"。
+`requirement` 字段：填本 feature 对应的 requirement slug（`codestable/requirements/{slug}.md` 去掉 `.md` 后缀）。纯重构 / 技术债 / 工具链改造类 feature 不新增用户可感能力，允许留空，但要在第 1 节"决策与约束"里明确写"本 feature 不新增能力，无对应 requirement"。
 
-`roadmap` / `roadmap_item` 字段：只在本 feature 从 roadmap 条目起头时填，两个要么都填要么都空。填了的话 acceptance 阶段会据此自动回写 `easysdd/roadmap/{roadmap}/{roadmap}-items.yaml`。直接起 feature（未经 roadmap）不填这两个字段。
+`roadmap` / `roadmap_item` 字段：只在本 feature 从 roadmap 条目起头时填，两个要么都填要么都空。填了的话 acceptance 阶段会据此自动回写 `codestable/roadmap/{roadmap}/{roadmap}-items.yaml`。直接起 feature（未经 roadmap）不填这两个字段。
 
 ## 2. 顶层节锚点
 
@@ -65,7 +65,7 @@ checks:
 
 - 需求摘要：做什么、为谁、成功标准、明确不做什么
 - 挂载点清单：逐条列出本 feature 往项目哪些位置挂入（新增 / 修改的路由、模块导入、配置项、数据库字段和表、定时任务、事件订阅、公共 UI 注入点、特性开关等）。每条格式：`{挂载位置}：{具体文件或配置 key} — {动作：新增 / 修改}`。粒度达到"照这份清单逆向可以完整拔除"。没有外部挂载的纯内部改动也要写一句说明
-- 复杂度档位：**只记偏离默认组合的维度**（默认组合在 `easysdd/reference/code-dimensions.md` 末尾的"常用默认组合"表里）。每条格式：`{维度名} = {档位}（偏离默认 {默认档位} 的原因：……）`。全部走默认时写一句"本 feature 走 {场景} 默认档位，无偏离"即可，不抄档位表。
+- 复杂度档位：**只记偏离默认组合的维度**（默认组合在 `codestable/reference/code-dimensions.md` 末尾的"常用默认组合"表里）。每条格式：`{维度名} = {档位}（偏离默认 {默认档位} 的原因：……）`。全部走默认时写一句"本 feature 走 {场景} 默认档位，无偏离"即可，不抄档位表。
 - 关键决策：选型/取舍/硬约束/被拒方案
 - 前置依赖（仅在步骤 3 评估出"目标文件结构性问题需要先解决"时写）：列出当前 feature 推进所必须先完成的独立 feature / 改动，以及"等前置完成后再推进"的状态
 - 主流程概述：正常路径 + 关键异常/边界

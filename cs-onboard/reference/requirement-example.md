@@ -1,11 +1,11 @@
 ---
 doc_type: requirement-example
-description: 一份好的 requirement doc 长什么样——供 easysdd-requirements 起草时参考，也供项目成员扫一眼对齐风格
+description: 一份好的 requirement doc 长什么样——供 cs-req 起草时参考，也供项目成员扫一眼对齐风格
 ---
 
 # requirement 文档示例
 
-下面这份示例取自 easysdd 自己的能力（修 bug 时的探索分析流），用来展示一份好的 requirement doc 的**语气、结构、颗粒度**。新项目做 onboarding 时随包落盘，之后写自己的 requirement 可以直接照着改。
+下面这份示例取自 CodeStable 自己的能力（修 bug 时的探索分析流），用来展示一份好的 requirement doc 的**语气、结构、颗粒度**。新项目做 onboarding 时随包落盘，之后写自己的 requirement 可以直接照着改。
 
 ---
 
@@ -30,7 +30,7 @@ pitch: 修 bug 时先让 AI 探索和分析，再动手改
 status: current
 last_reviewed: 2026-04-21
 implemented_by:
-  - arch-easysdd-issue
+  - arch-cs-issue
 tags: [debug, ai-assist]
 ---
 

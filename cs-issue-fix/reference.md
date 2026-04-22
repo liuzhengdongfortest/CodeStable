@@ -1,6 +1,6 @@
 # issue-fix 参考模板
 
-本文件提供 `easysdd-issue-fix` 使用的修复汇报模板、日志调试脚手架和 `{slug}-fix-note.md` 模板。
+本文件提供 `cs-issue-fix` 使用的修复汇报模板、日志调试脚手架和 `{slug}-fix-note.md` 模板。
 
 ## 1. 修复汇报模板
 
@@ -34,7 +34,7 @@
 5. 清理日志打点
 6. 以修订后的根因重新进入修复流程
 
-如果经过 2 轮日志调试仍未定位到根因，建议回到 `easysdd-issue-analyze`。
+如果经过 2 轮日志调试仍未定位到根因，建议回到 `cs-issue-analyze`。
 
 ### 用户取日志提示词
 

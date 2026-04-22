@@ -2,7 +2,7 @@
 
 写代码前先确认每个维度的档位。没明说的走默认，偏离默认的地方要标出来让用户确认。
 
-这份文档是 easysdd 子技能共享的口径，被 design / fastforward / issue-fix 等阶段引用。项目内的权威副本在 `easysdd/reference/code-dimensions.md`，由 `easysdd-onboarding` 从技能包释放。
+这份文档是 CodeStable 子技能共享的口径，被 design / fastforward / issue-fix 等阶段引用。项目内的权威副本在 `codestable/reference/code-dimensions.md`，由 `cs-onboard` 从技能包释放。
 
 ---
 

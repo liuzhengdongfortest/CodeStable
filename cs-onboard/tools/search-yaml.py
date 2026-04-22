@@ -10,24 +10,24 @@ Filter syntax (--filter flag, repeatable, AND logic):
   key~=value    Substring match on a string field, or element-in for list fields
 
 Usage examples:
-  # Search easysdd/compound (learning / trick / decision / explore docs share this dir)
-  python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=learning --filter track=pitfall
-  python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=trick --filter tags~=prisma
-  python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=decision --filter status=active --full
+  # Search codestable/compound (learning / trick / decision / explore docs share this dir)
+  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --filter track=pitfall
+  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --filter tags~=prisma
+  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=decision --filter status=active --full
 
   # Full-text search in body + frontmatter values
-  python easysdd/tools/search-yaml.py --dir easysdd/compound --query "shadow database"
+  python codestable/tools/search-yaml.py --dir codestable/compound --query "shadow database"
 
   # JSON output for AI agent consumption
-  python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=learning --filter track=knowledge --json
+  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --filter track=knowledge --json
 
   # Sort by a frontmatter date field (works on any ISO-8601 date string, YAML date, or sortable value)
-  python easysdd/tools/search-yaml.py --dir easysdd/library-docs --sort-by last_reviewed --order asc   # oldest first (stalest)
-  python easysdd/tools/search-yaml.py --dir easysdd/compound --sort-by date --order desc              # newest first
+  python codestable/tools/search-yaml.py --dir codestable/library-docs --sort-by last_reviewed --order asc   # oldest first (stalest)
+  python codestable/tools/search-yaml.py --dir codestable/compound --sort-by date --order desc              # newest first
 
   # Works on any yaml-frontmatter markdown directory
-  python easysdd/tools/search-yaml.py --dir docs/decisions --filter status=accepted
-  python easysdd/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
+  python codestable/tools/search-yaml.py --dir docs/decisions --filter status=accepted
+  python codestable/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
 """
 
 import argparse

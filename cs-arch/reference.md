@@ -1,6 +1,6 @@
-# easysdd-architecture 参考模板
+# cs-arch 参考模板
 
-本文件提供 `easysdd-architecture` 使用的详细模板和清单。SKILL.md 只保留流程骨架，具体格式、覆盖项、报告模板都在这里。
+本文件提供 `cs-arch` 使用的详细模板和清单。SKILL.md 只保留流程骨架，具体格式、覆盖项、报告模板都在这里。
 
 ---
 
@@ -18,7 +18,7 @@ status: current | draft | outdated
 last_reviewed: YYYY-MM-DD
 tags: []
 depends_on: []   # 其他 architecture doc 的 slug，可选
-implements: []   # 这块架构承载的 requirement slug 列表（`easysdd/requirements/` 下），可空——纯基础设施 / 工具层没有对应 requirement 是正常的
+implements: []   # 这块架构承载的 requirement slug 列表（`codestable/requirements/` 下），可空——纯基础设施 / 工具层没有对应 requirement 是正常的
 ---
 ```
 
@@ -55,7 +55,7 @@ implements: []   # 这块架构承载的 requirement slug 列表（`easysdd/requ
 不是决策全文，是**引用**——每条一两行：
 
 - 结论一句话
-- 引用：`easysdd/compound/YYYY-MM-DD-decision-{slug}.md` 或用户原话出处
+- 引用：`codestable/compound/YYYY-MM-DD-decision-{slug}.md` 或用户原话出处
 - 为什么引用到这份架构 doc 里（和本模块的关系）
 
 没有已落档的决策就省略本节，或记 `TODO: 某决定应沉淀为 decision`。
@@ -92,7 +92,7 @@ implements: []   # 这块架构承载的 requirement slug 列表（`easysdd/requ
 1. **每个结构化断言能不能锚到代码？**——"A 模块通过 X 调用 B"、"Y 持有 Z 的状态"、"所有写入经 W"——每一条在文档的"代码锚点"节或节内注释里能不能给出 `file:line` 支撑？锚不到的断言要么删掉、要么标 `TODO: 待确认` 交给用户。
 2. **有没有替用户拍板？**——"关键决策"节里的条目是"引用已有 decision + 简述原文结论" / "引用用户素材里用户说过的原话"，还是 AI 自己编的选型理由？后者一律不许进文档——停下来问用户。
 3. **有没有变成代码复述？**——每节至少一句话说"为什么这么分"，没有这一句的节基本就是 `ls` 贴文字。
-4. **术语冲突检查做了吗？**——新引入的架构术语做一遍 grep（代码、`easysdd/architecture/` 下所有文档、`easysdd/compound/`）。冲突了就换名字或在第 0 节明确"本文里 X 指 Y，和代码里的 X' 不是一个东西"。
+4. **术语冲突检查做了吗？**——新引入的架构术语做一遍 grep（代码、`codestable/architecture/` 下所有文档、`codestable/compound/`）。冲突了就换名字或在第 0 节明确"本文里 X 指 Y，和代码里的 X' 不是一个东西"。
 5. **是否和现有 architecture / decision 冲突？**——写的过程中如果发现和某条 decision 或其他架构文档描述的事实对不上，不许"写自己的那版"，要么引用那条、要么停下来问用户"是不是那条也该更新了"。
 6. **单节长度**——每节超过 1 屏就该砍或拆。架构文档是给人快速定位的，不是用来读一遍的。
 7. **update 模式专项**：本次新加 / 改动的段落是否都有对应的代码变化作为依据？纯凭空"加一句听起来更完整的描述"是内容飘离实际的开端。
@@ -121,14 +121,14 @@ implements: []   # 这块架构承载的 requirement slug 列表（`easysdd/requ
 5. **改动边界一致性**——design 第 3 节声明的改动范围，代码有没有越界或漏实现
 6. **推进结果一致性**——design 第 3 节每步的退出信号，对应代码状态可验证吗
 
-### 3.3 architecture-folder-internal（`easysdd/architecture/` 下多份文档之间一致性）
+### 3.3 architecture-folder-internal（`codestable/architecture/` 下多份文档之间一致性）
 
 1. **术语一致性**——多份文档对同一概念的称呼是否统一，有没有同义词漂移或同名异义
 2. **模块边界一致性**——A 文档说某职责归模块 X，B 文档里是不是也这么说；有没有两份文档都声称自己拥有同一块职责
 3. **跨文引用有效性**——文档里 `see xxx.md` / `定义见 yyy.md` 这类引用，目标文件和目标小节真的存在吗
 4. **接口 / 契约对齐**——多份文档涉及同一接口 / 类型时，签名、字段、语义是否一致
 5. **依赖关系闭环**——A 文档声明依赖 B 提供的能力，B 文档里真的暴露了该能力吗；有没有单向悬空依赖
-6. **同类聚合与命名**——同 type 文档是否遵循 `{type}-{slug}.md`，根目录某 type 已 ≥6 份是否还在平铺（参照 `easysdd/reference/shared-conventions.md`）
+6. **同类聚合与命名**——同 type 文档是否遵循 `{type}-{slug}.md`，根目录某 type 已 ≥6 份是否还在平铺（参照 `codestable/reference/shared-conventions.md`）
 
 ---
 
@@ -154,9 +154,9 @@ implements: []   # 这块架构承载的 requirement slug 列表（`easysdd/requ
 
 ## 3. 观察项（范围外，不动手）
 
-读 `easysdd/architecture/` 时若发现下列结构性问题，列在这里交给用户决定是否另起工作流处理：
+读 `codestable/architecture/` 时若发现下列结构性问题，列在这里交给用户决定是否另起工作流处理：
 
-- 某个 type 在根目录已 ≥6 份仍平铺（违反 shared-conventions 的同类聚合规则，应触发 `easysdd-architecture` 的 `update` 模式搬迁）
+- 某个 type 在根目录已 ≥6 份仍平铺（违反 shared-conventions 的同类聚合规则，应触发 `cs-arch` 的 `update` 模式搬迁）
 - 文件名没遵循 `{type}-{slug}.md`，未来无法聚合
 - 其他和本次检查目标无关、但顺带看到的不合理点
 
@@ -184,7 +184,7 @@ implements: []   # 这块架构承载的 requirement slug 列表（`easysdd/requ
 ## 5. compound 检索命令（new / update 用）
 
 ```bash
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=decision --filter status=active --query "{模块关键词}"
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=explore --query "{模块关键词}"
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=learning --query "{模块关键词}"
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=decision --filter status=active --query "{模块关键词}"
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=explore --query "{模块关键词}"
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --query "{模块关键词}"
 ```

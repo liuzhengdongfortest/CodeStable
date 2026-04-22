@@ -1,11 +1,11 @@
 ---
-name: easysdd-feature-fastforward
-description: feature 流程的超轻量通道——不写 design、不写 checklist、不做分阶段 review，就让 AI 像平时一样直接动手写代码，但在动手前先告诉它项目里的 easysdd 知识库在哪、怎么搜，让它写出来的代码踩过的坑更少、和项目约定更一致。触发场景：用户说"快速模式"、"fastforward"、"别那么多步骤"、"直接开干"、"帮我做个 xxx"且需求小到不值得走 design 流程。
+name: cs-feat-ff
+description: feature 流程的超轻量通道——不写 design、不写 checklist、不做分阶段 review，就让 AI 像平时一样直接动手写代码，但在动手前先告诉它项目里的 CodeStable 知识库在哪、怎么搜，让它写出来的代码踩过的坑更少、和项目约定更一致。触发场景：用户说"快速模式"、"fastforward"、"别那么多步骤"、"直接开干"、"帮我做个 xxx"且需求小到不值得走 design 流程。
 ---
 
-# easysdd-feature-fastforward
+# cs-feat-ff
 
-用户说"帮我做个 xxx"而且需求小的时候，本来 AI 就会直接动手写——这个技能**不改变这件事**。它只做一件事：在 AI 动手之前，把项目里已经沉淀的 easysdd 知识指给它，让它按需去搜，写出来的代码就能比裸写多一层保护。
+用户说"帮我做个 xxx"而且需求小的时候，本来 AI 就会直接动手写——这个技能**不改变这件事**。它只做一件事：在 AI 动手之前，把项目里已经沉淀的 CodeStable 知识指给它，让它按需去搜，写出来的代码就能比裸写多一层保护。
 
 所以这个技能非常轻。没有 design doc、没有 checklist、没有验收清单、不需要用户确认。看完这份指引，该读代码读代码，该写代码写代码。
 
@@ -15,33 +15,33 @@ description: feature 流程的超轻量通道——不写 design、不写 checkl
 
 项目里可能已经有前人沉淀的经验、决定、探索结果。写代码之前先按需搜一下，命中就省一堆坑。
 
-### `easysdd/compound/` — 经验沉淀
+### `codestable/compound/` — 经验沉淀
 
 放 learning（踩过的坑）/ trick（好用的做法）/ decision（拍板的技术决定）/ explore（定向调研结论）四类文档。文件名带 `doc_type`，可以按 type 和标签过滤。
 
 ```bash
 # 当前任务相关的踩坑记录
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=learning --query "关键词"
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --query "关键词"
 
 # 看有没有相关的技术决定约束了这块怎么写
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=decision --query "关键词"
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=decision --query "关键词"
 
 # 看有没有现成的做法可以抄
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=trick --query "关键词"
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --query "关键词"
 ```
 
-### `easysdd/architecture/` — 架构全景
+### `codestable/architecture/` — 架构全景
 
 `DESIGN.md` 是总入口，子系统拆到同目录下的其他 md 文件里。改到跨模块的东西前先看一眼相关子系统文档，避免违反既定边界。直接 `Read` 就行。
 
-### `easysdd/tools/` — 共享脚本
+### `codestable/tools/` — 共享脚本
 
 - `search-yaml.py` — YAML frontmatter 搜索（上面示范过），支持 `--filter`、`--query`、`--sort-by`
 - `validate-yaml.py` — YAML 语法校验，如果写了带 frontmatter 的文件就跑一下
 
-用法细节在 `easysdd/reference/tools.md`。
+用法细节在 `codestable/reference/tools.md`。
 
-### `easysdd/reference/` — 共享口径
+### `codestable/reference/` — 共享口径
 
 - `shared-conventions.md` — feature / issue / compound 的目录结构、命名、元数据字段约定
 - `tools.md` — 上面两个脚本的完整用法
@@ -127,16 +127,16 @@ python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=tri
 - 往 `utils.ts` / `helpers.ts` 这种万能 util 里继续堆东西
 - 要新起一个概念名（类型 / 函数 / 关键变量）时，先 `grep` 看有没有同名或近义的命名
 
-完整清单看 `easysdd/reference/shared-conventions.md` 第 7 节（代码质量反射检查）。
+完整清单看 `codestable/reference/shared-conventions.md` 第 7 节（代码质量反射检查）。
 
 ---
 
 ## 不做什么
 
-- **不写 design doc**——这是 fastforward 的整个意义所在。要 design 就去 `easysdd-feature-design`
+- **不写 design doc**——这是 fastforward 的整个意义所在。要 design 就去 `cs-feat-design`
 - **不写 checklist / acceptance**——同上
 - **不跟用户确认方案**——用户让你做小功能就是不想等你开会
-- **不在 `easysdd/` 里留下新文件**——除非写代码过程中发现了值得沉淀的坑或技巧，那另起一次对话用 `easysdd-learning` / `easysdd-tricks` 去写
+- **不在 `codestable/` 里留下新文件**——除非写代码过程中发现了值得沉淀的坑或技巧，那另起一次对话用 `cs-learn` / `cs-trick` 去写
 
 ---
 
@@ -146,10 +146,10 @@ python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=tri
 
 - 改动涉及 3 个以上子系统
 - 发现需要引入新术语或和现有术语冲突
-- 要动 `easysdd/architecture/` 里既定的模块边界
+- 要动 `codestable/architecture/` 里既定的模块边界
 - 用户追加的要求让范围翻倍
 
-切回完整流程的方式：触发 `easysdd-feature-design` 技能，从 design 阶段重新走。已经写了一部分代码没关系，在 design 里标注"已部分实现"即可。
+切回完整流程的方式：触发 `cs-feat-design` 技能，从 design 阶段重新走。已经写了一部分代码没关系，在 design 里标注"已部分实现"即可。
 
 ---
 

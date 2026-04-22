@@ -1,6 +1,6 @@
 # learning 参考模板
 
-本文件提供 `easysdd-learning` 的两条轨道模板和示例。产出文档写入 `easysdd/compound/`，文件名 `YYYY-MM-DD-learning-{slug}.md`。
+本文件提供 `cs-learn` 的两条轨道模板和示例。产出文档写入 `codestable/compound/`，文件名 `YYYY-MM-DD-learning-{slug}.md`。
 
 ## 1. 坑点轨道（pitfall）
 

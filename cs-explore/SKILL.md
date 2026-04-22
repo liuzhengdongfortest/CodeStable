@@ -1,11 +1,11 @@
 ---
-name: easysdd-explore
-description: 对仓库做一次定向代码探索，把"提问 → 读代码 → 得结论"的过程沉淀为可检索证据，下次同类问题直接复用。三种类型：question（围绕一个具体问题查代码并给结论）、module-overview（梳理某模块结构 / 边界 / 入口 / 依赖）、spike（对多个可能方向做轻量技术探查，不做最终决策）。触发场景：用户说"先 explore 一下"、"这个仓库里 X 怎么实现"、"快速熟悉这个模块"、"把探索结果存档"。和 learning / tricks / decisions 怎么区分看 `easysdd/reference/system-overview.md`。
+name: cs-explore
+description: 对仓库做一次定向代码探索，把"提问 → 读代码 → 得结论"的过程沉淀为可检索证据，下次同类问题直接复用。三种类型：question（围绕一个具体问题查代码并给结论）、module-overview（梳理某模块结构 / 边界 / 入口 / 依赖）、spike（对多个可能方向做轻量技术探查，不做最终决策）。触发场景：用户说"先 explore 一下"、"这个仓库里 X 怎么实现"、"快速熟悉这个模块"、"把探索结果存档"。和 learning / tricks / decisions 怎么区分看 `codestable/reference/system-overview.md`。
 ---
 
-# easysdd-explore
+# cs-explore
 
-同一个问题第一次花两小时查代码，第二次应该五分钟内找到答案——前提是第一次做完留下了证据化的记录。easysdd-explore 就是把一次完整的"提问 → 读代码 → 得结论"过程沉淀成可检索的探索文档。
+同一个问题第一次花两小时查代码，第二次应该五分钟内找到答案——前提是第一次做完留下了证据化的记录。cs-explore 就是把一次完整的"提问 → 读代码 → 得结论"过程沉淀成可检索的探索文档。
 
 ---
 
@@ -18,7 +18,7 @@ description: 对仓库做一次定向代码探索，把"提问 → 读代码 →
 
 本技能只负责"看到了什么"的证据化记录。如果用户的意图其实是别的（拍板、处方、修 bug），让用户按场景选对应子技能，不要在这里自作主张接过去。
 
-> 共享路径与命名约定看 `easysdd/reference/shared-conventions.md`。本技能的产物写入 `easysdd/compound/`，文件命名 `YYYY-MM-DD-explore-{slug}.md`，frontmatter 带 `doc_type: explore`。
+> 共享路径与命名约定看 `codestable/reference/shared-conventions.md`。本技能的产物写入 `codestable/compound/`，文件命名 `YYYY-MM-DD-explore-{slug}.md`，frontmatter 带 `doc_type: explore`。
 
 ---
 
@@ -58,7 +58,7 @@ description: 对仓库做一次定向代码探索，把"提问 → 读代码 →
 
 ### Phase 1.5：查重叠与意图分流（必做）
 
-按 `easysdd/reference/shared-conventions.md` §6 第 5 / 6 条执行：
+按 `codestable/reference/shared-conventions.md` §6 第 5 / 6 条执行：
 
 - 用户话里含"更新 / 复查 / 某次 explore / 这个模块之前探过"或明确指向某份旧 explore → 直接走**更新或 supersede** 路径。explore 的特性是：**代码已经变了导致旧结论失效**时，旧文档标 `status=outdated` 并新建一份（supersede）；只是补证据 / 收紧结论但核心结论未变时走"更新已有条目"
 - 否则用下面"搜索工具"按关键词 / 模块查一遍，命中相近旧 explore 时先读它，能直接回答就告诉用户"已有一份可用的 explore 在 {路径}，是要复用还是重新探一遍？"
@@ -83,7 +83,7 @@ description: 对仓库做一次定向代码探索，把"提问 → 读代码 →
 
 ### Phase 4：归档
 
-- 新建路径：写入 `easysdd/compound/`，命名 `YYYY-MM-DD-explore-{slug}.md`，frontmatter 顶部带 `doc_type: explore`（见 `reference.md`）
+- 新建路径：写入 `codestable/compound/`，命名 `YYYY-MM-DD-explore-{slug}.md`，frontmatter 顶部带 `doc_type: explore`（见 `reference.md`）
 - 更新路径：写回 Phase 1.5 定位到的原文件，frontmatter 补 `updated: YYYY-MM-DD`
 - supersede 路径：按 `shared-conventions.md` §6 第 5 条处理；旧文档改 `status=outdated` 并加 `superseded-by`
 
@@ -95,14 +95,14 @@ description: 对仓库做一次定向代码探索，把"提问 → 读代码 →
 
 ## 搜索工具
 
-> 完整语法和示例见 `easysdd/reference/tools.md`。本节只列 explore 特有的典型查询。
+> 完整语法和示例见 `codestable/reference/tools.md`。本节只列 explore 特有的典型查询。
 
 ```bash
 # 按类型筛选
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=explore --filter type=module-overview --filter status=active
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=explore --filter type=module-overview --filter status=active
 
 # 归档后查重叠
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=explore --query "{关键词}" --json
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=explore --query "{关键词}" --json
 ```
 
 ---
@@ -113,14 +113,14 @@ python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=exp
 - [ ] 速答节已给出核心结论（结论前置，不埋在证据之后）
 - [ ] 关键证据 3-8 条，每条标注文件:行号，并说明支撑哪个结论
 - [ ] 涉及多模块协作或 module-overview / spike 类型时，速答节有 Mermaid 图
-- [ ] 文档已归档到 `easysdd/compound/`，文件名为 `YYYY-MM-DD-explore-{slug}.md`
+- [ ] 文档已归档到 `codestable/compound/`，文件名为 `YYYY-MM-DD-explore-{slug}.md`
 - [ ] 已给出后续建议（路由到哪个子工作流）
 
 ---
 
 ## 守护规则
 
-> 归档类工作流共享守护规则（只增不删、宁缺毋滥、不替用户写、可发现性、归档后查重叠）见 `easysdd/reference/shared-conventions.md` 第 6 节。本技能特有的反模式：
+> 归档类工作流共享守护规则（只增不删、宁缺毋滥、不替用户写、可发现性、归档后查重叠）见 `codestable/reference/shared-conventions.md` 第 6 节。本技能特有的反模式：
 
 - 不读代码直接给结论
 - 证据只写"看起来像"，不写文件:行号

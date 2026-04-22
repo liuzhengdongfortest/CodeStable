@@ -1,11 +1,11 @@
 ---
-name: easysdd-tricks
-description: 把"要做这类事，正确做法是这样"的可复用编程模式 / 库用法 / 技术技巧整理成处方性参考库，feature-design 和 issue-analyze 阶段按需检索复用。三种类型：pattern（设计模式、编程惯用法）、library（某个库 / 框架的用法和坑）、technique（具体操作技巧 / 命令配方）。触发场景：用户说"记录一个技巧"、"这个用法值得记"、"tricks"、"记录库用法"，或 feature-design / issue-analyze 阶段发现值得沉淀的技巧时主动推送。和 learning / decisions / explore 怎么区分看 `easysdd/reference/system-overview.md`。
+name: cs-trick
+description: 把"要做这类事，正确做法是这样"的可复用编程模式 / 库用法 / 技术技巧整理成处方性参考库，feature-design 和 issue-analyze 阶段按需检索复用。三种类型：pattern（设计模式、编程惯用法）、library（某个库 / 框架的用法和坑）、technique（具体操作技巧 / 命令配方）。触发场景：用户说"记录一个技巧"、"这个用法值得记"、"tricks"、"记录库用法"，或 feature-design / issue-analyze 阶段发现值得沉淀的技巧时主动推送。和 learning / decisions / explore 怎么区分看 `codestable/reference/system-overview.md`。
 ---
 
-# easysdd-tricks
+# cs-trick
 
-easysdd-tricks 是面向问题的**处方性参考库**，回答一个问题：**要做 X，经过验证的正确做法是什么？**不需要触发事件，任何时候发现值得沉淀的模式或用法都可以直接写。
+cs-trick 是面向问题的**处方性参考库**，回答一个问题：**要做 X，经过验证的正确做法是什么？**不需要触发事件，任何时候发现值得沉淀的模式或用法都可以直接写。
 
 典型内容：
 
@@ -13,7 +13,7 @@ easysdd-tricks 是面向问题的**处方性参考库**，回答一个问题：*
 - 某个库 / 框架的核心 API 用法 + 已知坑
 - 某类操作（调试、部署、数据处理……）的命令配方
 
-> 共享路径与命名约定看 `easysdd/reference/shared-conventions.md`。本技能的产物写入 `easysdd/compound/`，文件命名 `YYYY-MM-DD-trick-{slug}.md`，frontmatter 带 `doc_type: trick`。
+> 共享路径与命名约定看 `codestable/reference/shared-conventions.md`。本技能的产物写入 `codestable/compound/`，文件命名 `YYYY-MM-DD-trick-{slug}.md`，frontmatter 带 `doc_type: trick`。
 
 ---
 
@@ -60,7 +60,7 @@ easysdd-tricks 是面向问题的**处方性参考库**，回答一个问题：*
 
 ### Phase 1.5：查重叠与意图分流（必做）
 
-按 `easysdd/reference/shared-conventions.md` §6 第 5 / 6 条执行：
+按 `codestable/reference/shared-conventions.md` §6 第 5 / 6 条执行：
 
 - 用户话里含"改 / 更新 / 修订 / 补充 / 某条 trick"或明确指向某份旧文档 → 直接走**更新已有条目**路径，不进新建流程；搜索只是确认定位到哪一条
 - 否则用下面"搜索工具"里的 `--query` 查一遍 `topic`，命中语义相近的旧文档时把候选列给用户，让用户选：更新 / supersede / 确实不同主题后再走 Phase 2
@@ -115,37 +115,37 @@ easysdd-tricks 是面向问题的**处方性参考库**，回答一个问题：*
 
 ### Phase 5：归档
 
-- 新建路径：文件写入 `easysdd/compound/`，命名 `YYYY-MM-DD-trick-{slug}.md`，frontmatter 顶部带 `doc_type: trick`（见 `reference.md`）
+- 新建路径：文件写入 `codestable/compound/`，命名 `YYYY-MM-DD-trick-{slug}.md`，frontmatter 顶部带 `doc_type: trick`（见 `reference.md`）
 - 更新路径：写回 Phase 1.5 定位到的原文件，frontmatter 补 `updated: YYYY-MM-DD`
 - supersede 路径：按 `shared-conventions.md` §6 第 5 条处理新旧两份文件
 - 写完后报告完整文件路径
 
 ### Phase 6：可发现性检查
 
-写完后检查 `AGENTS.md` 或 `CLAUDE.md` 里是否有指引 AI 查阅 `easysdd/compound/` 沉淀目录的说明。**没有就提示用户是否要加一行**——别自作主张改文件，只提示，由用户决定。
+写完后检查 `AGENTS.md` 或 `CLAUDE.md` 里是否有指引 AI 查阅 `codestable/compound/` 沉淀目录的说明。**没有就提示用户是否要加一行**——别自作主张改文件，只提示，由用户决定。
 
 ---
 
 ## 搜索工具
 
-> 完整语法和示例见 `easysdd/reference/tools.md`。本节只列 tricks 特有的典型查询。
+> 完整语法和示例见 `codestable/reference/tools.md`。本节只列 tricks 特有的典型查询。
 
 ```bash
 # 按类型 + 框架筛选
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=trick --filter type=library --filter framework~={库名}
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --filter type=library --filter framework~={库名}
 
 # 按技术栈浏览
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=trick --filter language=typescript --filter status=active
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --filter language=typescript --filter status=active
 
 # 归档后查重叠
-python easysdd/tools/search-yaml.py --dir easysdd/compound --filter doc_type=trick --query "{关键词}" --json
+python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --query "{关键词}" --json
 ```
 
 ---
 
 ## 守护规则
 
-> 归档类工作流共享守护规则（只增不删、宁缺毋滥、不替用户写、可发现性、归档后查重叠）见 `easysdd/reference/shared-conventions.md` 第 6 节。本技能特有或细化规则：
+> 归档类工作流共享守护规则（只增不删、宁缺毋滥、不替用户写、可发现性、归档后查重叠）见 `codestable/reference/shared-conventions.md` 第 6 节。本技能特有或细化规则：
 
 1. **只归档已验证的做法**——"也许应该这样做"不归档；文档内容必须是用户或 AI 确认过有效的
 2. **必须调查代码仓**——用户没贴代码不等于不需要看，Phase 2 代码调查不可跳过。示例代码优先用项目真实代码，不凭空编写

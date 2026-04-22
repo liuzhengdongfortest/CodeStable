@@ -1,8 +1,8 @@
 # onboarding 参考模板
 
-本文件提供 `easysdd-onboarding` 使用的骨架模板。
+本文件提供 `cs-onboard` 使用的骨架模板。
 
-## 1. `easysdd/architecture/DESIGN.md` 占位模板
+## 1. `codestable/architecture/DESIGN.md` 占位模板
 
 ```markdown
 # {项目名} 架构总入口
@@ -26,7 +26,7 @@
 ```markdown
 # AGENTS.md
 
-本文件是 AI 协作的项目级硬约束入口。所有 easysdd 子工作流默认遵守本文件的所有规则。
+本文件是 AI 协作的项目级硬约束入口。所有 CodeStable 子工作流默认遵守本文件的所有规则。
 
 ## 代码规范
 

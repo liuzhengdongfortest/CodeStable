@@ -1,6 +1,6 @@
 # explore 参考模板
 
-本文件提供 `easysdd-explore` 使用的 frontmatter、正文结构和写作说明。
+本文件提供 `cs-explore` 使用的 frontmatter、正文结构和写作说明。
 
 ## 1. frontmatter
 
@@ -18,7 +18,7 @@ confidence: high | medium | low
 ---
 ```
 
-文件名：`easysdd/compound/YYYY-MM-DD-explore-{slug}.md`。
+文件名：`codestable/compound/YYYY-MM-DD-explore-{slug}.md`。
 
 ## 2. 正文结构
 

@@ -1,6 +1,6 @@
 # tricks 参考模板
 
-本文件提供 `easysdd-tricks` 使用的技巧文档模板和示例。
+本文件提供 `cs-trick` 使用的技巧文档模板和示例。
 
 ## 1. frontmatter
 
@@ -19,7 +19,7 @@ superseded-by: {可选}
 ---
 ```
 
-文件名：`easysdd/compound/YYYY-MM-DD-trick-{slug}.md`。
+文件名：`codestable/compound/YYYY-MM-DD-trick-{slug}.md`。
 
 ## 2. 正文模板
 

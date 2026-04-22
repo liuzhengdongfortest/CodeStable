@@ -1,6 +1,6 @@
-# easysdd-roadmap 参考模板
+# cs-roadmap 参考模板
 
-本文件提供 `easysdd-roadmap` 使用的主文档和 items.yaml 参考格式。SKILL.md 只保留流程骨架，具体格式在这里。
+本文件提供 `cs-roadmap` 使用的主文档和 items.yaml 参考格式。SKILL.md 只保留流程骨架，具体格式在这里。
 
 ---
 
@@ -75,7 +75,7 @@ related_architecture: []    # 相关 architecture doc slug 列表，可空
 
 起草或刷新过程中发现、但本 roadmap 不处理的事情，交给用户决定：
 
-- 发现 `easysdd/architecture/X.md` 里对 Y 的描述已经过时，建议另起 architecture update
+- 发现 `codestable/architecture/X.md` 里对 Y 的描述已经过时，建议另起 architecture update
 - 发现 requirement-Z 的边界和本 roadmap 第 3 条冲突，建议先对齐 req
 - ...
 
@@ -135,7 +135,7 @@ dropped  （终态，不删除条目，保留历史）
 ### 校验
 
 ```bash
-python easysdd/tools/validate-yaml.py --file easysdd/roadmap/{slug}/{slug}-items.yaml --yaml-only
+python codestable/tools/validate-yaml.py --file codestable/roadmap/{slug}/{slug}-items.yaml --yaml-only
 ```
 
 ---
@@ -146,10 +146,10 @@ python easysdd/tools/validate-yaml.py --file easysdd/roadmap/{slug}/{slug}-items
 
 - [ ] 这条能独立走完一次 feature 流程（design / implement / acceptance）吗？走不通就继续拆或合并
 - [ ] 这条做完后能单独验证吗？能不能写出一句"完成后 {具体可观测现象}"
-- [ ] 这条的 slug 和 `easysdd/features/` 下已有目录冲突吗？grep 过了吗
+- [ ] 这条的 slug 和 `codestable/features/` 下已有目录冲突吗？grep 过了吗
 - [ ] 依赖关系讲得清具体理由吗？"B 需要 A 提供的 {具体产物}" 这种
 - [ ] 最小闭环那条真是"最窄的端到端路径"吗？还是只是"最容易的一条"
-- [ ] 有没有条目其实应该是 requirement 变化而不是 feature？（比如"把 XX 能力的边界改一下"）那种转 `easysdd-requirements`
+- [ ] 有没有条目其实应该是 requirement 变化而不是 feature？（比如"把 XX 能力的边界改一下"）那种转 `cs-req`
 
 ---
 

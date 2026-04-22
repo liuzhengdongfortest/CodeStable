@@ -11,20 +11,20 @@ Designed for AI agent use: structured output, exit code reflects pass/fail,
 no required external dependencies (falls back to builtin parser if PyYAML unavailable).
 
 Usage examples:
-  # Validate all .md files under easysdd/features
-  python easysdd/tools/validate-yaml.py --dir easysdd/features
+  # Validate all .md files under codestable/features
+  python codestable/tools/validate-yaml.py --dir codestable/features
 
   # Validate a single file
-  python easysdd/tools/validate-yaml.py --file easysdd/features/2026-04-11-auth/auth-design.md
+  python codestable/tools/validate-yaml.py --file codestable/features/2026-04-11-auth/auth-design.md
 
   # Check that required fields exist in frontmatter
-  python easysdd/tools/validate-yaml.py --dir easysdd/features --require doc_type --require status
+  python codestable/tools/validate-yaml.py --dir codestable/features --require doc_type --require status
 
   # JSON output for programmatic consumption
-  python easysdd/tools/validate-yaml.py --dir docs/api --json
+  python codestable/tools/validate-yaml.py --dir docs/api --json
 
   # Validate the libdoc manifest
-  python easysdd/tools/validate-yaml.py --file docs/api/manifest.yaml --yaml-only
+  python codestable/tools/validate-yaml.py --file docs/api/manifest.yaml --yaml-only
 """
 
 import argparse

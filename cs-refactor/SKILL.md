@@ -1,9 +1,9 @@
 ---
-name: easysdd-refactor
+name: cs-refactor
 description: 做代码优化时进入这套子流程——处理"行为不变、结构变"的工作（结构 / 性能 / 可读性），把单模块内部的优化从"AI 胡乱重构"改成"先扫出清单、和用户逐条确认、按方法库分步执行、每步人工放行"。触发场景：用户说"优化一下 / 重构 / 重写 / 拆一下 / 性能不行 / 代码太长"这类，且不夹带行为改动。不处理新需求（走 feature）、不处理 bug（走 issue）、不处理跨模块架构重划（走 architecture + decisions）。
 ---
 
-# easysdd-refactor
+# cs-refactor
 
 AI 自己重构代码有两个稳定的失败模式：一是不知道模块的真实需求和约束，改出来的东西功能不等价；二是一次吞掉的范围超过上下文承载，改到后面忘了前面的约束。这条流程在"想优化"和"动手改"之间塞了一份扫描清单 + 方法库，让 AI 只接自己能稳定做对的活，剩下的老实停下来让路。
 
@@ -19,7 +19,7 @@ scan（扫出优化点清单）→ design（和用户定做哪几条、按什么
 
 ## Fastforward 模式（小重构走这里）
 
-改动明显很小——单函数、单组件、1-3 处优化、有测试可自证、不需要 HUMAN 目视——走完整三阶段太重。触发 `easysdd-refactor-fastforward`：AI 直接识别、一次对齐、原地改、跑测试自证，不产出 scan / design / checklist。
+改动明显很小——单函数、单组件、1-3 处优化、有测试可自证、不需要 HUMAN 目视——走完整三阶段太重。触发 `cs-refactor-ff`：AI 直接识别、一次对齐、原地改、跑测试自证，不产出 scan / design / checklist。
 
 触发信号：用户说"小重构"、"快速重构"、"简单优化下 XX 函数"、"直接改"、"别那么多步骤"。
 
@@ -37,10 +37,10 @@ scan（扫出优化点清单）→ design（和用户定做哪几条、按什么
 
 ## 文件放哪儿
 
-refactor 产物聚在 `easysdd/refactors/` 下，每次独立目录：
+refactor 产物聚在 `codestable/refactors/` 下，每次独立目录：
 
 ```
-easysdd/
+codestable/
 └── refactors/
     └── {YYYY-MM-DD}-{slug}/
         ├── {slug}-scan.md              ← 阶段 1 产出的优化点清单
@@ -237,10 +237,10 @@ refactor: {YYYY-MM-DD}-{slug}
 
 ## 相关文档
 
-- `easysdd/reference/system-overview.md` — easysdd 体系总览
-- `easysdd-refactor-fastforward/SKILL.md` — 小重构超轻量通道
+- `codestable/reference/system-overview.md` — CodeStable 体系总览
+- `cs-refactor-ff/SKILL.md` — 小重构超轻量通道
 - `reference/scan-checklist-format.md` — scan 清单条目的字段、顺序、硬约束、反模式样本
 - `reference/refusal-routing.md` — scan 前置检查 7 条 + 路由表 + 拒绝输出格式
 - `reference/methods.md` — 重构方法库（L1-L4 四层分类，统一字段）
-- `easysdd/reference/shared-conventions.md` — 跨工作流共享口径
+- `codestable/reference/shared-conventions.md` — 跨工作流共享口径
 - 项目架构总入口 — scan 前需要翻一下，确认模块边界在哪
