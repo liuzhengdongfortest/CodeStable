@@ -1,13 +1,13 @@
 ---
 name: cs-req
-description: 为项目维护 `codestable/requirements/` 下的需求文档——用**用户故事 + 平铺语言**描述一个已经存在的能力"因什么而产生、如何解决、边界在哪"，让非技术读者也能扫一眼看懂系统突出的地方。和 architecture 分层：requirement 是"问题空间"（为什么要有这个能力），architecture 是"解空间"（用什么结构实现它）。**req 是现状档案，只记已经存在、已有边界的能力，不记"打算做什么 / 下一步会加什么"——那些属于 cs-roadmap**。主路径是 feature-acceptance 跟着代码同步回写；本技能是 backup 主动入口，两种模式：`update`（按新素材或实现变化刷新已有 doc，最常用）、`backfill`（给已经存在但从没写过档的能力补一份 doc）。单目标规则——一次只动一份文档。触发场景：用户说"刷新 requirements 目录"、"这份 req 和现在代码对不上了"、"这块已经在跑的能力一直没写 req，补上"，或 feature-design 阶段发现要实现的能力还没有对应的 requirement。用户说"我想要 X 能力"但 X 还没做 → 不走本技能，转 cs-roadmap。
+description: 为项目维护 `codestable/requirements/` 下的需求文档——用**用户故事 + 平铺语言**描述一个已经存在的能力"因什么而产生、如何解决、边界在哪"，让非技术读者也能扫一眼看懂系统突出的地方。和 architecture 分层：requirement 是"问题空间"（为什么要有这个能力），architecture 是"解空间"（用什么结构实现它）。**req 是现状档案，只记已经存在、已有边界的能力，不记"打算做什么 / 下一步会加什么"——那些属于 cs-roadmap**。主路径是 feature-acceptance 跟着代码同步触发：feature 新增了用户可感能力 → 走 `backfill` 首次落档；feature 改变了已有能力的用户故事 / 边界 / pitch → 走 `update` 刷新。本技能也支持用户在 feature 流程外主动调起（手工补漏 / 主动盘点）。**design 阶段不调用本技能**——req 是现状档案，能力还没落地就没现状。单目标规则——一次只动一份文档。触发场景：feature-acceptance 阶段第 6 节 requirement 回写、用户说"刷新 requirements 目录"、"这份 req 和现在代码对不上了"、"这块已经在跑的能力一直没写 req，补上"。用户说"我想要 X 能力"但 X 还没做 → 不走本技能，转 cs-roadmap。
 ---
 
 # cs-req
 
 `codestable/requirements/` 是项目的"能力清单"——每份文档描述**一个能力因什么问题而产生、怎么解决、边界在哪**，写成人话，非技术读者也能扫一眼看懂。架构文档讲"怎么搭"，需求文档讲"为什么要有这个"。两者分开记录的好处是：单独讨论需求时不被实现细节干扰，单独讨论架构时也不被产品视角牵着走。
 
-**requirement 是现状档案，不是计划档案**。只描述"这个能力现在已经存在、边界长这样"。默认只在 feature-acceptance 时跟着代码一起刷新（feature 实现改了边界 / 用户故事，回写到 req），必要时才由本技能主动 `update`（刷新已有 doc）或 `backfill`（给已存在但没写过档的能力补一份）。**不记"打算做什么"、不记"下一步会加什么"**——那些属于 `cs-roadmap` 的规划层。用户说"我想要 X 能力"但 X 还没做出来时，不要在这里开新 req——要么能力已经在做且需要先把目标态写下来指导实现（走 roadmap 拆解 + 后续 feature-acceptance 回写 req），要么直接走 roadmap。
+**requirement 是现状档案，不是计划档案**。只描述"这个能力现在已经存在、边界长这样"。新建（backfill）和刷新（update）的主路径都是 feature-acceptance 阶段——feature 做完才有"现状"可写：新增了用户可感能力就 backfill 首次落档，改了已有能力的用户故事 / 边界 / pitch 就 update。本技能也支持用户在 feature 流程外主动调起（盘点遗漏的能力 / 修订过时表述）。**design 阶段不走本技能**——能力还没实现就建 req 等同于把"计划态"塞进现状档案。**不记"打算做什么"、不记"下一步会加什么"**——那些属于 `cs-roadmap` 的规划层。用户说"我想要 X 能力"但 X 还没做出来时，不要在这里开新 req——走 roadmap 拆解 + 后续 feature-acceptance 落档 req。
 
 需求文档的价值在于**扫一眼就能抓到重点**——用户故事在最前面、痛点和解法各一段短的、边界用列表。AI 写需求文档最容易出的几种问题都会破坏"扫一眼就抓到重点"这个特性：
 
@@ -25,9 +25,9 @@ description: 为项目维护 `codestable/requirements/` 下的需求文档——
 
 ## 适用场景
 
-- 一个**已经在跑**的能力从没写过 req，想补一份（`backfill`）
-- 能力演进了（新增用户故事 / 痛点表述过时 / 边界变化），要刷新（`update`）
-- feature-design 阶段发现本次要实现的能力没有对应的 requirement，先停下来补上再继续（`backfill`）
+- feature-acceptance 阶段第 6 节触发：本次 feature 新增了用户可感能力 → `backfill` 首次落档；改了已有能力的用户故事 / 边界 / pitch → `update` 刷新（**主路径**）
+- 用户主动盘点：一个**已经在跑**的能力从没写过 req，想补一份（`backfill`）
+- 用户主动修订：能力演进了（新增用户故事 / 痛点表述过时 / 边界变化），要刷新（`update`）
 
 不适用：
 
@@ -199,8 +199,8 @@ tags: []
 | 方向 | 关系 |
 |---|---|
 | `cs-arch` 配合 | requirement 描述"为什么要有"、architecture 描述"怎么搭"；architecture doc 的 frontmatter 里用 `implements: [req-slug]` 反向链到承载的需求 |
-| `cs-feat-design` 上游 | feature 要新增 / 修改一个能力时，先确认对应 requirement 存在或触发本技能新建；纯重构 / 技术债的 feature 不强制要 req |
-| `cs-feat-accept` 下游 | 验收时发现 feature 改变了某个能力的边界或用户故事 → 触发本技能 `update` 模式刷新对应 req（现状档案跟着代码同步的主路径） |
+| `cs-feat-design` 只读 | feature 设计阶段只**读**已有 req 对齐用户故事和边界，**不调用本技能**；新能力的 req 留到 accept 阶段 backfill |
+| `cs-feat-accept` 主路径 | 验收时统一处理 req 落档：新增能力触发本技能 `backfill` 首次落档（accept 完成后回填 slug 到方案 frontmatter），改了已有能力触发 `update` 刷新——req 是现状档案，feature 做完才有"现状"，所以 backfill 和 update 都在这里发生 |
 | `cs-roadmap` 配合 | req 记"这个能力现在是什么"，roadmap 记"打算怎么把它继续推进 / 从无到有做出来"。roadmap 拆解过程里如果发现缺 req，让用户先触发本技能；roadmap 不改 req |
 | `cs-onboard` 创建者 | onboarding 阶段建 `codestable/requirements/` 空目录，之后由本技能填实 |
 

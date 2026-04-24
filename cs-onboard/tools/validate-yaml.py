@@ -32,6 +32,15 @@ import json
 import sys
 from pathlib import Path
 
+# Force UTF-8 stdout/stderr on Windows where default codepage (e.g. GBK / cp936)
+# can't encode the ✓ / ✗ icons used in text output. Safe no-op on POSIX.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
 
 # ---------------------------------------------------------------------------
 # YAML parsing
