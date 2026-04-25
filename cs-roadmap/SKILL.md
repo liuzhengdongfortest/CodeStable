@@ -1,6 +1,6 @@
 ---
 name: cs-roadmap
-description: 把一块"大到不能当单个 feature 做"的需求做成一份完整的事前规划：概设（模块怎么拆）+ 架构层详设（模块间接口契约 / 共享协议）+ 子 feature 拆解清单（带依赖和状态），放在独立的 `codestable/roadmap/{slug}/` 目录里——既是后续多次 feature 流程的种子和排期依据，也是这些 feature 共同遵守的接口约束输入。两种模式：new（从一个大需求起草新 roadmap）、update（刷新已有 roadmap：改接口契约、加条目、改依赖、重排顺序、标 drop）。和 requirements / architecture 的分工——那两者记"系统现在是什么"（事后档案），roadmap 记"接下来打算怎么做这块大需求 + 模块怎么切 + 接口怎么定"（事前规划）。触发场景：用户说"我想要一个 X 系统"、"帮我把这块需求拆一下"、"排一下这个大需求"、"开一份 roadmap"，或 feature-design 阶段发现需求太大塞不进一个 feature。
+description: 把"大到塞不进单个 feature"的需求做成完整事前规划：概设 + 接口契约 + 子 feature 拆解清单，放在 `codestable/roadmap/{slug}/`。两种模式 new / update。触发：用户说"我想要一个 X 系统"、"帮我把这块需求拆一下"、"开一份 roadmap"，或 feature-design 阶段发现需求太大。
 ---
 
 # cs-roadmap

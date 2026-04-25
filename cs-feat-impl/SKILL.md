@@ -1,6 +1,6 @@
 ---
 name: cs-feat-impl
-description: feature 流程的阶段 2——按 {slug}-design.md 的推进顺序写代码，写完用统一格式做完成汇报给用户 review。前提是 {slug}-design.md 已经 approved（标准 design 含测试设计，或 fastforward design 含验收标准），并且同目录下有 {slug}-checklist.yaml。触发场景：用户说"方案确认了开始实现"、"按方案写代码"、"开工"。实现中遇到方案没覆盖到的情况（新概念、范围外文件、需要打补丁分支）要主动停下来回到方案谈，不要硬冲。
+description: feature 流程阶段 2——按 {slug}-design.md 推进顺序写代码，写完用统一格式汇报给用户 review。触发：用户说"方案确认了开始实现"、"按方案写代码"、"开工"。前提是 design 已 approved 且有 checklist。遇到方案外情况要回方案谈不要硬冲。
 ---
 
 # cs-feat-impl

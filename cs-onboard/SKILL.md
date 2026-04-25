@@ -1,6 +1,6 @@
 ---
 name: cs-onboard
-description: 把一个新仓库或有零散文档的仓库接入 CodeStable 体系。两条路径自动判断：空仓库路径（仓库内无任何 spec 类文档也没有 codestable/ 目录）从零搭骨架；迁移路径（仓库内已有零散文档或部分 codestable/ 结构）先做审计报告 + 迁移映射方案，由用户逐一确认后落盘。本技能只做"搭骨架"和"归旧档"两件事，骨架搭好后各子工作流就能直接运行。触发场景：用户说"在这个项目里用 CodeStable"、"搭 CodeStable 结构"、"初始化 CodeStable"、"迁移到 CodeStable"。
+description: 把新仓库或有零散文档的仓库接入 CodeStable 体系，两条路径自动判断：空仓库从零搭骨架，已有文档走审计 + 迁移映射。触发：用户说"在这个项目里用 CodeStable"、"搭 CodeStable 结构"、"初始化 CodeStable"、"迁移到 CodeStable"。
 ---
 
 # cs-onboard

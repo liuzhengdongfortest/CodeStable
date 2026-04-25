@@ -1,6 +1,6 @@
 ---
 name: cs-issue-analyze
-description: issue 流程的阶段 2——读问题报告 + 读代码，找到真正的根因并评估修复风险，最后给用户 2-3 种修复方案选项让 TA 拍板。这一阶段**不是开始改代码**——分析完先给用户看结论，用户确认方案后才进阶段 3。前置依赖 cs-issue-report 已完成。触发场景：用户说"分析这个 bug"、"找根因"、"定位问题"，且 issue 目录下已有 {slug}-report.md。
+description: issue 流程阶段 2——读 report + 读代码定位根因、评估风险，给用户 2-3 个修复方案让 TA 拍板。这一步不改代码。触发：用户说"分析这个 bug"、"找根因"、"定位问题"，且已有 {slug}-report.md。
 ---
 
 # cs-issue-analyze

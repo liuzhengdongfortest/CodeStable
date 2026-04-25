@@ -1,6 +1,6 @@
 ---
 name: cs-req
-description: 为项目维护 `codestable/requirements/` 下的需求文档——用**用户故事 + 平铺语言**描述一个已经存在的能力"因什么而产生、如何解决、边界在哪"，让非技术读者也能扫一眼看懂系统突出的地方。和 architecture 分层：requirement 是"问题空间"（为什么要有这个能力），architecture 是"解空间"（用什么结构实现它）。**req 是现状档案，只记已经存在、已有边界的能力，不记"打算做什么 / 下一步会加什么"——那些属于 cs-roadmap**。主路径是 feature-acceptance 跟着代码同步触发：feature 新增了用户可感能力 → 走 `backfill` 首次落档；feature 改变了已有能力的用户故事 / 边界 / pitch → 走 `update` 刷新。本技能也支持用户在 feature 流程外主动调起（手工补漏 / 主动盘点）。**design 阶段不调用本技能**——req 是现状档案，能力还没落地就没现状。单目标规则——一次只动一份文档。触发场景：feature-acceptance 阶段第 6 节 requirement 回写、用户说"刷新 requirements 目录"、"这份 req 和现在代码对不上了"、"这块已经在跑的能力一直没写 req，补上"。用户说"我想要 X 能力"但 X 还没做 → 不走本技能，转 cs-roadmap。
+description: 维护 `codestable/requirements/` 下的需求文档，用用户故事 + 平铺语言描述已存在能力的"因何而生 / 如何解决 / 边界在哪"。两种模式 backfill / update。触发：用户说"刷新 requirements"、"这份 req 和代码对不上了"、"这块能力一直没写 req 补上"，或 acceptance 阶段同步回写。只记现状不记计划（计划走 cs-roadmap）。
 ---
 
 # cs-req

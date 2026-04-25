@@ -1,6 +1,6 @@
 ---
 name: cs-decide
-description: 把项目里已经拍板的技术选型、架构决定、长期约束、编码规约记成可检索的永久性文档。六个月后没人记得为什么当初选了 X，但有了决策文档，下次改动之前至少能先读懂背景。四种类型：tech-stack（用什么工具 / 库 / 框架）、architecture（系统怎么组织）、constraint（什么不允许做）、convention（什么统一这样做）。触发场景：feature-design 或 issue-analyze 后做出重要选择时主动推送，或用户说"记录决定"、"归档技术选型"、"ADR"、"记录这条约束"、"把规约写下来"。只归档已拍板的决定，讨论中的方案不归档。
+description: 把已拍板的技术选型、架构决定、长期约束、编码规约记成永久性决策文档（tech-stack / architecture / constraint / convention 四种）。触发：用户说"记录决定"、"归档技术选型"、"ADR"、"记录这条约束"、"把规约写下来"，或 design / analyze 后做出重要选择。只归档已拍板的，讨论中的不归档。
 ---
 
 # cs-decide

@@ -1,6 +1,6 @@
 ---
 name: cs-feat-design
-description: feature 流程的阶段 1——为新功能起草一份方案文件，作为后续实现和验收的唯一输入。先收集证据（读架构、读相关代码、grep 防术语冲突、查归档），然后一次性写出完整初稿（含 YAML frontmatter + 三层结构 + 测试设计），交给用户整体 review，迭代到拍板。拍板后从 {slug}-design.md 里抽出 {slug}-checklist.yaml 给后面两个阶段用。触发场景："开始设计方案"、"写 design doc"、"准备实现 XX"，前提是已经知道做什么、为谁做、怎么算成功。
+description: feature 流程阶段 1——为新功能起草 {slug}-design.md 作为后续实现和验收的唯一输入，拍板后抽出 checklist。触发：用户说"开始设计方案"、"写 design doc"、"准备实现 XX"，前提是已知道做什么、为谁、怎么算成功。
 ---
 
 # cs-feat-design

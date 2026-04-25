@@ -1,6 +1,6 @@
 ---
 name: cs-arch
-description: 项目架构中心的一站式技能，维护 `codestable/architecture/` 这份**只记现状、不记计划**的系统地图。主路径是 feature-acceptance 跟着代码同步回写；本技能是 backup 主动入口，三种模式：`update`（按代码最新状态刷新已有 doc，最常用）/ `check`（只看不改，出问题清单）/ `backfill`（给已经存在但从没写过档的模块/子系统补一份 doc）。**不负责写"未来会加什么层 / 下一步拆成 X 模块"——那些属于 cs-roadmap**。check 再分三个子目标：一份 feature design 自洽、design 和代码对得上、`codestable/architecture/` 下多份文档之间对得上。单目标规则——一次只动一份文档或只查一个目标。触发场景：用户说"刷新 architecture 目录"、"把这个已存在但没写档的模块结构写下来"、"做架构检查"、"design 内部一致吗"、"方案和代码对得上吗"、"architecture 文件夹里几份文档有没有打架"，或 feature-design / feature-acceptance / implement 阶段发现需要先做一次架构动作再继续。用户说"我想重构成 X 架构"这种目标态 → 不走本技能，转 cs-roadmap。
+description: 维护 `codestable/architecture/` 这份只记现状的系统地图，三种模式 update / check / backfill。触发：用户说"刷新 architecture"、"做架构检查"、"补这个模块的架构文档"、"方案和代码对得上吗"，或 feature 阶段需要先做架构动作。不写未来规划（走 cs-roadmap）。
 ---
 
 # cs-arch

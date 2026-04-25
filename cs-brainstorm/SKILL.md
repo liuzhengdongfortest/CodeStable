@@ -1,6 +1,6 @@
 ---
 name: cs-brainstorm
-description: 想法还模糊时的讨论入口——先通过一两轮对话做分诊，判断这次讨论最终该进哪个下游：已经足够清楚就直接 feature-design、小需求方向已定就在 feature 里继续讨论并落 `{slug}-brainstorm.md`、大需求装不进一个 feature 就交给 roadmap 拆解。AI 的角色是思考伙伴，不是记录员——挖用户真正想解决的问题、带方案来时主动评估、必要时提替代方向。触发场景：用户说"有个想法还没想清楚"、"先 brainstorm 一下"、"我想做点什么但还模糊"、"聊一聊这块"、"功能方向还在摇摆"，或者用户带着具体方案但想先听听别的想法。不处理 bug（走 issue）和重构（走 refactor）。
+description: 想法还模糊时的讨论入口，做分诊后路由到 feature-design / feature-brainstorm / roadmap。AI 是思考伙伴不是记录员。触发：用户说"有个想法还没想清楚"、"先 brainstorm 一下"、"聊一聊这块"、"方向还在摇摆"。不处理 bug 和重构。
 ---
 
 # cs-brainstorm

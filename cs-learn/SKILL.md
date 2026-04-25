@@ -1,6 +1,6 @@
 ---
 name: cs-learn
-description: 把这次工作里踩过的坑或发现的好做法沉淀成可检索的 learning 文档，下次同类事来了 AI 和人都能查到。两条轨道：坑点轨道（pitfall）记录"本来应该好但没好"的经历——bug、配置陷阱、环境问题、集成失败；知识轨道（knowledge）记录"以后默认这样做"的发现——最佳实践、工作流改进、可复用模式。触发场景：feature-acceptance 或 issue-fix 收尾时主动推送询问，或用户说"沉淀知识"、"learning"、"document learnings"、"把这次经验记下来"。spec 记的是做了什么，learning 记的是踩了什么 / 学了什么——两者互补不替代。
+description: 把踩过的坑或好做法沉淀成可检索的 learning 文档，两条轨道 pitfall（坑）/ knowledge（默认做法）。触发：用户说"沉淀知识"、"learning"、"把这次经验记下来"，或 acceptance / fix 收尾时推送。
 ---
 
 # cs-learn

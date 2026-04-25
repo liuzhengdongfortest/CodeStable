@@ -1,6 +1,6 @@
 ---
 name: cs-explore
-description: 对仓库做一次定向代码探索，把"提问 → 读代码 → 得结论"的过程沉淀为可检索证据，下次同类问题直接复用。三种类型：question（围绕一个具体问题查代码并给结论）、module-overview（梳理某模块结构 / 边界 / 入口 / 依赖）、spike（对多个可能方向做轻量技术探查，不做最终决策）。触发场景：用户说"先 explore 一下"、"这个仓库里 X 怎么实现"、"快速熟悉这个模块"、"把探索结果存档"。和 learning / tricks / decisions 怎么区分看 `codestable/reference/system-overview.md`。
+description: 对仓库做定向代码探索并把"提问→读代码→得结论"沉淀为可检索证据，三种类型 question / module-overview / spike。触发：用户说"先 explore 一下"、"这个仓库里 X 怎么实现"、"快速熟悉这个模块"、"把探索结果存档"。
 ---
 
 # cs-explore

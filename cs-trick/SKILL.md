@@ -1,6 +1,6 @@
 ---
 name: cs-trick
-description: 把"要做这类事，正确做法是这样"的可复用编程模式 / 库用法 / 技术技巧整理成处方性参考库，feature-design 和 issue-analyze 阶段按需检索复用。三种类型：pattern（设计模式、编程惯用法）、library（某个库 / 框架的用法和坑）、technique（具体操作技巧 / 命令配方）。触发场景：用户说"记录一个技巧"、"这个用法值得记"、"tricks"、"记录库用法"，或 feature-design / issue-analyze 阶段发现值得沉淀的技巧时主动推送。和 learning / decisions / explore 怎么区分看 `codestable/reference/system-overview.md`。
+description: 把可复用的编程模式 / 库用法 / 技术技巧整理成处方性参考库，三种类型 pattern / library / technique。触发：用户说"记录一个技巧"、"这个用法值得记"、"tricks"、"记录库用法"，或 design / analyze 阶段发现值得沉淀的技巧时推送。
 ---
 
 # cs-trick

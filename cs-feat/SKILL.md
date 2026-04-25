@@ -1,6 +1,6 @@
 ---
 name: cs-feat
-description: 做新功能开发时进入这套子流程——把"加个 X 能力"从模糊想法走到验收闭环，中间有方案文件做存档，AI 和用户后面回头都能查到当时怎么想的、为什么这样定的。触发场景偏向新增能力（"做新功能"、"加个 X"、"实现 XX"），不处理已有代码的 bug。本技能只做路由，根据已有产物决定下一步走 brainstorm / design / fastforward / implement / acceptance 中的哪一个。
+description: 新功能开发的子流程入口，把"加个 X 能力"从想法走到验收闭环。触发：用户说"做新功能"、"加个 X"、"实现 XX"。只做路由，根据已有产物决定走 brainstorm / design / fastforward / implement / acceptance。不处理 bug。
 ---
 
 # cs-feat
