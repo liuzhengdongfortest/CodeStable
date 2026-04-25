@@ -4,6 +4,7 @@
 
 ![](./asset/PromotionalImage.png)
 
+[English](./README.en.md) · **中文**
 
 **面向严肃工程的 AI 编码工作流**
 
