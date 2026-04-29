@@ -34,11 +34,14 @@ from pathlib import Path
 
 # Force UTF-8 stdout/stderr on Windows where default codepage (e.g. GBK / cp936)
 # can't encode the ✓ / ✗ icons used in text output. Safe no-op on POSIX.
+# Streams that aren't a real TextIOWrapper (e.g. captured by pytest, redirected
+# through some IDEs) raise io.UnsupportedOperation — a ValueError + OSError
+# subclass — and we just leave the original encoding in place.
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         try:
             _stream.reconfigure(encoding="utf-8")
-        except Exception:
+        except (OSError, ValueError):
             pass
 
 

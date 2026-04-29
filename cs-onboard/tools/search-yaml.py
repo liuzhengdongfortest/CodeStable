@@ -35,6 +35,12 @@ import json
 import sys
 from pathlib import Path
 
+try:
+    import yaml  # type: ignore
+    _HAS_PYYAML = True
+except ImportError:
+    _HAS_PYYAML = False
+
 
 # ---------------------------------------------------------------------------
 # Frontmatter parsing  (PyYAML used when available, builtin fallback otherwise)
@@ -70,12 +76,14 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
     fm_text = text[3:end].strip()
     body = text[end + 4:].strip()
 
-    try:
-        import yaml  # type: ignore
-        meta = yaml.safe_load(fm_text)
-        return (meta or {}), body
-    except Exception:
-        pass
+    if _HAS_PYYAML:
+        try:
+            meta = yaml.safe_load(fm_text)
+            return (meta or {}), body
+        except yaml.YAMLError:
+            # Malformed frontmatter — fall through to the lenient builtin parser
+            # so partial / hand-written frontmatter still produces best-effort results.
+            pass
 
     # Minimal fallback: handles scalar values and inline lists
     meta: dict = {}
