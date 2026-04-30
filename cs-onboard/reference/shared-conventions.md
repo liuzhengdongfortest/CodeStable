@@ -57,7 +57,7 @@ codestable/
 - feature / issue / refactor 目录：带日期前缀 `YYYY-MM-DD-{slug}`
 - 沉淀类：`compound/YYYY-MM-DD-{doc_type}-{slug}.md`，日期用**归档当天**
 - 架构 doc：`architecture/{type}-{slug}.md`（长效，不带日期前缀）；总入口固定 `ARCHITECTURE.md`
-- `AGENTS.md` 在项目根，**不在 `codestable/` 里**
+- 项目硬约束文件（`AGENTS.md` / `CLAUDE.md` / 等）在项目根，**不在 `codestable/` 里**
 
 ### 架构 doc 分组规则（同类聚合）
 

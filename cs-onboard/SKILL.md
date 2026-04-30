@@ -42,7 +42,7 @@ codestable/
     └── maintainer-notes.md
 ```
 
-`AGENTS.md` 在项目根目录，**不在 `codestable/` 里**。onboarding 检查存不存在，不存在时提醒用户但**不代写**——AGENTS.md 内容高度项目相关。缺它不阻塞 onboarding 完成，但 feature / issue / acceptance 启动前要补齐或明确接受暂无项目级硬约束入口。
+**项目硬约束文件**（`AGENTS.md` / `CLAUDE.md` / 其他 AI 工具约定的常驻上下文文件，下统称"约束文件"）在项目根目录，**不在 `codestable/` 里**。onboarding 检查存不存在，不存在时**问用户建哪个**（不预设默认——AI 工具自己注入提示词会告诉模型该读哪个，偏好留给用户）；建好后**不代写实质内容**——内容高度项目相关。缺它不阻塞 onboarding 完成，但 feature / issue / acceptance 启动前要补齐或明确接受暂无项目级硬约束入口。
 
 ---
 
@@ -58,7 +58,7 @@ codestable/
    同意 → `git mv easysdd codestable`，按迁移路径走（这时只需补齐可能缺失的 `tools/` 和 `reference/`）。想保留旧目录 → 告诉他子技能只读 `codestable/`，旧目录不会被读；按空仓库路径走新骨架
 
 3. **Glob 全仓库 `.md`**（排除 `node_modules/` `.git/`）：根目录 `DESIGN.md` / `ARCHITECTURE.md` / `SPEC.md` / `README.md`；`docs/` `doc/` `design/` `spec/` `wiki/`；现有 `codestable/` 下文件
-4. **检查 `AGENTS.md`**（根目录）
+4. **检查项目硬约束文件**（根目录的 `AGENTS.md` / `CLAUDE.md` 等，任一存在即视为已有）
 5. **汇报扫描结论**：找到的相关文档（列路径）+ 走哪条路径 + 判断依据 + 不确定项
 
 ---
@@ -68,7 +68,7 @@ codestable/
 **步骤 1：和用户确认范围**
 
 - 项目名 / 简介（用于填 `ARCHITECTURE.md` 占位）
-- `AGENTS.md` 是否已有，没有的话现在填还是之后
+- 项目硬约束文件是否已有（`AGENTS.md` / `CLAUDE.md` 等），没有的话现在建哪个 / 之后再说
 
 **步骤 2：创建目录骨架**
 
@@ -81,13 +81,13 @@ codestable/
 
 > **落盘用 shell 整目录覆盖**，不要 Read 再 Write——这两个目录是机器共享资产，Read+Write 会截断大文件、改缩进、吃空行，还慢费 token。具体命令见迁移路径步骤 4。
 
-**步骤 3：AGENTS.md 提醒**
+**步骤 3：项目硬约束文件提醒**
 
-无 `AGENTS.md` 时：
+`AGENTS.md` / `CLAUDE.md` 都不存在时：
 
-> `AGENTS.md` 还不存在。它是 CodeStable 子工作流的"项目硬约束入口"——记录代码规范、已知坑、禁止事项。建议现在创建最小版本。你想现在填还是之后自己创建？
+> 项目根还没有 AI 常驻上下文文件——它是 CodeStable 子工作流的"项目硬约束入口"，记录代码规范、已知坑、禁止事项。要建哪个？`AGENTS.md`（社区通用，多 AI 工具会读）/ `CLAUDE.md`（Claude Code 专属）/ 其他文件名（如 `.cursorrules`）/ 之后自己建？
 
-现在填 → 提供最小模板（见 `reference.md`）引导填写。之后 → 记入汇报，告诉用户"下次触发 feature/issue 前补上"。
+**不预设默认**——用户答了再建。建哪个文件名，里面用同一份最小模板（见 `reference.md`）引导填写。之后 → 记入汇报，告诉用户"下次触发 feature/issue 前补上"。
 
 **步骤 4：验收汇报**
 
@@ -151,7 +151,7 @@ Copy-Item -Recurse -Force <技能包路径>\cs-onboard\reference\*  CodeStable\r
 
 用户选"跳过"的文件：**不移动 / 不删除 / 不重命名**，汇报标"保留原位（未纳入 CodeStable）"。**绝不允许未经确认就动**——onboarding 只允许 AI 整理不允许替用户做删除决定。
 
-**步骤 6：AGENTS.md 提醒**（同空仓库路径步骤 3）
+**步骤 6：项目硬约束文件提醒**（同空仓库路径步骤 3）
 
 **步骤 7：验收汇报**
 
@@ -161,7 +161,7 @@ Copy-Item -Recurse -Force <技能包路径>\cs-onboard\reference\*  CodeStable\r
 
 ## 骨架文件模板
 
-`ARCHITECTURE.md` 占位模板和 `AGENTS.md` 最小模板见同目录 `reference.md`。
+`ARCHITECTURE.md` 占位模板和项目硬约束文件最小模板见同目录 `reference.md`。
 
 ---
 
@@ -172,7 +172,7 @@ Copy-Item -Recurse -Force <技能包路径>\cs-onboard\reference\*  CodeStable\r
 - [ ] `codestable/architecture/ARCHITECTURE.md` 已建
 - [ ] 迁移路径：每条映射都有明确处理结果（迁移 / 保留原位）
 - [ ] 迁移路径：没有未经确认就移动的文件
-- [ ] `AGENTS.md` 状态已明确（存在 / 用户知道需要补）
+- [ ] 项目硬约束文件状态已明确（`AGENTS.md` / `CLAUDE.md` 任一存在，或用户已选定建哪个 / 知道需要补）
 - [ ] 验收汇报已给出
 
 ---
@@ -180,9 +180,10 @@ Copy-Item -Recurse -Force <技能包路径>\cs-onboard\reference\*  CodeStable\r
 ## 容易踩的坑
 
 - **未经确认就移动 / 删除已有文件**——迁移核心原则是用户拍板
-- **替用户填 AGENTS.md 实质内容**——必须项目 owner 来定，AI 只提供模板
+- **替用户填硬约束文件实质内容**——必须项目 owner 来定，AI 只提供模板
+- **预设默认建 `AGENTS.md`**——必须问用户选哪个，AI 工具自己会注入提示词决定该读哪个
 - **建完骨架立刻开始 feature/issue**——onboarding 是"搭环境"不是"开始干活"
-- **把 AGENTS.md 建到 `codestable/` 里**——它是根目录文件
+- **把硬约束文件建到 `codestable/` 里**——它是根目录文件
 - **低置信度直接执行**——低 = 必须问
 - **`codestable/tools/` 和 `codestable/reference/` 走"不覆盖"保守策略**——这两个**必须**用技能包新版本覆盖，否则升级后用户停留在过时口径
 - **用 Read + Write 手工搬**——必须 `cp -rf` / `Copy-Item -Recurse -Force` 整目录覆盖
@@ -194,5 +195,5 @@ Copy-Item -Recurse -Force <技能包路径>\cs-onboard\reference\*  CodeStable\r
 
 - `codestable/reference/system-overview.md` — CodeStable 体系总览
 - `codestable/reference/shared-conventions.md` — 目录结构和共享口径的权威版本
-- `AGENTS.md` — 全项目硬约束入口
+- 项目硬约束入口（`AGENTS.md` / `CLAUDE.md` / 等）— 全项目级 AI 常驻上下文
 - `codestable/architecture/ARCHITECTURE.md` — 架构总入口骨架
