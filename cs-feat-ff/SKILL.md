@@ -5,9 +5,9 @@ description: feature 流程的超轻量通道——不写 design / checklist 直
 
 # cs-feat-ff
 
-用户让你做小功能时本来 AI 就会直接动手——这个技能**不改变这件事**。它只做一件事：动手前把项目里已沉淀的 CodeStable 知识指给你，按需搜一下，写出来的代码就比裸写多一层保护。
+用户让你做小功能时本来 AI 就会直接动手——这个技能**不改变这件事**。它只做一件事：动手前把项目里已沉淀的 CodeStable 知识指给你，按需搜一下，写出来的代码就比裸写多一层保护；动手后回写一份**最简的 `{slug}-ff-note.md`** 让这次工作可追溯、可被 cs-arch / cs-req backfill 看到、能纳入 scoped-commit 提交。
 
-很轻：没有 design doc / checklist / 验收清单 / 用户确认。看完指引，该读代码读、该写代码写。
+很轻：没有 design doc / checklist / 验收清单 / 动手前的用户确认。看完指引，该读代码读、该写代码写、写完回写一段话。
 
 ---
 
@@ -101,11 +101,56 @@ design / implement 的硬约束在 fastforward 的精简版。没 design doc 不
 
 ---
 
+## 写完回写 `{slug}-ff-note.md`
+
+代码写完、验证完、用户确认效果 OK **之后**才动这一步——动手前先建空壳会破坏 ff 的轻体感。
+
+### 自动生成 slug
+
+不问用户。规则：
+
+- 从用户最初的请求里抽 2-4 个英文 kebab-case 词概括动作 / 对象（如 "rename-cwd-helper"、"add-export-button"、"fix-toolbar-layout"）
+- 不抽业务名词缩写、不音译中文、保持小写连字符
+- 拿不准就保守一点："tweak-{对象}" / "small-{动作}" 也比强求精准好
+
+最终路径：`codestable/features/YYYY-MM-DD-{slug}/{slug}-ff-note.md`，日期用今天。
+
+### 模板
+
+```markdown
+---
+doc_type: feature-ff-note
+feature: {slug}
+date: YYYY-MM-DD
+requirement: {req-slug 或留空}
+tags: [...]
+---
+
+## 做了什么
+{1-3 句：解决什么需求 / 加了什么能力，业务视角}
+
+## 改了哪些
+- {file:行号区间或函数名} — {一句话说改了什么}
+- ...
+
+## 怎么验证的
+{1-2 句：跑了哪些验证 / 浏览器走通了哪条路径 / 跑了什么测试}
+
+## 顺手发现（可选，不阻塞）
+- {文件:行号} {问题简述} — 不在本次范围
+```
+
+**写得真的轻**：每节就那么几行，不要把它写成迷你 design / 迷你 acceptance。这份文档的目标是"半年后有人看 git log 能跳进来 30 秒搞清楚做了啥"，不是替代标准流程。
+
+落盘后告诉用户："已写 `{slug}-ff-note.md`，本次 fastforward 闭环。"
+
+---
+
 ## 不做什么
 
 - **不写 design doc / checklist / acceptance**——这就是 fastforward 的意义。要写就去 `cs-feat-design`
 - **不跟用户确认方案**——用户让你做小功能就是不想等你开会
-- **不在 `codestable/` 里留新文件**——除非发现值得沉淀的坑 / 技巧，另起对话用 `cs-learn` / `cs-trick` 写
+- **不在 `codestable/` 里留 `{slug}-ff-note.md` 之外的新文件**——除非发现值得沉淀的坑 / 技巧，另起对话用 `cs-learn` / `cs-trick` 写
 
 ---
 
@@ -122,9 +167,35 @@ design / implement 的硬约束在 fastforward 的精简版。没 design doc 不
 
 ---
 
+## 退出条件
+
+- [ ] 代码写完且用户确认效果 OK
+- [ ] `{slug}-ff-note.md` 已落盘且四节填齐（顺手发现可省）
+- [ ] 没有未对齐的"顺手发现"（都进 ff-note 末节，留给后续）
+
+---
+
+## 收尾提交
+
+按 `codestable/reference/shared-conventions.md` 第 4 节"scoped-commit"规则执行。本通道：
+
+- **提交范围**：本次代码改动 + `{slug}-ff-note.md`
+- ff-note 落盘后告诉用户"已就绪，是否代为 commit？"，用户明确同意才执行
+
+按 `shared-conventions.md` 第 3 节"feature-ff"收尾推荐顺序逐项一句话提示（用户"不用"立即跳过）：
+
+1. 暴露的坑 → "沉淀 learning？（`cs-learn`）"
+2. 拍板的长期约束 → "归档决定？（`cs-decide`）"
+3. 最后问是否代为 scoped-commit
+
+---
+
 ## 容易踩的坑
 
 - 完全跳过知识检索就写——这个技能的唯一理由就是让你搜一下再写
 - 把搜到的 learning / decision 当"参考"而不是"约束"——decision 拍过板，违反要么重新 decision 要么别做
 - 开始写 design doc——fastforward 就是不写 design
 - 发现任务变复杂还硬在 fastforward 推——切回成本远低于带着错误方案改到底
+- **动手前就建 ff-note 空壳**——破坏 fastforward 的轻体感，必须代码 + 验证完才回写
+- **把 ff-note 写成迷你 design / 迷你 acceptance**——四节加一起十几行就够，多了说明这事不该走 fastforward
+- **跳过 ff-note 直接 commit**——和 issue-ff 强制 fix-note 同样的理由：没记录后人追溯不了

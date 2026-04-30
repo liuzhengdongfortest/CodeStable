@@ -25,9 +25,10 @@ codestable/
 ├── features/              feature spec 聚合根
 │   └── YYYY-MM-DD-{slug}/  每个 feature 一个目录
 │       ├── {slug}-brainstorm.md  （可选，case 2 时产出）
-│       ├── {slug}-design.md
-│       ├── {slug}-checklist.yaml
-│       └── {slug}-acceptance.md
+│       ├── {slug}-design.md      （标准流程）
+│       ├── {slug}-checklist.yaml （标准流程）
+│       ├── {slug}-acceptance.md  （标准流程）
+│       └── {slug}-ff-note.md     （fastforward 通道唯一产物，与上面四份互斥）
 ├── issues/                issue spec 聚合根
 │   └── YYYY-MM-DD-{slug}/
 │       ├── {slug}-report.md
@@ -98,14 +99,14 @@ codestable/
 
 - 是 feature 工作流的唯一执行清单
 - 由 `cs-feat-design` 在 design 确认通过后一次生成 `steps` + `checks`
-- `cs-feat-ff` **不生成** checklist（也不写 design / acceptance），是跳过 spec 流程直接写代码的超轻量通道
+- `cs-feat-ff` **不生成** checklist（也不写 design / acceptance），是跳过 spec 流程直接写代码的超轻量通道；唯一留下的痕迹是动手后回写的 `{slug}-ff-note.md`（轻量回顾，参与 scoped-commit、可被 cs-arch / cs-req backfill 检索到）
 
 `steps` 的粒度是 **编排-计算分离维度的切片策略**——按"先编排骨架、后计算节点、最后持久化与测试"写（最简 Workflow 先行 → 逐个节点填充），**不下沉到 file:line / 函数级**。具体改哪个文件由 implement 阶段决定。
 
 **design 的职责**：
 
 - 提取 `steps`（4-8 步，每步独立可验证退出信号）：后端节奏 = 编排骨架 → 计算节点逐个填 → 接通持久化 → 测试覆盖；前端 = 静态结构 → 交互逻辑 → 状态接入 → 联调收尾
-- 提取 `checks`：第 1 节"明确不做"→ 范围守护；第 2.1 接口 → 名词契约；第 2.2 主流程 + 跨层纪律 → 编排骨架；第 2.3 挂载点 → 挂载点；第 3 节场景清单 → 验收场景
+- 提取 `checks`：第 1 节"明确不做"→ 范围守护；第 2.1 接口 → 名词契约；第 2.2 主流程 + 流程级约束 → 编排骨架；第 2.3 挂载点 → 挂载点；第 3 节场景清单 → 验收场景
 
 **implement 的职责**：
 
@@ -169,6 +170,12 @@ planned  → dropped      （cs-roadmap update 模式，用户决定不做时改
 
 1. `cs-learn`：坑点
 2. `cs-decide`：暴露的长期约束
+3. `scoped-commit`
+
+**feature-ff** 收尾按顺序判断（比标准 acceptance 短，没有 architecture / req 回写动作）：
+
+1. `cs-learn`：动手过程暴露的坑
+2. `cs-decide`：动手过程拍板的长期约束
 3. `scoped-commit`
 
 **统一规则**：一律一句话提示；用户说"不用"立即跳过；不强制；上游主动提示，下游承接执行。
