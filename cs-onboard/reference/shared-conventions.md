@@ -43,6 +43,9 @@ codestable/
 ├── compound/              沉淀类文档统一目录
 │   └── YYYY-MM-DD-{doc_type}-{slug}.md
 │                          doc_type ∈ {learning, trick, decision, explore}
+├── brainstorm/            brainstorm 阶段 spike 实验代码区（cs-brainstorm 临时产出）
+│   └── {slug}/            一次 spike 一个子目录，文件名随意
+│                          验完不强制清理，结论回写到对应 brainstorm note
 ├── tools/                 跨工作流共享脚本（onboarding 从技能包释放）
 └── reference/             共享参考文档（onboarding 从技能包释放）
 ```
