@@ -11,26 +11,20 @@ description: feature 流程的超轻量通道——不写 design / checklist 直
 
 ---
 
-## 动手前先扫一眼这几个地方
+## 动手前先扫一眼 codestable/
 
-### `codestable/compound/` — 经验沉淀
+Glob `codestable/` 发现可用目录和文档，按需取用：
 
-learning（坑）/ trick（做法）/ decision（拍板的技术决定）/ explore（调研结论）四类。
-
-```bash
-python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --query "关键词"
-python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=decision --query "关键词"
-python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --query "关键词"
-```
-
-### `codestable/architecture/` — 架构全景
-
-`ARCHITECTURE.md` 总入口，子系统在同目录其他 md。改跨模块的东西前看一眼相关子系统避免违反既定边界。
-
-### `codestable/tools/` 和 `codestable/reference/`
-
-- `search-yaml.py` / `validate-yaml.py`——用法看 `codestable/reference/tools.md`
-- `shared-conventions.md`——目录结构 / 命名 / 元数据约定
+- **`architecture/`** — ARCHITECTURE.md 总入口 + 子系统 doc。改跨模块的东西前看一眼避免违反边界
+- **`compound/`** — learning / trick / decision / explore 四类沉淀：
+  ```bash
+  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --query "关键词"
+  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=decision --query "关键词"
+  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --query "关键词"
+  ```
+- **`requirements/`** — 有相关 req 时读边界
+- **`features/`** — 有同类 feature 时参考其 design
+- **`reference/`** — shared-conventions.md / tools.md
 
 ---
 

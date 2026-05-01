@@ -33,7 +33,7 @@ brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落
 
 每次都做：
 
-1. **扫一眼仓库**——读 `AGENTS.md` + `architecture/ARCHITECTURE.md`；Glob `features/` / `roadmap/`；Grep 用户描述里的关键词（防术语冲突）；搜 `compound/` 看有没有相关坑（`--filter doc_type=learning`）。简短报告发现让用户知道你不是凭空在聊
+1. **扫一眼仓库**——读 `AGENTS.md`；Glob `codestable/` 发现 architecture / features / roadmap / compound / requirements，读架构总入口、看已有 feature 和 roadmap、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。简短报告发现让用户知道你不是凭空在聊
 2. **是不是接续之前的工作**——`features/` 下有名字相近的 brainstorm？`roadmap/` 下有相近子目录？
    - 没有 → 当新讨论
    - 有 brainstorm 内容是中断留下的 → 读完汇报"上次聊到 {…}，接着聊还是推翻？"
