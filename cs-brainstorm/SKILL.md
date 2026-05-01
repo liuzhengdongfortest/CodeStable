@@ -17,35 +17,35 @@ brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落
 
 ---
 
-## 三种讨论、三个出口
+## 分诊
 
-| 情况 | 特征 | 出口 |
-|---|---|---|
-| **case 1：其实已经够清楚** | 一句话能说出"做什么 / 为谁 / 怎么算成功 / 不做什么"，不需要再 explore | 直接 `cs-feat-design`（不落盘，告知用户后停） |
-| **case 2：小需求，方向定但细节模糊** | 知道要解决什么问题、大致做哪块，对真问题 / 解法 / 边界还摇摆；一个 feature 能装下 | `codestable/features/{feature}/` 里讨论并落 `{slug}-brainstorm.md`，之后进 `cs-feat-design` |
-| **case 3：大需求，还只一个词** | "我想要一个 X 系统 / 一套 Y 能力"，能预见拆出来是多个 feature，或最小闭环还说不清 | `cs-roadmap`（不落盘，移交讨论） |
+### 四种 case 速览
 
-判错 case 不是灾难——**允许升降级**。case 2 聊着发现是 case 3（范围越聊越大）或 case 3 收窄成 case 2，当场告诉用户切换出口，不要硬撑。
+| case | 规模 | 用户状态 | 产物 |
+|---|---|---|---|
+| **case 1：已经够清楚** | 不限 | 一句话能说清做什么 / 为谁 / 怎么算成功 / 不做什么 | 不落盘，直接 `cs-feat-design` |
+| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | `codestable/features/{feature}/{slug}-brainstorm.md` → `cs-feat-design` |
+| **case 3：大需求，拆解 ready** | 多 feature | 心里已有大致模块划分，想直接做拆解和接口契约 | 不落盘，移交 `cs-roadmap` |
+| **case 4：大需求，想 grill** | 多 feature | 还不想拆——想先 grill、发散、产生想法存着 | `codestable/brainstorms/{slug}/brainstorm.md` → 之后 `cs-roadmap` 读到 |
 
----
+判错 case 不是灾难——**允许升降级**。case 2 聊着发现范围越聊越大切 case 3/4，case 3 聊着发现需要先 grill 切 case 4，case 4 grill 完可以直接拆切 case 3，当场切换出口。
 
-## 开聊之前先做的检查
+### 开聊前检查
 
 每次都做：
 
-1. **扫一眼仓库**——读 `AGENTS.md`；Glob `codestable/` 发现 architecture / features / roadmap / compound / requirements，读架构总入口、看已有 feature 和 roadmap、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。简短报告发现让用户知道你不是凭空在聊
-2. **是不是接续之前的工作**——`features/` 下有名字相近的 brainstorm？`roadmap/` 下有相近子目录？
+1. **扫一眼仓库**——读 `AGENTS.md`；Glob `codestable/` 发现 architecture / features / roadmap / brainstorms / compound / requirements，读架构总入口、看已有 feature 和 roadmap 和 brainstorm、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。简短报告发现
+2. **是不是接续之前的工作**：
+   - `features/` 下有名字相近的 brainstorm？`roadmap/` 下有相近子目录？`brainstorms/` 下有相关创意记录？
    - 没有 → 当新讨论
    - 有 brainstorm 内容是中断留下的 → 读完汇报"上次聊到 {…}，接着聊还是推翻？"
    - 有同名 design.md → 告诉用户 design 已开，是不是走错入口
    - 有同名 roadmap → 这块已在 roadmap 跟进，是不是要推进具体子 feature
+   - `brainstorms/` 下有相关创意记录 → 读完汇报"之前 {日期} 存过一份脑暴记录，方向是 {…}，接着聊还是直接拆 roadmap？"
 3. **确认这是新功能 brainstorm**——bug 走 `cs-issue`，重构走 `cs-refactor`
-4. **开场判 case**（下一节）
-5. **如果你已经能替用户写出 design 第 1 节需求摘要的初稿**——告诉用户"我感觉你已经够清楚，直接进 feature-design 更省事"，当场判 case 1。揽下不属于自己的活是本阶段最大反模式
+4. **如果你已经能替用户写出 design 需求摘要的初稿**——当场判 case 1。揽下不属于自己的活是本阶段最大反模式
 
----
-
-## 开场分诊：一两轮对话判 case
+### 开场分诊：一两轮对话判 case
 
 不是填表——分类题问太多用户觉得在走流程。
 
@@ -57,38 +57,20 @@ brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落
 
 > 复述一下看对不对——你想解决的问题是 {P}，打算做 X 包含 a/b/c。这里 a/b/c 合起来更像一个 feature 能搞定，还是三件互相有依赖的事要分几轮？
 
-用户自己拆成多件 → 八成 case 3；a/b/c 是同一件事的不同面 → 八成 case 2；用户听完复述说"对就是这个想清楚了"→ case 1。
+用户自己拆成多件 → 多 feature 规模，追问"想直接拆 roadmap 还是先 grill 存着？"→ case 3 或 case 4；a/b/c 是同一件事的不同面 → case 2；用户听完复述说"对就是这个想清楚了"→ case 1。
 
 **判 case 信号**（用户说不清就 AI 自判）：
 
 - 每一条目标是**同一件事的不同角度**→ case 2
-- 几条目标有**先后依赖**或**互相独立的子模块**→ case 3
+- 几条目标有**先后依赖**或**互相独立的子模块**，用户能说出大致拆法 → case 3
+- 几条目标有**先后依赖**或**互相独立的子模块**，但用户说不清模块边界、想先发散探索 → case 4
 - 聊两句"不做什么 / 核心行为 / 成功标准"都对上 → case 1
 
 ---
 
-## 三种 case 各自怎么处理
+## 怎么聊（case 2 & case 4 共享工具箱）
 
-### case 1：其实已经够清楚
-
-1. 告诉用户"这块你已经想清楚了：{AI 一句话复述}。建议直接 `cs-feat-design`——brainstorm 对你没增量"
-2. **看聊过程有没有非琐碎技术决策**——讨论了具体库选型 / Schema / 接口形态 / 跨模块约定，落一份精简 brainstorm（只填"已敲定的设计点"那节）让 design 直接读到不必重讨；纯方向确认没聊技术细节就裸退不落盘
-3. 停下来等用户触发 design
-
-### case 2：小需求，在 feature 里继续讨论
-
-按"怎么聊"一节推进，收敛后落 `codestable/features/{feature}/{slug}-brainstorm.md`。
-
-### case 3：大需求，移交 roadmap
-
-1. 告诉用户"听起来是多个 feature 的集合，单 feature 装不下。`cs-roadmap` 会做拆解和依赖梳理，我把讨论交给它"
-2. 把已聊的信息汇总让 roadmap 接手不用重来：真问题 / 大致范围 / 已提到的可能子模块（一句话各一）；**聊到的跨模块接口形态、共享协议、技术选型一并列出**——这些是 roadmap 第 4 节"架构层详设"的种子
-3. **不落盘**——`roadmap new` 自己建目录和主文档
-4. 告诉用户下一步触发 `cs-roadmap`
-
----
-
-## 怎么聊（case 2 展开）
+以下对话方法对 case 2 和 case 4 通用。case 2 最终要收敛到一个选定方向，case 4 可以更开放、不强制收敛。
 
 ### 两条核心姿态
 
@@ -106,50 +88,45 @@ brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落
 
 1. **挖问题**——按姿态 1 把"真正要解决的问题"问清楚，能用一句话复述、用户说"对就是这个"为止。**这一步价值最高不要急着跳过**
 
-   **挖问题的 grill 档**（按需启动，默认不开）
+   **grill 档**（按需启动，默认不开）
 
    默认走轻问——一次复述对上就推进。下面任一信号出现切到 grill 档加深：
 
    - **显式请求**：用户说"多问几轮 / 帮我问清楚再开始 / grill 我"
    - **隐式信号**：连续两次复述被"差不多但不太对"驳回；同一概念用不同词反复互指（"权限 / 角色 / 租户"换着说指同一件事）；用户自己也说不清楚
-   - **只在 case 2 启动**——case 1 已清楚再 grill 反人性，case 3 拆解归 roadmap
+   - **只在 case 2 / case 4 启动**——case 1 已清楚硬 grill 反人性，case 3 用户已 ready 拆解不需要 grill
 
-   grill 档的硬约束（防止变成 grill-me 那种没完没了）：
+   grill 档硬约束（防止没完没了）：
 
    - 最多 3-5 轮重点问题，一轮没拿到新增信息就退到发散
    - 每轮**一个问题 + 2-4 个有区别度的候选**让用户挑，不让 TA 自由作文
-   - 遇到"得写起来才知道"的问题：标成 design open question 直接跳过，不死磕
+   - 遇到"得写起来才知道"的问题：标成 open question 直接跳过，不死磕
    - 用户开始敷衍 / 说"先这样吧 / 差不多了" → 立刻退到收敛，别再追问
 
 2. **发散**——确认问题后再谈方案。提 2-3 个具体候选方向（用户带的方案算其中一个），每个 1-2 句描述 / 价值 / 代价。**至少有一个反直觉候选**（反转 / 去掉常见约束 / 跨领域类比）。所有候选呈现完再给推荐——先锚定再补别的会污染用户判断
 3. **收敛**——选定方向后轻轻勾勒：核心行为？明显不做？最大未知？给 design 热身不是替 design 决定
 
-### 什么时候停下来做最小 demo
+### 最小 demo / spike
 
 讨论中冒出"这个方向能不能走得通要看 X 实际是不是 Y"——不要靠脑补辩论，**停下来花 5-30 分钟搭个最小 demo 验一下**比再聊三轮更省时。
 
 **默认不做**——大多数 brainstorm 是在比较权衡，demo 帮不上忙。同时满足下面三条才主动提议：
 
 1. **是事实问题不是偏好问题**——某 API 实际行为 / 库是否真支持 / 性能特征是否成立，不是"哪种风格更好"
-2. **结果会改变方向**——验出来不管成败，讨论都能收敛；如果两种结果对方案影响都不大就别做
-3. **成本可控**——你判断 5-30 分钟内能搭出能跑的东西。超过这个量就不是 spike 了，该走 `cs-feat-ff` 直接做或拆成正式 feature
+2. **结果会改变方向**——验出来不管成败，讨论都能收敛
+3. **成本可控**——你判断 5-30 分钟内能搭出能跑的东西。超过这个量该走 `cs-feat-ff` 直接做或拆成正式 feature
 
-提议格式：**"这块靠想不准，我做个最小 demo 验一下 {要验的事}，5-10 分钟，OK 吗？"** 用户秒过 / 拒绝即可，不用展开讨论方案。
+提议格式：**"这块靠想不准，我做个最小 demo 验一下 {要验的事}，5-10 分钟，OK 吗？"** 用户秒过 / 拒绝即可。
 
-**spike 落地约定**（保持随意）：
-
-- 实验代码扔 `codestable/brainstorm/{slug}/` 下，文件随便起名（`spike.py` / `try-{topic}.ts`）；slug 沿用 brainstorm 的 slug，没建 feature 目录就用临时关键词
-- 验完不强制清理——留着以后看也行，影响不大；用户嫌乱说一声再删
-- **结果必须回写 brainstorm note**——成败都要在"已敲定的设计点"那节记一条："{结论} —— 已用 spike `codestable/brainstorm/{slug}/{file}` 验证"，避免 design 阶段再起疑重做
+**spike 落地约定**：
+- case 2：实验代码扔 `codestable/features/{feature}/` 下（和 brainstorm note 同目录），文件随便起名（`spike.py` / `try-{topic}.ts`）
+- case 4：spike 放 `codestable/brainstorms/{slug}/`，跟 brainstorm.md 挨着
+- 验完不强制清理——留着以后看也行；用户嫌乱说一声再删
+- **结果必须回写 brainstorm note**——成败都要在"已敲定"那节记一条："{结论} —— 已用 spike 验证（代码见 `{路径}`）"，避免 design / roadmap 阶段再起疑重做
 
 case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑一样：事实存疑 + 改变方向 + 成本可控。
 
-### 随时升降级
-
-- 发现是大需求（子模块越聊越多有依赖）→ "这规模超出单 feature 建议切 roadmap"，按 case 3 移交
-- 发现已经全清楚 → "我觉得已经够进 design"，按 case 1 停下
-
-### 常见的坑
+### 对话中的坑
 
 - **一次只问一个问题**——抛三五个用户只回最容易答的
 - **先给选项再提问**——能用 2-4 个具体有区别度的选项让用户挑就别让 TA 自由作文
@@ -157,17 +134,37 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 
 ---
 
-## case 2 落盘
+## 四种 case
 
-收敛完成后写 brainstorm note 到 `codestable/features/{feature}/{slug}-brainstorm.md`。
+### case 1：已经够清楚
 
-### feature 目录怎么建
+**信号**：一句话能说出做什么 / 为谁 / 怎么算成功 / 不做什么；聊两句核心行为 / 成功标准都对上。
 
+**处理**：
+1. 告诉用户"这块你已经想清楚了：{AI 一句话复述}。建议直接 `cs-feat-design`——brainstorm 对你没增量"
+2. **看聊过程有没有非琐碎技术决策**——讨论了具体库选型 / Schema / 接口形态 / 跨模块约定，落一份精简 brainstorm（只填"已敲定的设计点"那节）让 design 直接读到不必重讨；纯方向确认没聊技术细节就裸退不落盘
+3. 停下来等用户触发 design
+
+**退出**："直接触发 `cs-feat-design` 从零写 design"（不落盘）；轻量落盘则"下一步 `cs-feat-design` 会读到 `{路径}` 不必重述"
+
+---
+
+### case 2：小需求 → feature brainstorm
+
+**信号**：知道要解决什么问题、大致做哪块，一个 feature 能装下，但对解法 / 边界还摇摆。
+
+**怎么聊**：按上节"怎么聊"工具箱推进——挖问题 → 发散 → 收敛。收敛到选定方向后落盘。
+
+**升降级**：
+- 聊着发现规模超出单 feature → "这规模超出单 feature，你想直接拆 roadmap 还是先 grill 存着？"→ case 3 或 case 4
+- 聊着发现已经全清楚 → case 1
+
+**落盘**：收敛完成后写 `codestable/features/{feature}/{slug}-brainstorm.md`。
+
+目录约定：
 - 日期前缀：从环境信息取今天日期
 - slug：根据方向自拟英文小写连字符，写进 note 时告诉用户。design 阶段改名只 rename slug 部分日期别动
-- 目录不存在就创建；已存在回到上面"接续检查"
-
-### brainstorm note 模板
+- 目录不存在就创建；已存在回到开聊前检查的接续逻辑
 
 只在用户确认进 design 那一刻落盘——对话期间不写文件。`status` 固定 `confirmed`，没有 draft。
 
@@ -205,28 +202,97 @@ tags: [...]
 
 frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conventions.md` 第 1 节。
 
+**退出**：主动问"这块够清楚了可以进 design 吗？"，确认后落盘，告诉用户"下一步 `cs-feat-design` 会读到 `{路径}`"
+
 ---
 
-## 退出
+### case 3：大需求 → roadmap 直接拆
 
-退出时**告诉用户下一步触发哪个技能、读哪份文件**：
+**信号**：多 feature 规模，用户心里已有大致模块划分，能说出拆法，想直接做拆解和接口契约。
 
-- **case 1 裸退**：告诉用户"直接触发 `cs-feat-design` 从零写 design"，不落盘
-- **case 1 带轻量落盘**：有非琐碎技术决策时落 brainstorm（只填"已敲定的设计点"），告诉用户"下一步 `cs-feat-design` 会读到 `{路径}` 不必重述"
-- **case 2**：主动问"这块够清楚了可以进 design 吗？"，确认后落盘，告诉用户"下一步 `cs-feat-design` 会读到 `{路径}`"
-- **case 3**：告诉用户"移交给 `cs-roadmap`"，附聊到的要点汇总（含技术讨论部分），不落盘
+**处理**：
+1. 告诉用户"听起来是多个 feature 的集合，单 feature 装不下。`cs-roadmap` 会做拆解和依赖梳理，我把讨论交给它"
+2. 把已聊的信息汇总让 roadmap 接手不用重来：真问题 / 大致范围 / 已提到的可能子模块（一句话各一）；**聊到的跨模块接口形态、共享协议、技术选型一并列出**——这些是 roadmap "架构层详设"节的种子
+3. **不落盘**——`roadmap new` 自己建目录和主文档
 
-**别自己顺手开始写 design 或 roadmap**——阶段间的人工 checkpoint 是 CodeStable 整套流程的硬约束。
+**退出**："移交给 `cs-roadmap`"（附聊到的要点汇总），不落盘
+
+---
+
+### case 4：大需求 → brainstorms 创意空间
+
+**信号**：多 feature 规模，但用户说不清模块边界、想先发散探索——"帮我问问清楚"、"先把想法理一理存着"、"方向还乱，聊开了再说"。
+
+这是创意空间，不是设计文档。目标是产生可留存的想法、方向和洞察，供后续 roadmap 消费。
+
+**怎么聊**：启动 grill 档（见上节"对话节奏 > grill 档"），同时自由发散——聊方案、聊类比、聊技术可能性、聊限制。对话比 case 2 更开放，不急着收敛。
+
+**升降级**：
+- grill 完感觉够清楚了想直接拆 → case 3，落 brainstorm.md 后移交 roadmap
+- 聊着发现其实一个 feature 能装下 → case 2
+- 聊着发现已经全清楚 → case 1
+
+**落盘**：用户说"先这样"/"差不多了"/"存一下"，或 AI 判断 grill 已到 3-5 轮上限，主动说"这块我先帮你落到 brainstorms 里，之后 roadmap 会读到"。
+
+路径：`codestable/brainstorms/{slug}/`
+
+```
+codestable/brainstorms/{slug}/
+└── brainstorm.md    创意记录
+```
+
+目录不存在就创建。slug 根据方向自拟英文小写连字符。
+
+```markdown
+---
+doc_type: brainstorm
+slug: {slug}
+created: YYYY-MM-DD
+status: active
+summary: 一句话讲这块要探索什么
+tags: [...]
+---
+
+# {主题名}
+
+> 创意空间 | {YYYY-MM-DD} | 下一步：cs-roadmap
+
+## 出发点
+{什么触发了这个想法 / 想解决什么问题 / 为什么觉得值得做}
+
+## 聊过的方向
+{发散过程的关键转折、候选方向、讨论过的可能性——不要求收敛，保留探索痕迹}
+
+## 当前倾向
+{聊到目前的模糊方向——可以是 2-3 个还在摇摆的方向，各自一两句}
+{如果已经比较清楚，写"倾向于 X 方向，核心是 Y"}
+
+## 已敲定的点
+{聊过程中已经达成共识的——哪怕只是一个约束、一个不做、一个类比}
+{什么都没有就删掉这节}
+
+## 遗留问题 & 下一步
+{最大的未知 / 需要验证的假设 / 建议 roadmap 注意的点}
+```
+
+- `doc_type: brainstorm` 区别于 case 2 的 `feature-brainstorm`
+- 比 case 2 模板更自由——不要求"选定方向"，允许保留多个倾向
+- 不需要"考虑过的方向"那种结构化对比——那是 design 前的事，这里只是创意记录
+
+**和 roadmap 的衔接**：`cs-roadmap` 启动时会搜 `codestable/brainstorms/` 看有没有相关 brainstorm。如果有，roadmap 把 brainstorm 当输入材料读，不重复分诊直接拆。
+
+**退出**：落盘后告诉用户"想法存到 `{路径}` 了，准备好了就触发 `cs-roadmap`，它会读到这份脑暴记录"
 
 ---
 
 ## 硬性边界
 
 1. **不跳过分诊**——任何长度的讨论开始前都要先判 case
-2. **不替用户决定规模**——case 2/3 边界模糊就问用户"你脑子里这块是一个 feature 能装下的规模吗"
-3. **不落盘非 case 2 产物**——case 1/3 不写文件
+2. **不替用户决定规模**——case 2 / 3 / 4 边界模糊就问用户"你脑子里这块是一个 feature 能装下的规模吗，还是需要先 grill 存着"
+3. **不落盘非 case 2 / case 4 产物**——case 1 / 3 不写文件
 4. **不处理 bug / 重构**
-5. **不在 case 1/3 启动 grill 档**——case 1 已清楚硬 grill 反人性，case 3 拆解是 roadmap 的活
+5. **不在 case 1 / 3 启动 grill 档**——case 1 已清楚硬 grill 反人性，case 3 用户已 ready 拆解不需要 grill
+6. **别自己顺手开始写 design 或 roadmap**——阶段间的人工 checkpoint 是 CodeStable 整套流程的硬约束
 
 ---
 
@@ -237,5 +303,7 @@ frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conve
 - case 1 硬凑 brainstorm note——用户已清楚还写一份模板，后人误以为这里发生过有价值讨论
 - case 3 自己做拆解——越俎代庖，那是 roadmap 的产物
 - 升降级信号不理——范围扩大还继续 case 2，最后落一份塞不下所有子模块的 note
+- 把 case 4 当 case 3 处理——用户想 grill 存着，却直接移交 roadmap 把未成形的想法硬拆成 feature
+- 把 case 3 当 case 4 处理——用户已经 ready 拆解，却强行 grill 拖延节奏
 - 一次只给一个方案让用户评价——用户被锚定提不出别的方向
 - 复述用户方案就落盘——记录员心态，AI 没提供思考伙伴的价值
