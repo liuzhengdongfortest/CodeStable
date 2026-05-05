@@ -1,11 +1,15 @@
 ---
 name: cs-roadmap
-description: 把"大到塞不进单个 feature"的需求做成完整事前规划：概设 + 接口契约 + 子 feature 拆解清单，放在 `codestable/roadmap/{slug}/`。两种模式 new / update。触发：用户说"我想要一个 X 系统"、"帮我把这块需求拆一下"、"开一份 roadmap"，或 feature-design 阶段发现需求太大。
+description: 把"大到塞不进单个 feature"的需求做成完整事前规划：概设 + 接口契约 + 子 feature 拆解清单，放在 `.codestable/roadmap/{slug}/`。两种模式 new / update。触发：用户说"我想要一个 X 系统"、"帮我把这块需求拆一下"、"开一份 roadmap"，或 feature-design 阶段发现需求太大。
 ---
 
 # cs-roadmap
 
-`codestable/roadmap/` 是项目的"规划层"——每个子目录承载一块大需求，主文档由三块构成：
+## 启动必读
+
+开始任何判断或动作前，先读取 `.codestable/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `cs-onboard`，不要回退到外部 AI 入口文件。
+
+`.codestable/roadmap/` 是项目的"规划层"——每个子目录承载一块大需求，主文档由三块构成：
 
 1. **概设**：这块大需求要怎么搭、拆成哪几个模块 / 组件、各自职责
 2. **架构层详设**：模块之间的接口契约、共享数据结构、跨 feature 的协议
@@ -15,11 +19,11 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 
 **为什么 roadmap 承载架构方案不放进 `architecture/`**：`cs-arch` 守"只记现状不记计划"。前瞻性架构方案属于"还没落地、可能还会变"的事前规划，放进 architecture 会污染那份系统地图。等子 feature 真正落地，对应接口由 `cs-feat-accept` 提炼回 `architecture/`——roadmap 完成过渡使命后归档。
 
-**为什么单独一层**：requirements 和 architecture 记现状档案。"接下来打算做 A、然后做 B" 这种规划信息塞进现状档案会把"是什么"和"打算怎么做"混起来——查不到系统真实能力，计划改一下又得改两份现状文档。
+**为什么单独一层**：requirements 记"要什么"（愿景）、architecture 记"怎么搭"（结构）、roadmap 记"怎么分步实现"（执行）。把执行规划塞进愿景或结构文档会把"要什么"和"打算怎么实现"混起来——查不到系统真实能力，计划改一下又得改两份文档。
 
 **为什么文件夹不是单文件**：拆解过程会产生草稿 / 调研 / 方案对比 / 白板转述，塞一份 md 会乱又舍不得删。每个 roadmap 一个子目录，主文档对外口径，旁边 `drafts/` 随便堆。
 
-> 共享路径与命名约定看 `codestable/reference/shared-conventions.md`。主文档和 items 完整模板看同目录 `reference.md`。
+> 共享路径与命名约定看 `.codestable/reference/shared-conventions.md`。主文档和 items 完整模板看同目录 `reference.md`。
 
 ---
 
@@ -54,7 +58,7 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 ## 目录结构
 
 ```
-codestable/roadmap/{slug}/
+.codestable/roadmap/{slug}/
 ├── {slug}-roadmap.md       主文档：背景 / 范围 / 模块拆分（概设）/ 接口契约（架构层详设）/ 子 feature 清单 / 排期
 ├── {slug}-items.yaml       机器可读清单（feature-design 读、feature-acceptance 回写）
 └── drafts/                 可选，调研 / 讨论 / 草稿
@@ -72,10 +76,10 @@ codestable/roadmap/{slug}/
 
 ### Phase 2：读取材料
 
-**共同必读**：`AGENTS.md` + 用户素材 + `roadmap/` 其他 roadmap（防重复）+ `requirements/` 相关 req + `architecture/` 相关 doc。
+**共同必读**：`.codestable/attention.md` + 用户素材 + `roadmap/` 其他 roadmap（防重复）+ `requirements/` 相关 req + `architecture/` 相关 doc。
 
 **按情况读**：
-- 相关 compound 沉淀：`python codestable/tools/search-yaml.py --dir codestable/compound --query "{大需求关键词}"`
+- 相关 compound 沉淀：`python .codestable/tools/search-yaml.py --dir .codestable/compound --query "{大需求关键词}"`
 - 已有相关 feature 方案
 
 **update 额外**：当前主文档全文 + items.yaml 当前状态 + 已启动 / 完成的子 feature 的 design / acceptance。
@@ -101,7 +105,7 @@ review 前自跑一遍汇报处理：
 
 1. 模块拆分讲清了吗？每个模块职责一句话能说出来？
 2. 接口契约写到可执行程度了吗？feature-design 看完不需要回来问就能直接照着实现？
-3. 每条子 feature 的 slug 规范？（grep `codestable/features/` 确认不冲突）
+3. 每条子 feature 的 slug 规范？（grep `.codestable/features/` 确认不冲突）
 4. 每条描述一句话讲清楚？讲不清就拆得不够或 scope 太模糊
 5. 依赖关系是 DAG？有没有自指 / A→B→A 回环
 6. 最小闭环真的最小？第一条做完能独立给用户演示点什么？
@@ -116,7 +120,7 @@ review 前自跑一遍汇报处理：
 
 ### Phase 6：落盘
 
-**new**：建 `codestable/roadmap/{slug}/`；写主文档（`status: active` / `created` / `last_reviewed` 当天）；写 items.yaml（每条 `status: planned`、`feature: null`）；`validate-yaml.py` 校验。
+**new**：建 `.codestable/roadmap/{slug}/`；写主文档（`status: active` / `created` / `last_reviewed` 当天）；写 items.yaml（每条 `status: planned`、`feature: null`）；`validate-yaml.py` 校验。
 
 **update**：改主文档（`last_reviewed` 当天，结构性改动文末加变更日志）；改 items.yaml 对应条目（drop 不删，`status: dropped` 留存理由）；重新校验 yaml。
 
@@ -156,7 +160,7 @@ feature-design 发现接口契约不合理 / 漏了 / 描述不准 → **回 `cs
 ## 硬性边界
 
 1. **不写单 feature 内部实现细节**——roadmap 写到"模块边界 / 接口契约 / 共享协议"为止，单模块内部怎么实现归 feature-design。判据：**会被多个 feature 共同遵守**归 roadmap，**只在某个 feature 内部用**归 feature-design
-2. **不改现状档案**——不顺手改 requirements / architecture / 代码 / 已有 feature。问题记"观察项"
+2. **不改愿景和结构档案**——不顺手改 requirements / architecture / 代码 / 已有 feature。问题记"观察项"
 3. **不替用户拍产品优先级**——技术依赖外的排序让用户决定
 4. **单目标**——一次只动一份
 5. **不发散**——用户范围外问题记观察项不扩大
@@ -189,7 +193,7 @@ feature-design 发现接口契约不合理 / 漏了 / 描述不准 → **回 `cs
 | `cs-arch` 配合 | architecture 记现状、roadmap 记若干步。读 arch 理解现状但不改它 |
 | `cs-feat` 下游 | 每条子 feature 是未来一次 feature 流程的种子；起头时 design frontmatter 带 `roadmap` / `roadmap_item` |
 | `cs-feat-accept` 回写方 | acceptance 自动改 items.yaml 为 `done`，本技能只定义格式不负责回写 |
-| `cs-onboard` 创建者 | onboarding 建 `roadmap/` 空目录 |
+| `cs-onboard` 创建者 | 建 `roadmap/` 空目录 |
 | `cs-brainstorm` 上游 | case 3 移交本技能，带"真问题 / 大致范围 / 可能子模块"一句话汇总。本技能不重复分诊直接拆 |
 
 ---

@@ -5,6 +5,10 @@ description: 修 bug 的子流程入口，把"发现问题"走到验证修复闭
 
 # cs-issue
 
+## 启动必读
+
+开始任何判断或动作前，先读取 `.codestable/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `cs-onboard`，不要回退到外部 AI 入口文件。
+
 修 bug 直觉是"找到错的地方改了完事"，但这个直觉路径反复制造同样的麻烦：
 
 1. 问题描述只在脑子里改完就忘——三个月后 bug 再现没复现步骤留存
@@ -25,7 +29,7 @@ issue 工作流在"看到问题"和"动手改代码"之间塞缓冲：
 ## 文件放哪儿
 
 ```
-codestable/issues/{YYYY-MM-DD}-{slug}/
+.codestable/issues/{YYYY-MM-DD}-{slug}/
 ├── {slug}-report.md           ← 阶段 1 问题报告
 ├── {slug}-analysis.md         ← 阶段 2 根因分析
 └── {slug}-fix-note.md         ← 阶段 3 修复记录（必出产物）
@@ -69,7 +73,7 @@ codestable/issues/{YYYY-MM-DD}-{slug}/
 
 ## 路由
 
-进入本技能先 Glob `codestable/issues/`，自己读已有文件才有数。
+进入本技能先 Glob `.codestable/issues/`，自己读已有文件才有数。
 
 | 当前状态 | 触发哪个子技能 |
 |---|---|
@@ -94,7 +98,7 @@ codestable/issues/{YYYY-MM-DD}-{slug}/
 
 ## 相关文档
 
-- `codestable/reference/system-overview.md` — CodeStable 体系总览
-- `codestable/reference/shared-conventions.md` — 跨阶段共享口径
-- `AGENTS.md` — 全项目代码规范
-- `codestable/architecture/ARCHITECTURE.md` — 根因分析时可能要查
+- `.codestable/reference/system-overview.md` — CodeStable 体系总览
+- `.codestable/reference/shared-conventions.md` — 跨阶段共享口径
+- `.codestable/attention.md` — CodeStable 启动注意事项和项目硬约束
+- `.codestable/architecture/ARCHITECTURE.md` — 根因分析时可能要查

@@ -7,27 +7,30 @@ Designed for AI agent use: fast, structured output, no required external depende
 
 Filter syntax (--filter flag, repeatable, AND logic):
   key=value     Exact match on a scalar field (case-insensitive)
+  key=a|b       Exact match against any candidate value (OR)
   key~=value    Substring match on a string field, or element-in for list fields
+  key~=a|b      Substring/list match against any candidate value (OR)
 
 Usage examples:
-  # Search codestable/compound (learning / trick / decision / explore docs share this dir)
-  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --filter track=pitfall
-  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=trick --filter tags~=prisma
-  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=decision --filter status=active --full
+  # Search .codestable/compound (learning / trick / decision / explore docs share this dir)
+  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=learning --filter track=pitfall
+  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter "doc_type=decision|explore|learning"
+  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=trick --filter tags~=prisma
+  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=decision --filter status=active --full
 
   # Full-text search in body + frontmatter values
-  python codestable/tools/search-yaml.py --dir codestable/compound --query "shadow database"
+  python .codestable/tools/search-yaml.py --dir .codestable/compound --query "shadow database"
 
   # JSON output for AI agent consumption
-  python codestable/tools/search-yaml.py --dir codestable/compound --filter doc_type=learning --filter track=knowledge --json
+  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=learning --filter track=knowledge --json
 
   # Sort by a frontmatter date field (works on any ISO-8601 date string, YAML date, or sortable value)
-  python codestable/tools/search-yaml.py --dir codestable/library-docs --sort-by last_reviewed --order asc   # oldest first (stalest)
-  python codestable/tools/search-yaml.py --dir codestable/compound --sort-by date --order desc              # newest first
+  python .codestable/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc   # oldest first (stalest)
+  python .codestable/tools/search-yaml.py --dir .codestable/compound --sort-by date --order desc              # newest first
 
   # Works on any yaml-frontmatter markdown directory
-  python codestable/tools/search-yaml.py --dir docs/decisions --filter status=accepted
-  python codestable/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
+  python .codestable/tools/search-yaml.py --dir docs/decisions --filter status=accepted
+  python .codestable/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
 """
 
 import argparse
@@ -122,6 +125,11 @@ def load_documents(directory: Path) -> list[dict]:
 # Filter parsing and evaluation
 # ---------------------------------------------------------------------------
 
+def _split_filter_values(value: str) -> list[str]:
+    values = [part.strip() for part in value.split("|")]
+    return [part for part in values if part] or [value.strip()]
+
+
 class Filter:
     """Parsed representation of a single --filter expression."""
 
@@ -130,16 +138,19 @@ class Filter:
             key, _, value = raw.partition("~=")
             self.key = key.strip()
             self.value = value.strip()
+            self.values = _split_filter_values(self.value)
             self.operator = "contains"
         elif "=" in raw:
             key, _, value = raw.partition("=")
             self.key = key.strip()
             self.value = value.strip()
+            self.values = _split_filter_values(self.value)
             self.operator = "exact"
         else:
             raise argparse.ArgumentTypeError(
                 f"Invalid filter expression {raw!r}. "
-                "Use 'key=value' for exact match or 'key~=value' for substring/list-contains match."
+                "Use 'key=value' for exact match or 'key~=value' for substring/list-contains match. "
+                "Use pipes for OR values, e.g. 'doc_type=decision|explore|learning'."
             )
 
     def matches(self, meta: dict) -> bool:
@@ -148,12 +159,16 @@ class Filter:
             return False
 
         if self.operator == "exact":
-            return str(field_val).lower() == self.value.lower()
+            return any(str(field_val).lower() == value.lower() for value in self.values)
 
         # contains: substring for strings, element-in for lists
         if isinstance(field_val, list):
-            return any(self.value.lower() == str(item).lower() for item in field_val)
-        return self.value.lower() in str(field_val).lower()
+            return any(
+                value.lower() == str(item).lower()
+                for value in self.values
+                for item in field_val
+            )
+        return any(value.lower() in str(field_val).lower() for value in self.values)
 
     def __repr__(self):
         op = "~=" if self.operator == "contains" else "="
@@ -258,7 +273,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--filter", "-f", metavar="EXPR", dest="filters",
                         type=parse_filter, action="append", default=[],
                         help="Frontmatter filter expression. Repeatable (AND logic). "
-                             "key=value for exact match; key~=value for substring (strings) or element-in (lists).")
+                             "key=value for exact match; key~=value for substring (strings) or element-in (lists). "
+                             "Use pipes for OR values, e.g. key=a|b.")
     parser.add_argument("--query", "-q", metavar="TEXT",
                         help="Full-text search in document body and frontmatter values.")
     parser.add_argument("--full", action="store_true",

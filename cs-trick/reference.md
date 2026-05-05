@@ -19,7 +19,7 @@ superseded-by: {可选}
 ---
 ```
 
-文件名：`codestable/compound/YYYY-MM-DD-trick-{slug}.md`。
+文件名：`.codestable/compound/YYYY-MM-DD-trick-{slug}.md`。
 
 ## 2. 正文模板
 

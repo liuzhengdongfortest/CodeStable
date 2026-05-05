@@ -1,11 +1,15 @@
 ---
 name: cs-arch
-description: 维护 `codestable/architecture/` 这份只记现状的系统地图，三种模式 update / check / backfill。触发：用户说"刷新 architecture"、"做架构检查"、"补这个模块的架构文档"、"方案和代码对得上吗"，或 feature 阶段需要先做架构动作。不写未来规划（走 cs-roadmap）。
+description: 维护 `.codestable/architecture/` 这份只记现状的系统地图，三种模式 update / check / backfill。触发：用户说"刷新 architecture"、"做架构检查"、"补这个模块的架构文档"、"方案和代码对得上吗"，或 feature 阶段需要先做架构动作。不写未来规划（走 cs-roadmap）。
 ---
 
 # cs-arch
 
-`codestable/architecture/` 是项目"地图"——design 写方案前读它定位、issue-analyze 做根因时读它理解模块边界、新人读它知道系统大致长什么样。本技能是"起草 / 刷新 / 体检"三件事的统一入口。
+## 启动必读
+
+开始任何判断或动作前，先读取 `.codestable/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `cs-onboard`，不要回退到外部 AI 入口文件。
+
+`.codestable/architecture/` 是项目"地图"——design 写方案前读它定位、issue-analyze 做根因时读它理解模块边界、新人读它知道系统大致长什么样。本技能是"起草 / 刷新 / 体检"三件事的统一入口。
 
 **architecture 是累积的、自给自足的系统地图**，不是某次 feature 的详细方案，而是所有已落地 feature 沉淀下来的"系统现在长什么样"总图。读者打开应能看懂整体结构而不需要跳回历史 design。design 是临时增量稿，acceptance 把稳定下来的名词 / 编排 / 约束提炼回这里；design 文件归档，只在追究具体决策细节时翻。
 
@@ -20,7 +24,7 @@ description: 维护 `codestable/architecture/` 这份只记现状的系统地图
 - **代码复述**——每节都说"这里有什么"，不说"为什么这么分"，信息量等于 `ls -R`
 - **检查时看一眼感觉没问题**——没给具体位置证据
 
-> 共享路径与命名约定看 `codestable/reference/shared-conventions.md`。文档结构模板、check 覆盖项、报告格式看同目录 `reference.md`。
+> 共享路径与命名约定看 `.codestable/reference/shared-conventions.md`。文档结构模板、check 覆盖项、报告格式看同目录 `reference.md`。
 
 ---
 
@@ -161,7 +165,7 @@ Phase 6：落盘（backfill/update）或 等用户拍板（check）
 | `cs-feat-accept` 下游 | 验收阶段实际去更新本技能产出的 doc（acceptance 自己归并，不回调本技能）；想确认实现 vs design 对得上时触发 check `design-vs-code` |
 | `cs-decide` 配合 | 拍板架构决策后，update 模式把引用补进相关 doc 第 4 节 |
 | `cs-issue-analyze` 读者 | 根因分析读本技能 doc 定位模块边界 |
-| `cs-onboard` 创建者 | onboarding 建 `ARCHITECTURE.md` 占位，之后由本技能填实 |
+| `cs-onboard` 创建者 | onboard 建 `ARCHITECTURE.md` 占位，之后由本技能填实 |
 | `cs-roadmap` 配合 | architecture 记现状、roadmap 记规划。roadmap 起草读本技能 doc 理解现状但不改它；目标态架构归 roadmap |
 
 ---

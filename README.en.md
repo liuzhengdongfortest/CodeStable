@@ -117,7 +117,7 @@ CodeStable models real coding work as **6 entities** and **3 flows**.
 <table>
 <tr><th>Group</th><th>Skill</th><th>Purpose</th></tr>
 <tr><td><b>Root entry</b></td><td><code>cs</code></td><td>Unified entry — introduces the system and routes open-ended intents to the right cs-* skill. Call it when you don't know which one fits</td></tr>
-<tr><td><b>Onboarding</b></td><td><code>cs-onboard</code></td><td>Bring CodeStable into a new repo or one with scattered docs</td></tr>
+<tr><td><b>Onboard</b></td><td><code>cs-onboard</code></td><td>Bring CodeStable into a new repo or one with scattered docs</td></tr>
 <tr><td rowspan="2"><b>Requirement & architecture</b></td><td><code>cs-req</code></td><td>Curate / accumulate raw requirement docs</td></tr>
 <tr><td><code>cs-arch</code></td><td>Draft or update architecture docs under <code>codestable/architecture/</code></td></tr>
 <tr><td><b>Roadmap</b></td><td><code>cs-roadmap</code></td><td>Up-front planning for a big chunk of work: high-level design + interface contracts + sub-feature breakdown</td></tr>
@@ -284,8 +284,8 @@ your-project/
 │   │   └── YYYY-MM-DD-{doc_type}-{slug}.md
 │   │       # doc_type ∈ {learning, trick, decision, explore}
 │   │
-│   ├── tools/                            # Cross-workflow shared scripts (released by onboarding)
-│   └── reference/                        # Shared reference docs (released by onboarding)
+│   ├── tools/                            # Cross-workflow shared scripts (released by onboard)
+│   └── reference/                        # Shared reference docs (released by onboard)
 │       ├── shared-conventions.md         # Cross-skill conventions / paths / metadata
 │       ├── system-overview.md            # CodeStable system overview + scenario routing
 │       └── ...
@@ -299,7 +299,7 @@ your-project/
 - `requirements/` and `architecture/` are **long-lived archives** (current state only); `roadmap/` is the **planning layer** (what's next) — deliberately separated
 - `features/` `issues/` `refactors/` use `YYYY-MM-DD-{slug}/` to bundle all related specs in one directory, no crossing
 - `compound/` is the **single** knowledge sink directory — learning / trick / decision / explore are distinguished by the `doc_type` field, not by sub-directories. Easier to search
-- `reference/` is copied in by `cs-onboard` from the skill package; to change shared conventions, edit the templates under `cs-onboard/reference/` — new projects pick up the new version on onboarding
+- `reference/` is copied in by `cs-onboard` from the skill package; to change shared conventions, edit the templates under `cs-onboard/reference/` — new projects pick up the new version on onboard
 
 ### Hard constraint
 
@@ -307,7 +307,7 @@ your-project/
 >
 > Cross-skill shared references must go through the "working project" layer: `cs-onboard` copies them from the skill package to the project's `codestable/reference/`, and other skills read them via the project-relative path.
 
-To change shared conventions, edit the templates under `cs-onboard/reference/`; new projects pick them up at onboarding time.
+To change shared conventions, edit the templates under `cs-onboard/reference/`; new projects pick them up at onboard time.
 
 ---
 

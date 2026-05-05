@@ -5,15 +5,15 @@ description: 想法还模糊时的讨论入口，做分诊后路由到 feature-d
 
 # cs-brainstorm
 
-brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落在哪——feature design / roadmap / 还是聊两句发现已经够清楚直接 design。本技能先用一两轮对话分诊，再把讨论交给合适下游。
+brainstorm 是"讨论层"统一入口。
 
 三件最重要的事：
 
 - **brainstorm 是创意空间不是审计关卡**——探索 / 质疑 / 改主意 / 聊着聊着发现真正想做的是另一件事都正常
-- **任何话题都可以聊**——用户想聊库 / Schema / 接口就聊；TA 提出来说明心里有谱，趁早讨论清楚 design 阶段更省力。不设话题黑名单
+- **任何话题都可以聊**——用户想聊库 / Schema / 接口就聊；TA 提出来说明心里有谱，趁早讨论清楚 design 阶段更省力，不设话题黑名单。
 - **AI 是思考伙伴不是记录员**——用户来这步是想被挑战、被启发，不是被一条条问题填表。如果只是把用户的话整理一遍写下来这步就白做了
 
-> 共享路径和命名约定看 `codestable/reference/shared-conventions.md`。
+> 共享路径和命名约定看 `.codestable/reference/shared-conventions.md`。
 
 ---
 
@@ -24,9 +24,9 @@ brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落
 | case | 规模 | 用户状态 | 产物 |
 |---|---|---|---|
 | **case 1：已经够清楚** | 不限 | 一句话能说清做什么 / 为谁 / 怎么算成功 / 不做什么 | 不落盘，直接 `cs-feat-design` |
-| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | `codestable/features/{feature}/{slug}-brainstorm.md` → `cs-feat-design` |
+| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | `.codestable/features/{feature}/{slug}-brainstorm.md` → `cs-feat-design` |
 | **case 3：大需求，拆解 ready** | 多 feature | 心里已有大致模块划分，想直接做拆解和接口契约 | 不落盘，移交 `cs-roadmap` |
-| **case 4：大需求，想 grill** | 多 feature | 还不想拆——想先 grill、发散、产生想法存着 | `codestable/brainstorms/{slug}/brainstorm.md` → 之后 `cs-roadmap` 读到 |
+| **case 4：大需求，想 grill** | 多 feature | 还不想拆——想先 grill、发散、产生想法存着 | `.codestable/brainstorms/{slug}/brainstorm.md` → 之后 `cs-roadmap` 读到 |
 
 判错 case 不是灾难——**允许升降级**。case 2 聊着发现范围越聊越大切 case 3/4，case 3 聊着发现需要先 grill 切 case 4，case 4 grill 完可以直接拆切 case 3，当场切换出口。
 
@@ -34,7 +34,7 @@ brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落
 
 每次都做：
 
-1. **扫一眼仓库**——读 `AGENTS.md`；Glob `codestable/` 发现 architecture / features / roadmap / brainstorms / compound / requirements，读架构总入口、看已有 feature 和 roadmap 和 brainstorm、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。简短报告发现
+1. **扫一眼仓库**——先读 `.codestable/attention.md`；Glob `.codestable/` 发现 architecture / features / roadmap / brainstorms / compound / requirements，读架构总入口、看已有 feature 和 roadmap 和 brainstorm、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。缺 attention.md 视为骨架不完整，不回退读外部 AI 入口
 2. **是不是接续之前的工作**：
    - `features/` 下有名字相近的 brainstorm？`roadmap/` 下有相近子目录？`brainstorms/` 下有相关创意记录？
    - 没有 → 当新讨论
@@ -119,8 +119,8 @@ brainstorm 是"讨论层"统一入口。用户开口时 AI 不知道终点应落
 提议格式：**"这块靠想不准，我做个最小 demo 验一下 {要验的事}，5-10 分钟，OK 吗？"** 用户秒过 / 拒绝即可。
 
 **spike 落地约定**：
-- case 2：实验代码扔 `codestable/features/{feature}/` 下（和 brainstorm note 同目录），文件随便起名（`spike.py` / `try-{topic}.ts`）
-- case 4：spike 放 `codestable/brainstorms/{slug}/`，跟 brainstorm.md 挨着
+- case 2：实验代码扔 `.codestable/features/{feature}/` 下（和 brainstorm note 同目录），文件随便起名（`spike.py` / `try-{topic}.ts`）
+- case 4：spike 放 `.codestable/brainstorms/{slug}/`，跟 brainstorm.md 挨着
 - 验完不强制清理——留着以后看也行；用户嫌乱说一声再删
 - **结果必须回写 brainstorm note**——成败都要在"已敲定"那节记一条："{结论} —— 已用 spike 验证（代码见 `{路径}`）"，避免 design / roadmap 阶段再起疑重做
 
@@ -159,7 +159,7 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 - 聊着发现规模超出单 feature → "这规模超出单 feature，你想直接拆 roadmap 还是先 grill 存着？"→ case 3 或 case 4
 - 聊着发现已经全清楚 → case 1
 
-**落盘**：收敛完成后写 `codestable/features/{feature}/{slug}-brainstorm.md`。
+**落盘**：收敛完成后写 `.codestable/features/{feature}/{slug}-brainstorm.md`。
 
 目录约定：
 - 日期前缀：从环境信息取今天日期
@@ -168,41 +168,9 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 
 只在用户确认进 design 那一刻落盘——对话期间不写文件。`status` 固定 `confirmed`，没有 draft。
 
-```markdown
----
-doc_type: feature-brainstorm
-feature: YYYY-MM-DD-{slug}
-status: confirmed
-summary: 一句话讲选定方向
-tags: [...]
----
+文档模板见同目录 `reference.md` 的"feature brainstorm 模板"。frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conventions.md` 第 1 节。
 
-# {功能名称} Brainstorm
-
-> Stage 0 | {YYYY-MM-DD} | 下一步：design
-
-## 想做什么、为什么
-{出发点 + 关键发现和转折}
-
-## 考虑过的方向
-### 方向 A：{名}
-- 描述 / 价值 / 代价
-- 结论：选定 / 否决（原因）
-
-### 方向 B / C ...
-
-## 已敲定的设计点
-{聊过程已达成共识的具体设计——库选型 / Schema / 接口形态 / 技术约束}
-{每条标：已确认 / 倾向 / 待验证。design 直接落，不重复讨论}
-{没聊到这一层整节删掉，别留空}
-
-## 选定方向与遗留问题
-{选定方向 2-3 句重述 + 粗粒度轮廓（核心行为 / 明显不做 / 最大未知）+ 遗留给 design 的问题}
-```
-
-frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conventions.md` 第 1 节。
-
-**退出**：主动问"这块够清楚了可以进 design 吗？"，确认后落盘，告诉用户"下一步 `cs-feat-design` 会读到 `{路径}`"
+**退出**：主动问"这块够清楚了可以进 design 吗？"，确认后落盘。如果愿景（用户故事 / 痛点 / 边界）已经聊透了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，design 会读到这份 req 做对齐。告诉用户"下一步 `cs-feat-design` 会读到 `{路径}`"
 
 ---
 
@@ -234,54 +202,24 @@ frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conve
 
 **落盘**：用户说"先这样"/"差不多了"/"存一下"，或 AI 判断 grill 已到 3-5 轮上限，主动说"这块我先帮你落到 brainstorms 里，之后 roadmap 会读到"。
 
-路径：`codestable/brainstorms/{slug}/`
+路径：`.codestable/brainstorms/{slug}/`
 
 ```
-codestable/brainstorms/{slug}/
+.codestable/brainstorms/{slug}/
 └── brainstorm.md    创意记录
 ```
 
 目录不存在就创建。slug 根据方向自拟英文小写连字符。
 
-```markdown
----
-doc_type: brainstorm
-slug: {slug}
-created: YYYY-MM-DD
-status: active
-summary: 一句话讲这块要探索什么
-tags: [...]
----
-
-# {主题名}
-
-> 创意空间 | {YYYY-MM-DD} | 下一步：cs-roadmap
-
-## 出发点
-{什么触发了这个想法 / 想解决什么问题 / 为什么觉得值得做}
-
-## 聊过的方向
-{发散过程的关键转折、候选方向、讨论过的可能性——不要求收敛，保留探索痕迹}
-
-## 当前倾向
-{聊到目前的模糊方向——可以是 2-3 个还在摇摆的方向，各自一两句}
-{如果已经比较清楚，写"倾向于 X 方向，核心是 Y"}
-
-## 已敲定的点
-{聊过程中已经达成共识的——哪怕只是一个约束、一个不做、一个类比}
-{什么都没有就删掉这节}
-
-## 遗留问题 & 下一步
-{最大的未知 / 需要验证的假设 / 建议 roadmap 注意的点}
-```
+文档模板见同目录 `reference.md` 的"open brainstorm 模板"。
 
 - `doc_type: brainstorm` 区别于 case 2 的 `feature-brainstorm`
 - 比 case 2 模板更自由——不要求"选定方向"，允许保留多个倾向
 - 不需要"考虑过的方向"那种结构化对比——那是 design 前的事，这里只是创意记录
 
-**和 roadmap 的衔接**：`cs-roadmap` 启动时会搜 `codestable/brainstorms/` 看有没有相关 brainstorm。如果有，roadmap 把 brainstorm 当输入材料读，不重复分诊直接拆。
+**和 roadmap 的衔接**：`cs-roadmap` 启动时会搜 `.codestable/brainstorms/` 看有没有相关 brainstorm。如果有，roadmap 把 brainstorm 当输入材料读，不重复分诊直接拆。
 
-**退出**：落盘后告诉用户"想法存到 `{路径}` 了，准备好了就触发 `cs-roadmap`，它会读到这份脑暴记录"
+**退出**：落盘后告诉用户"想法存到 `{路径}` 了，准备好了就触发 `cs-roadmap`，它会读到这份脑暴记录"。如果 grill 过程中愿景（用户故事 / 痛点 / 边界）已经比较清楚了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，后续 roadmap 拆解和 design 都有稳定对齐基准
 
 ---
 

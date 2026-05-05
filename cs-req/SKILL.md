@@ -1,13 +1,29 @@
 ---
 name: cs-req
-description: 维护 `codestable/requirements/` 下的需求文档，用用户故事 + 平铺语言描述已存在能力的"因何而生 / 如何解决 / 边界在哪"。两种模式 backfill / update。触发：用户说"刷新 requirements"、"这份 req 和代码对不上了"、"这块能力一直没写 req 补上"，或 acceptance 阶段同步回写。只记现状不记计划（计划走 cs-roadmap）。
+description: 维护 `.codestable/requirements/` 下的能力愿景文档。三种模式 draft / backfill / update。触发：design 阶段起草愿景、acceptance 阶段落档，或用户说"刷新 requirements"、"补一份 req"、"先把愿景写下来"。
 ---
 
 # cs-req
 
-`codestable/requirements/` 是项目的"能力清单"——每份描述**一个能力因什么问题而产生、怎么解决、边界在哪**，写成人话非技术读者也能看懂。架构文档讲"怎么搭"，需求文档讲"为什么要有"。
+## 启动必读
 
-**req 是现状档案不是计划档案**——只描述"这个能力现在已经存在、边界长这样"。backfill 和 update 主路径都是 feature-acceptance：feature 做完才有"现状"。**design 阶段不走本技能**——能力还没实现就建 req 等于把"计划态"塞进现状档案。**不记"打算做什么"**——那归 `cs-roadmap`。用户说"我想要 X 能力"但 X 还没做出来 → 走 roadmap + 后续 acceptance 落档 req。
+开始任何判断或动作前，先读取 `.codestable/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `cs-onboard`，不要回退到外部 AI 入口文件。
+
+`.codestable/requirements/` 是项目的"能力清单"——每份描述**一个能力因什么问题而产生、怎么解决、边界在哪**，写成人话非技术读者也能看懂。架构文档讲"怎么搭"，需求文档讲"为什么要有"。
+
+**req 是系统的能力愿景层**——描述"用户需要什么、系统提供什么能力来满足"。三层时间深度用一个 `status` 字段区分：
+
+- `draft`：用户有这个需要，系统还没实现（未来愿景）
+- `current`：系统正在满足（现在的能力）
+- `outdated`：曾经满足过，现已移除或不再维护（过去的痕迹）
+
+**draft req 可以独立于实现存在**——用户说"我想要 X 能力"但还没想好什么时候做，可以先落一份 `status: draft` 的 req 把愿景定下来，后续 roadmap 排期、design 对齐时都有稳定参考。**不做 roadmap 规划不等于不该有愿景文档**。
+
+**draft → current 的主路径是 feature-acceptance**：能力实现完成、验收通过后，acceptance 触发 cs-req update 把 `status` 从 `draft` 改为 `current`，同时按实际实现刷新用户故事 / 边界（保留原始愿景不被覆盖，只在文末加变更日志）。
+
+**backfill 路径保留**：已经在跑但从没写过 req 的能力，走 backfill 直接落 `status: current`。
+
+**不记"怎么分步实现"**——那是 `cs-roadmap` 的事。req 只回答"要什么、为什么"，不回答"第几个 sprint 做、拆成几个子 feature"。
 
 需求文档价值在**扫一眼就抓到重点**——用户故事在最前、痛点和解法各一段短的、边界用列表。AI 容易破坏这个特性的几种问题：
 
@@ -16,15 +32,18 @@ description: 维护 `codestable/requirements/` 下的需求文档，用用户故
 - 起花哨标题或用比喻——读者要读半段才知道这能力是什么
 - 把实现细节塞进来——"通过 XXX 服务调用 YYY 接口"
 
-> 共享路径与命名约定看 `codestable/reference/shared-conventions.md`。一份样例看 `codestable/reference/requirement-example.md`——起草前读一遍对齐语气。
+> 共享路径与命名约定看 `.codestable/reference/shared-conventions.md`。一份样例看 `.codestable/reference/requirement-example.md`——起草前读一遍对齐语气。
 
 ---
 
 ## 适用场景
 
-- feature-acceptance 第 6 节触发：新增了用户可感能力 → `backfill`；改了已有能力的用户故事 / 边界 / pitch → `update`（**主路径**）
+- brainstorm 阶段触发：磋商后愿景清晰 → `draft` 起草愿景落 `status: draft`，后续 design 和 roadmap 都有稳定对齐基准
+- feature-design 阶段触发：新能力首次被设计方案化 → `draft` 起草愿景（用户故事 / 痛点 / 解法 / 边界），落 `status: draft`
+- feature-acceptance 第 6 节触发：draft req 对应的能力实现完成 → `update` 升级为 `current`（保留愿景，追加变更日志）；从未写过 req 的已存在能力 → `backfill` 直接落 `current`；已有 current req 的能力改了边界 / 用户故事 / pitch → `update` 刷新
 - 用户主动盘点：已经在跑的能力从没写过 req（`backfill`）
 - 用户主动修订：能力演进了要刷新（`update`）
+- 用户主动起草愿景：还没排期的未来需求先落一份 `draft` req 把定位定下来
 
 不适用：要写"技术上怎么搭" → `cs-arch`；写单次 feature 方案 → `cs-feat-design`；拍板长期规约 → `cs-decide`；写外部"怎么用" → `cs-guide`；大需求拆几轮做 → `cs-roadmap`。
 
@@ -34,7 +53,8 @@ description: 维护 `codestable/requirements/` 下的需求文档，用用户故
 
 每次只动一份文档：
 
-- **backfill**：给已存在但从没写档的能力补一份
+- **draft**：给还没实现的新能力起草愿景（用户故事 / 痛点 / 解法 / 边界），`status: draft`
+- **backfill**：给已存在但从没写档的能力补一份，`status: current`
 - **update**：按新素材 / 实现变化刷新一份
 
 为什么不允许多份？req 价值在**每份都被读过**——一次吐多份用户没精力逐份 review，最后要么粗糙合入要么放着不看。
@@ -51,14 +71,17 @@ description: 维护 `codestable/requirements/` 下的需求文档，用用户故
 
 模式 + 目标文档 + 范围。
 
+**draft 模式**：能力还没实现，凭用户素材（口述 / 产品想法 / 用户反馈）起草愿景。用户故事和痛点要真切，边界要写清楚"不管什么"——愿景的价值正在于把"要做什么"和"不做什么"的线画清楚。
+
 一份 req 描述**一个能力**。用户说"把这模块的需求全写了"先问清：模块对外提供几个独立能力？每个独立能力一份不要塞一起。
 
 ### Phase 2：读取材料
 
-**共同必读**：`AGENTS.md` + `requirements/` 下其他 req（判断要不要互引、有没有重复）+ 用户素材（口述 / 产品想法 / 用户反馈 / 已有 feature 散落需求描述）。
+**共同必读**：`VISION.md`（需求中心索引）+ `requirements/` 下其他 req（判断要不要互引、有没有重复）+ 用户素材（口述 / 产品想法 / 用户反馈 / 已有 feature 散落需求描述）。
 
-**按情况读**：可能承载这能力的 architecture doc（用于 `implemented_by`）；相关已有 feature 方案；compound 沉淀（`python codestable/tools/search-yaml.py --dir codestable/compound --query "{能力关键词}"`）。
+**按情况读**：可能承载这能力的 architecture doc（用于 `implemented_by`）；相关已有 feature 方案；compound 沉淀（`python .codestable/tools/search-yaml.py --dir .codestable/compound --query "{能力关键词}"`）。
 
+**draft 额外**：和 roadmap 对一眼——如果已经有 roadmap 提到了这个能力，读一下了解预期的拆解方向，但 req 本身不绑定 roadmap 条目。
 **update 额外**：当前文档全文 + `last_reviewed` 之后相关实现的变化（`git log` 粗扫 `implemented_by` 对应的代码模块）。
 
 ### Phase 3：一次性起草
@@ -76,6 +99,7 @@ review 前自跑一遍。每条针对一种 AI 默认会犯的错：
 5. **边界写了没**——没写边界的需求会被误用
 6. **pitch 能当宣传词吗**——去技术化、一句话、读者不用上下文也能看懂
 7. **update 专项**：本次新加 / 改的段落都有素材或实现依据？凭空加听起来更完整的描述是漂移开端
+8. **draft 专项**：愿景写清楚了吗——一个不了解项目的人读完"为什么需要"能复述这能力要解决什么痛点？
 
 自查结果简短汇报——发现问题就说怎么处理（删 / 改 / 补），不走过场。
 
@@ -85,9 +109,10 @@ review 前自跑一遍。每条针对一种 AI 默认会犯的错：
 
 ### Phase 6：落盘 + 索引更新
 
+- draft：写入 `requirements/{slug}.md`，`status: draft`、`last_reviewed` 当天
 - backfill：写入 `requirements/{slug}.md`，`status: current`、`last_reviewed` 当天
-- update：覆盖已有，`last_reviewed` 当天；结构性改动大则文末 `变更日志` 加一条
-- **索引更新**：`requirements/` 下有 `README.md` 或索引文件就加链接；没有不强求——`requirements/` 扁平 `ls` 本身就是索引
+- update：覆盖已有，`last_reviewed` 当天；结构性改动大则文末 `变更日志` 加一条；draft → current 的状态升级是结构性改动，**必须**加变更日志
+- **索引更新**：更新 `requirements/VISION.md`——按 status 分组列出所有 req，每条带 pitch 一句话和 status 标记
 
 ---
 
@@ -161,8 +186,9 @@ tags: []
 - [ ] 正文四节齐全（用户故事 / 为什么需要 / 怎么解决 / 边界）
 - [ ] 用户故事每条能想象具体场景，无"希望系统好用"废话
 - [ ] 没有实现细节塞进来
-- [ ] `pitch` 读起来能直接当宣传词
-- [ ] update：结构性改动有 `变更日志`
+- [ ] `pitch` 读起来能直接当宣传词，draft 也能直接当宣传词（愿景也需要卖得出去）
+- [ ] draft：status 为 draft，未编造实现细节，边界画清楚了
+- [ ] update：结构性改动有 `变更日志`（含 draft → current 状态升级）
 - [ ] 用户 review 通过
 - [ ] 没有顺手改代码 / architecture / 其他 spec
 - [ ] 没有范围外文档改动
@@ -174,17 +200,20 @@ tags: []
 | 方向 | 关系 |
 |---|---|
 | `cs-arch` 配合 | req 写"为什么要有"、architecture 写"怎么搭"；arch doc frontmatter 用 `implements: [req-slug]` 反向链 |
-| `cs-feat-design` 只读 | design 只**读**已有 req 对齐用户故事和边界，**不调本技能**；新能力的 req 留到 accept 阶段 backfill |
-| `cs-feat-accept` 主路径 | 验收统一处理 req 落档：新增能力触发 `backfill`（accept 完成后回填 slug 到方案 frontmatter），改了已有能力触发 `update` |
-| `cs-roadmap` 配合 | req 记"现在是什么"、roadmap 记"打算怎么继续推进 / 从无到有做出来"。roadmap 拆解发现缺 req 让用户先触发本技能；roadmap 不改 req |
-| `cs-onboard` 创建者 | onboarding 建 `requirements/` 空目录 |
+| `cs-brainstorm` 可触发 | 磋商后愿景清晰时可触发 `draft` 模式起草愿景 req |
+| `cs-feat-design` 可写 | design 读已有 req 对齐用户故事和边界；新能力首次设计方案化时触发 `draft` 模式起草愿景 req |
+| `cs-feat-accept` 主路径 | 验收统一处理 req 落档：draft req 对应的能力实现完成触发 `update`（draft → current，保留愿景追加变更日志）；从未写过 req 的能力触发 `backfill`（直接落 current）；已有 current req 的能力改变触发 `update` 刷新 |
+| `cs-roadmap` 配合 | req 记"要什么、为什么"、roadmap 记"怎么分步实现"。roadmap 条目可关联 req slug，但 req 不绑定具体 roadmap。draft req 不给 roadmap 压力——愿景可以先于排期存在 |
+| `cs-onboard` 创建者 | onboard 建 `requirements/` 空目录 + `VISION.md` 空骨架 |
 
 ---
 
 ## 常见错误
 
-- 把"打算做的事"写进来——req 是现状档案，没做的归 roadmap
+- 把 draft req 当 backfill 写——能力还没实现但写了 `status: current`，或编造了解法细节假装已存在
 - backfill 时没确认能力是否真的在代码里跑——凭用户一句话写了一份"听起来合理"的 req
+- draft req 里塞实现细节——还没做就先定了怎么实现，应该在 design 阶段定
+- draft req 边界写太宽——愿景的价值在画线，什么都想要等于什么都没说
 - 写成 PRD 字段堆 / 语气像在上课 / 标题用比喻 / 用户故事太抽象 / 把实现细节塞进来 / 没写边界
 - `pitch` 塞了技术黑话——宣传时抽不出来用
 - 一次起草多份——用户 review 不深

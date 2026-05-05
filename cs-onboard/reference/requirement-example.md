@@ -5,7 +5,7 @@ description: 一份好的 requirement doc 长什么样——供 cs-req 起草时
 
 # requirement 文档示例
 
-下面这份示例取自 CodeStable 自己的能力（修 bug 时的探索分析流），用来展示一份好的 requirement doc 的**语气、结构、颗粒度**。新项目做 onboarding 时随包落盘，之后写自己的 requirement 可以直接照着改。
+下面这份示例取自 CodeStable 自己的能力（修 bug 时的探索分析流），用来展示一份好的 requirement doc 的**语气、结构、颗粒度**。新项目做 onboard 时随包落盘，之后写自己的 requirement 可以直接照着改。
 
 ---
 
