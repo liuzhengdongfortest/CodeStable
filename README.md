@@ -12,7 +12,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/skills-22-6366F1?style=flat-square" alt="Skills"/>
+  <img src="https://img.shields.io/badge/skills-23-6366F1?style=flat-square" alt="Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -116,200 +116,23 @@ CodeStable 顺着软件编码的真实流程来设计，把开发活动建模成
 
 ## 技能总览
 
-<table>
-<tr><th>分组</th><th>技能</th><th>用途</th></tr>
-<tr><td><b>根入口</b></td><td><code>cs</code></td><td>统一入口——介绍体系全貌 + 把开放式诉求路由到正确的 cs-* 子技能。不知道用哪个时就喊它</td></tr>
-<tr><td rowspan="1"><b>接入</b></td><td><code>cs-onboard</code></td><td>把 CodeStable 接入到一个新仓库 / 已有零散文档的仓库</td></tr>
-<tr><td rowspan="2"><b>需求 & 架构</b></td><td><code>cs-req</code></td><td>整理 / 沉淀原始需求文档</td></tr>
-<tr><td><code>cs-arch</code></td><td>起草或更新 <code>codestable/architecture/</code> 下的架构文档</td></tr>
-<tr><td><b>路线图</b></td><td><code>cs-roadmap</code></td><td>承载一块大需求的事前规划：概设（模块拆分）+ 架构层详设（接口契约 / 共享协议）+ 子 feature 拆解清单</td></tr>
-<tr><td><b>讨论入口</b></td><td><code>cs-brainstorm</code></td><td>想法模糊时的统一讨论入口，做分诊：直接 design / 进 feature 写 brainstorm.md / 移交 roadmap</td></tr>
-<tr><td rowspan="5"><b>特性流程</b></td><td><code>cs-feat</code></td><td>新特性子流程入口</td></tr>
-<tr><td><code>cs-feat-design</code></td><td>起草 <code>{slug}-design.md</code> 作为后续唯一输入</td></tr>
-<tr><td><code>cs-feat-impl</code></td><td>按 design 的推进顺序写代码</td></tr>
-<tr><td><code>cs-feat-accept</code></td><td>逐层对照 design 核对实现，做完整验收闭环</td></tr>
-<tr><td><code>cs-feat-ff</code></td><td>超轻量通道：不写 design、不分阶段，让 AI 直接做</td></tr>
-<tr><td rowspan="4"><b>问题流程</b></td><td><code>cs-issue</code></td><td>问题修复子流程入口</td></tr>
-<tr><td><code>cs-issue-report</code></td><td>把脑子里的问题落成可复现、可追溯的 report</td></tr>
-<tr><td><code>cs-issue-analyze</code></td><td>找根因、评估修复风险、给方案</td></tr>
-<tr><td><code>cs-issue-fix</code></td><td>定点修复 + 验证 + 写 fix-note</td></tr>
-<tr><td rowspan="2"><b>重构流程</b></td><td><code>cs-refactor</code></td><td>(beta) 重构主流程</td></tr>
-<tr><td><code>cs-refactor-ff</code></td><td>(beta) 轻量重构通道</td></tr>
-<tr><td rowspan="3"><b>知识沉淀</b></td><td><code>cs-learn</code></td><td>把踩过的坑 / 好做法沉淀成 learning 文档</td></tr>
-<tr><td><code>cs-trick</code></td><td>把可复用的编程模式 / 库用法整理成处方性参考</td></tr>
-<tr><td><code>cs-decide</code></td><td>把已拍板的技术选型、架构决定、长期约束记成永久文档</td></tr>
-<tr><td rowspan="2"><b>探索 & 文档</b></td><td><code>cs-explore</code></td><td>定向代码探索，把"提问 → 读代码 → 得结论"沉淀成证据</td></tr>
-<tr><td><code>cs-guide</code> / <code>cs-libdoc</code></td><td>对外的开发者指南 / 库参考文档</td></tr>
-</table>
+完整技能目录见 [SKILL_CATALOG.md](./SKILL_CATALOG.md)。日常不知道用哪个时直接调用 `/cs`，它会按诉求路由到对应技能。
 
 ---
 
 ## 工作流示意
 
-CodeStable 的技能不是一条线性流水，而是**分层 + 事件驱动**的：
+CodeStable 的技能不是一条线性流水，而是**分层 + 事件驱动**的：根入口路由、onboard、长效档案、roadmap 规划、feature / issue / refactor 执行流，以及横切的知识沉淀。
 
-```
-═══════════════════════════════════════════════════════════════════════
- 根入口 · 路由                              （任何时刻都可以调用）
-───────────────────────────────────────────────────────────────────────
-   cs ──▶ 介绍体系 / 把开放式诉求路由到下面任一具体子技能
-          （本身不做事，只做分诊和提示）
-═══════════════════════════════════════════════════════════════════════
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-        （未接入）        （已接入）      （想了解体系）
-         走阶段 0       直达 1~4 层 / 横切    给速读
-              │
-              ▼
-═══════════════════════════════════════════════════════════════════════
- 阶段 0 · 接入                                  （只在新项目跑一次）
-───────────────────────────────────────────────────────────────────────
-   cs-onboard ──▶ 生成 codestable/ 骨架 + 释放 reference/、tools/
-═══════════════════════════════════════════════════════════════════════
-                              │
-                              ▼
-═══════════════════════════════════════════════════════════════════════
- 第 1 层 · 长效档案（"系统现在长什么样"，只记现状）
-───────────────────────────────────────────────────────────────────────
-   cs-req   ──▶ codestable/requirements/{slug}.md
-   cs-arch  ──▶ codestable/architecture/ARCHITECTURE.md
-                                       └─ {type}-{slug}.md（子系统）
-═══════════════════════════════════════════════════════════════════════
-                              │
-                              ▼
-═══════════════════════════════════════════════════════════════════════
- 第 2 层 · 规划（"接下来打算怎么做这块大需求"，大需求才需要）
-───────────────────────────────────────────────────────────────────────
-   cs-roadmap ──▶ codestable/roadmap/{slug}/
-                  把一个"我想要 X 系统"做成完整的事前规划：
-                    ① 概设          —— 拆成哪几个模块 / 组件
-                    ② 架构层详设    —— 模块间接口契约 / 共享协议
-                    ③ 子 feature    —— 把方案分解成多条可执行的 feature
-                  ② 是 feature-design 的硬约束输入
-                  （小需求可跳过本层，直接进第 3 层）
-═══════════════════════════════════════════════════════════════════════
-                              │
-                              ▼
-═══════════════════════════════════════════════════════════════════════
- 讨论入口（可选 · 想法模糊时进入，做分诊后路由到下游）
-───────────────────────────────────────────────────────────────────────
-                          ┌── case 1 已经够清楚 ──▶ cs-feat-design
-   cs-brainstorm ────────▶┼── case 2 小需求方向定 ─▶ feature 流（落 brainstorm.md）
-                          └── case 3 大需求只有一个词 ─▶ cs-roadmap
-═══════════════════════════════════════════════════════════════════════
-                              │
-                              ▼
-═══════════════════════════════════════════════════════════════════════
- 第 3 层 · 执行流程（按事件类型选一条进入）
-───────────────────────────────────────────────────────────────────────
-
-  ▸ 事件：新增能力                                          ┌──────────┐
-       cs-feat-design ──▶ cs-feat-impl ──▶ cs-feat-accept  │ features │
-       cs-feat-ff     ──(轻量直通车，跳过 design/accept)─▶  │ /YYYY-…/ │
-                                                            └──────────┘
-
-  ▸ 事件：修复缺陷                                          ┌──────────┐
-       cs-issue-report ──▶ cs-issue-analyze ──▶ cs-issue-fix│  issues  │
-                                                            │ /YYYY-…/ │
-                                                            └──────────┘
-
-  ▸ 事件：代码腐化（beta）                                   ┌──────────┐
-       cs-refactor / cs-refactor-ff                         │refactors │
-                                                            │ /YYYY-…/ │
-                                                            └──────────┘
-═══════════════════════════════════════════════════════════════════════
-                              │
-                ▼ 任意阶段觉得"这个值得记下来"都能触发 ▼
-═══════════════════════════════════════════════════════════════════════
- 横切层 · 知识沉淀（复利工程）
-───────────────────────────────────────────────────────────────────────
-   cs-learn   ──▶ ┐
-   cs-trick   ──▶ ├─▶ codestable/compound/YYYY-MM-DD-{doc_type}-{slug}.md
-   cs-decide  ──▶ │     doc_type ∈ { learning, trick, decision, explore }
-   cs-explore ──▶ ┘
-                   ↑
-          下一次 cs-arch / cs-feat-design / cs-issue-analyze
-          会回头读 compound/，让经验在新工作里被复用
-═══════════════════════════════════════════════════════════════════════
-```
-
-**怎么读这张图：**
-
-- **纵向是层次**，不是严格的时间顺序——长效档案层会反复被刷新，规划层只在大需求时进入
-- **第 3 层是事件入口**：来了新需求走 feature 流，发现 bug 走 issue 流，发现腐化走 refactor 流
-- **横切层是飞轮**：任何流程跑完发现"这事值得记下来"都可以触发沉淀，沉淀的产物又会被下一次同类工作读到——这是 CodeStable "复利"的物理实现
+完整示意图见 [WORKFLOW.md](./WORKFLOW.md)。
 
 ---
 
 ## 运行时结构
 
-`/cs-onboard` 跑完后，会在你的项目根下生成一个 `codestable/` 目录——这是 CodeStable 所有产物的聚合根，也是各个子技能在运行时**唯一**会读写的工作区。
+`/cs-onboard` 跑完后，会在你的项目根下生成 `codestable/`，作为 requirements、architecture、roadmap、features、issues、refactors、compound、tools 和 reference 的聚合根。
 
-```
-你的项目/
-├── codestable/
-│   ├── requirements/                     # 需求实体（"为什么要有这个能力"）
-│   │   └── {slug}.md                     # 一个能力一份，扁平不分组
-│   │
-│   ├── architecture/                     # 架构实体（"用什么结构实现"）
-│   │   ├── ARCHITECTURE.md               # 架构总入口 / 索引
-│   │   └── {type}-{slug}.md              # 子系统架构 doc（同类 ≥6 份自动收进子目录）
-│   │
-│   ├── roadmap/                          # 路线图（"接下来打算怎么走"）
-│   │   └── {slug}/
-│   │       ├── {slug}-roadmap.md         # 主文档：背景 / 拆解 / 排期
-│   │       ├── {slug}-items.yaml         # 机器可读子 feature 清单，acceptance 回写状态
-│   │       └── drafts/                   # 可选：草稿 / 调研
-│   │
-│   ├── features/                         # 特性流程聚合根
-│   │   └── YYYY-MM-DD-{slug}/            # 一个 feature 一个目录
-│   │       ├── {slug}-brainstorm.md      # 可选（cs-brainstorm 产出）
-│   │       ├── {slug}-design.md          # 方案（cs-feat-design）
-│   │       ├── {slug}-checklist.yaml     # 推进清单（impl 跑、accept 回写）
-│   │       └── {slug}-acceptance.md      # 验收报告（cs-feat-accept）
-│   │
-│   ├── issues/                           # 问题流程聚合根
-│   │   └── YYYY-MM-DD-{slug}/
-│   │       ├── {slug}-report.md          # 问题报告
-│   │       ├── {slug}-analysis.md        # 根因分析（不显然时才有）
-│   │       └── {slug}-fix-note.md        # 修复记录
-│   │
-│   ├── refactors/                        # 重构流程聚合根（beta）
-│   │   └── YYYY-MM-DD-{slug}/
-│   │       ├── {slug}-scan.md
-│   │       ├── {slug}-refactor-design.md
-│   │       ├── {slug}-checklist.yaml
-│   │       └── {slug}-apply-notes.md
-│   │
-│   ├── compound/                         # 知识沉淀（复利工程）统一目录
-│   │   └── YYYY-MM-DD-{doc_type}-{slug}.md
-│   │       # doc_type ∈ {learning, trick, decision, explore}
-│   │
-│   ├── tools/                            # 跨工作流共享脚本（onboard 释放）
-│   └── reference/                        # 共享参考文档（onboard 释放）
-│       ├── shared-conventions.md         # 跨技能口径 / 路径命名 / 元数据规范
-│       ├── system-overview.md            # CodeStable 体系总览 + 场景路由
-│       └── ...
-│
-└── AGENTS.md                             # 在项目根，不在 codestable/ 里
-```
-
-**几条要点：**
-
-- 所有产物都聚在 `codestable/` 下，让"上次那个 feature / bug 当时怎么搞的"三秒能找到
-- `requirements/` 和 `architecture/` 是**长效档案**（只记现状），`roadmap/` 是**规划层**（接下来怎么走），两者刻意分开
-- `features/` `issues/` `refactors/` 用 `YYYY-MM-DD-{slug}/` 一个目录装齐所有相关 spec，不交叉
-- `compound/` 是**唯一**的知识沉淀目录，learning / trick / decision / explore 通过 `doc_type` 字段区分而不是分目录——好搜
-- `reference/` 是 `cs-onboard` 从技能包复制过来的；要改共享口径，改 `cs-onboard/reference/` 模板，新项目 onboard 自动带上新版
-
-### 硬约束
-
-> Skill 是独立安装单元，运行时**每个 skill 只能看到自己包内的文件**。A 技能的 SKILL.md 里写 `B-skill/reference/xxx.md` 这种引用在运行时**根本读不到**。
->
-> 跨 skill 共享的参考文档必须走"工作项目"这一层：由 `cs-onboard` 从技能包复制到项目的 `codestable/reference/`，其他 skill 用项目相对路径读取。
-
-要改共享口径，改 `cs-onboard/reference/` 下的模板，新项目 onboard 时带上新版本。
+完整目录说明和跨 skill 引用约束见 [WORKFLOW.md](./WORKFLOW.md)。
 
 ---
 
