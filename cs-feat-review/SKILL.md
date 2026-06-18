@@ -1,6 +1,6 @@
 ---
 name: cs-feat-review
-description: feature 流程阶段 2.5——实现完成后的本地代码审查 gate。对照 design / checklist / 实现汇报和当前 git diff 做只读 code review，产出 {slug}-review.md；有 blocking findings 时回到 cs-feat-impl 的 review-fix，通过后进入 cs-feat-qa，不直接验收。触发：用户说"做代码审查"、"review 这个 feature"、"实现完了先 code review"、"跑 cs-feat-review"。
+description: feature 流程阶段 2.5——实现完成后的本地代码审查 gate。对照 design / checklist / 实现汇报和当前 git diff 做只读 code review，产出 {slug}-review.md；可选检测 Paseo / 外部 agent 并用独立 audit subagent 辅助审查，但最终由本 skill 合并定级。有 blocking findings 时回到 cs-feat-impl 的 review-fix，通过后进入 cs-feat-qa，不直接验收。触发：用户说"做代码审查"、"review 这个 feature"、"实现完了先 code review"、"跑 cs-feat-review"。
 ---
 
 # cs-feat-review
@@ -29,6 +29,7 @@ description: feature 流程阶段 2.5——实现完成后的本地代码审查 
 - `git diff`（有 staged diff 时也读 `git diff --cached`）
 - diff 涉及的人写代码文件和相邻关键调用点
 - design 第 4 节指向的 architecture / requirement / roadmap 相关文档（只读，判断改动是否会影响归并）
+- independent reviewer 输出（如果本轮启用了 Paseo 或其他外部 reviewer）
 
 如果工作区有 feature 外的既有 dirty 文件，先记录为 baseline/无关变更；审查结论只针对本 feature 可归因的改动。无法区分归因时写成 `residual-risk`，不要把不确定当通过。
 
@@ -46,6 +47,46 @@ description: feature 流程阶段 2.5——实现完成后的本地代码审查 
 
 ---
 
+## 独立 reviewer 增强项
+
+本阶段默认由当前 agent 完成本地 review；独立 reviewer 是增强项，不是硬依赖。检测不到外部 agent、Paseo 不可用、provider 未配置或用户明确要求快速完成时，可以继续本地 review，并在报告里记录 `Independent reviewer: local-only` / `skipped-by-user`。
+
+但一旦本轮已经启动 independent reviewer，它就成为本轮 review gate 的输入。主 agent 可以先做本地审查草稿，但不能在 independent reviewer 返回前定稿 `{slug}-review.md`、不能给出 `passed`、不能进入 `cs-feat-qa`。如果 reviewer 卡住、失败、权限阻塞或耗时过长，只能把本轮标成 `blocked` / `independent-review-pending`，然后让用户决定：继续等待、重试 reviewer，或明确降级为 local-only review。
+
+先运行本 skill 自带检测脚本。按已加载的 `SKILL.md` 所在目录解析脚本路径，不要按业务仓库根目录猜路径：
+
+```bash
+python scripts/detect-review-agent.py --pretty
+```
+
+脚本只输出能力 JSON，不启动 agent、不改文件。
+
+优先级：
+
+1. **Paseo 可用**：优先用 Paseo 启动 `audit` 类 subagent 做只读独立审查。启动前先加载 / 读取 `paseo` skill 的当前说明，并遵守它的规则：读取 `~/.paseo/orchestration-preferences.json`，使用 `providers.audit`，不要硬编码 Claude 或 Codex；文件缺失时用合理默认并在报告里说明。不要无限轮询运行中的 agent；如果 reviewer 已启动但结果未返回，停止在 review gate，记录 pending/blocked，等待通知或用户决定。
+2. **只有 claude / gemini / aider 等 CLI 可见**：不要自动调用。直接本地 review，除非用户显式要求使用某个 CLI。
+3. **没有外部 reviewer**：本地 review。
+
+Paseo subagent prompt 必须只给原始材料和边界，不透露本地 review 结论：
+
+```text
+你是 CodeStable feature 的独立代码审查 agent。只读，不修改文件，不更新 checklist/design。
+
+请读取：
+- .codestable/attention.md
+- {design_path}
+- {checklist_path}
+- 当前 git status / git diff / staged diff
+- diff 涉及的人写代码和相邻关键调用点
+
+按 cs-feat-review 的严重度语义输出：blocking / important / nit / suggestion / learning / praise / residual-risk。
+每条 finding 必须有 file:line 或仓库事实证据、影响、建议修复边界。
+额外输出 Test And QA Focus：QA 必须重点复核的场景、建议新增或加强的测试、review 无法确认的点。
+不要写 {slug}-review.md；只把审查结果回传给主 agent。
+```
+
+主 agent 仍是最终审查责任方：必须逐条核验 independent reviewer 的 finding，去重、定级、合并进 `{slug}-review.md`。未经本地仓库事实核验的外部结论只能写 `residual-risk` 或忽略，不能直接升级成 `blocking`。
+
 ## 审查流程
 
 ### 1. 上下文与范围
@@ -55,7 +96,16 @@ description: feature 流程阶段 2.5——实现完成后的本地代码审查 
 - 用 `git status` / `git diff` 列出真实改动文件，标出新增、修改、删除、未跟踪、staged。
 - 判断 diff 大小和风险：跨模块、跨边界、数据迁移、权限/安全、并发/异步、用户可见 UI、公共 API、测试缺口。
 
-### 2. 整体审查
+### 2. 独立审查合并
+
+- 记录 detection 结果：`paseo-subagent` / `local-review-with-agent-cli-available` / `local-review`。
+- 如果没有启动 independent reviewer：记录 `not-available` / `skipped-by-user` / `local-only`，本地 review 可以定稿。
+- 如果启动了 Paseo subagent：先做本地 review 草稿，但最终 verdict 必须等 independent reviewer 返回。不要轮询运行中的 notify-on-finish agent；等通知、用户带回结果或下一轮继续。
+- 如果 independent reviewer 返回：逐条做本地事实核验，能复现 / 有证据才合并；证据不足只写 residual risk 或不采纳。
+- 如果 independent reviewer 失败、权限阻塞、超时或仍在运行：不要默默降级；报告 `status: blocked`，在 Independent Review 写 `pending|failed|blocked` 和 agent id / 原因，下一步交给用户决定继续等、重试或降级 local-only。
+- 报告里保留来源：哪些 finding 来自 independent reviewer，哪些是本地 review 发现。
+
+### 3. 整体审查
 
 先看整体，再看行级细节：
 
@@ -66,7 +116,7 @@ description: feature 流程阶段 2.5——实现完成后的本地代码审查 
 - 风险面：错误处理、数据校验、安全边界、权限、并发、幂等、性能、可观测性、回滚/卸载。
 - 文档/归并影响：是否出现 acceptance 必须回写的 architecture / requirement / roadmap 变更。
 
-### 3. 行级审查
+### 4. 行级审查
 
 对人写代码逐文件审查，至少覆盖：
 
@@ -80,13 +130,13 @@ description: feature 流程阶段 2.5——实现完成后的本地代码审查 
 
 生成代码、锁文件、大数据文件可以抽样，但报告里要说明抽样范围。人写业务代码不能跳过不看。
 
-### 4. 结论
+### 5. 结论
 
 把发现按严重度归类，并给出明确 verdict：
 
 - `passed`：没有 blocking；important 已修复、无重要项、或用户明确接受延后。
 - `changes-requested`：有 blocking，或 important 多到会影响验收可信度。
-- `blocked`：缺少关键输入、diff 归因无法判断、设计/实现状态不满足 review 前置条件。
+- `blocked`：缺少关键输入、diff 归因无法判断、设计/实现状态不满足 review 前置条件，或本轮已启动 independent reviewer 但结果仍 pending / failed / blocked 且用户尚未确认降级。
 
 ---
 
@@ -126,6 +176,15 @@ round: 1
 - Implementation evidence: {实现汇报 / 对话 / 文件}
 - Diff basis: {git status / git diff 摘要}
 - Baseline dirty files: {none / 列表 + 归因}
+
+### Independent Review
+
+- Status: not-available|skipped-by-user|local-only|pending|completed|failed|blocked
+- Detection: paseo-subagent|local-review-with-agent-cli-available|local-review|skipped
+- Provider / agent: {providers.audit / agent id / none}
+- Raw output: {摘要 / 路径 / none}
+- Merge policy: {已逐条核验 / 未启用原因 / pending 时不得定稿}
+- Gate effect: {none | blocks final verdict until completed / user-approved downgrade}
 
 ## 2. Diff Summary
 
@@ -179,7 +238,7 @@ round: 1
 ## 6. Verdict
 
 - Status: passed|changes-requested|blocked
-- Next: `cs-feat-qa` | `cs-feat-impl` review-fix | 补齐输入后重跑 `cs-feat-review`
+- Next: `cs-feat-qa` | `cs-feat-impl` review-fix | 等 independent reviewer 完成 / 用户确认降级后重跑 `cs-feat-review` | 补齐输入后重跑 `cs-feat-review`
 ```
 
 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。
@@ -210,6 +269,9 @@ round: 1
 
 - [ ] 已读取 attention、design、checklist、实现证据、git status、git diff 和相关代码。
 - [ ] 已确认 checklist steps 全 done；否则退回 `cs-feat-impl`。
+- [ ] 已运行 independent reviewer 检测，或记录为什么跳过。
+- [ ] 如果没有启动 independent reviewer，已记录 not-available / skipped-by-user / local-only 原因。
+- [ ] 如果启动了 independent reviewer，已等到 completed 并逐条本地核验合并 / 驳回 findings；否则报告 `status: blocked`，没有进入 QA。
 - [ ] 已做整体审查和行级审查。
 - [ ] 已明确区分 blocking / important / nit / suggestion / learning / praise / residual-risk。
 - [ ] 已写 `.codestable/features/{feature}/{slug}-review.md`。
@@ -225,5 +287,8 @@ round: 1
 - 只看测试是否通过，不判断测试是否有效。
 - 把格式、命名偏好、个人写法升级成 blocking。
 - 发现设计外实现却不回到 design 契约判断。
+- 外部 reviewer 的结论没经本地事实核验就直接照抄成 blocking。
+- 启动 independent reviewer 后结果还没回来，就把本地 review 定稿为 passed。
+- independent reviewer 卡住时不问用户就默默降级成 local-only。
 - blocking 修完后跳过复审，直接验收。
 - review 报告没有落盘，导致 acceptance 没有可追溯输入。
