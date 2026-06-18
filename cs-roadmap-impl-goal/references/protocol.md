@@ -14,6 +14,8 @@
 
 `goal-state.yaml` 是断点恢复唯一依据。每个 feature 边界都要更新它。
 
+开始执行前确认所有 feature design 的 frontmatter 都是 `status: approved`。发现 draft design 时停止，要求回到 design review 确认阶段；不要把未批准设计推进到实现。
+
 ---
 
 ## 启动标记
@@ -53,6 +55,13 @@ Protocol: .codestable/roadmap/<slug>/goal-protocol.md
 - roadmap item
 - 当前代码上下文
 
+进入实现前核验：
+
+- feature design `status: approved`
+- checklist `steps` 非空且未完成项只使用 `pending`
+- checklist `checks` 非空且验收前只使用 `pending`
+- roadmap item 与 goal-state 中的 `roadmap_item` / `feature_dir` 一致
+
 把当前 feature 状态改为 `implementing`，然后打印：
 
 ```text
@@ -71,7 +80,8 @@ Evidence required: <证据列表>
 
 - 做基线预检。
 - 按 checklist steps 顺序执行。
-- 每步完成立刻更新 checklist 状态。
+- 每步完成立刻把对应 step 的状态从 `pending` 改为 `done`。
+- 实现阶段不要修改 `checks`；checks 只由 acceptance 阶段从 `pending` 改为 `passed` 或 `failed`。
 - 每步留下证据：命令 / 手工 / 浏览器 / API / diff。
 - 每步做清洁度检查。
 - 失败时走本文“失败恢复”。
@@ -81,7 +91,8 @@ Evidence required: <证据列表>
 按 `cs-feat-accept` 规则执行：
 
 - 填 acceptance 报告。
-- 把 checklist checks 更新为 `passed`。
+- 把 checklist checks 从 `pending` 更新为 `passed`；失败项先标 `failed`，修复并重验后再改 `passed`。
+- 更新 checklist 时只改目标 `steps` 或 `checks` 块，避免用全文件批量替换把 `steps.status` 和 `checks.status` 混在一起。
 - 按 design 第 4 节更新 architecture。
 - 按 requirement 字段回写 requirement。
 - 按 roadmap / roadmap_item 回写 items.yaml 和 roadmap 主文档。
@@ -107,7 +118,8 @@ Knowledge candidates: <候选|none>
 
 1. 把 goal-state 当前 feature 状态改为 `accepted`。
 2. 把 current_feature 指向下一条。
-3. 打印：
+3. 确认 feature checklist 中所有 steps 都是 `done`、所有 checks 都是 `passed`。
+4. 打印：
 
 ```text
 CS_ROADMAP_GOAL_FEATURE_DONE
