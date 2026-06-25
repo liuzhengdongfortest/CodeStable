@@ -51,7 +51,7 @@ brainstorm 是讨论层独立入口，会分诊：case 1（清楚 → 直接 des
 | 1 方案设计 | `cs-feat-design` | design.md + checklist.yaml | AI 起草候选方案 |
 | 1.5 方案审查 | `cs-feat-design-review` | design-review.md | 独立 agent / AI 人审前审查 |
 | 2 分步实现 | `cs-feat-impl` | 代码 + 阶段汇报 | AI 按方案执行 |
-| 2.5 代码审查 | `cs-feat-review` | review.md | AI 只读审查，用户决定是否修 |
+| 2.5 代码审查 | `cs-code-review` | review.md | AI 只读审查，用户决定是否修 |
 | 2.6 QA 验证 | `cs-feat-qa` | qa.md | AI 运行证据，用户确认风险 |
 | 3 验收闭环 | `cs-feat-accept` | acceptance.md | AI 逐层核对，用户终审 |
 
@@ -85,12 +85,12 @@ brainstorm 是讨论层独立入口，会分诊：case 1（清楚 → 直接 des
 | `{slug}-design-review.md` passed，但 design 还没 approved | 交给用户整体 review，确认后回 `cs-feat-design` 标 approved |
 | `{slug}-design.md` 已 approved、代码没动 | `cs-feat-impl` |
 | fastforward design 已确认 | `cs-feat-impl` |
-| 代码已写完但没有 `{slug}-review.md` | `cs-feat-review` |
+| 代码已写完但没有 `{slug}-review.md` | `cs-code-review` |
 | `{slug}-review.md` 有 unresolved blocking findings | `cs-feat-impl` 的 review-fix 模式 |
 | `{slug}-review.md` 已 passed，但没有 `{slug}-qa.md` | `cs-feat-qa` |
 | `{slug}-qa.md` failed / blocked | `cs-feat-impl` 的 qa-fix 模式（修完重跑 review → QA） |
 | `{slug}-qa.md` 已 passed，代码要验收 | `cs-feat-accept` |
-| 用户直接说"代码已写完要验收"但没有 review 报告 | 先 `cs-feat-review`，不要跳到 accept |
+| 用户直接说"代码已写完要验收"但没有 review 报告 | 先 `cs-code-review`，不要跳到 accept |
 | 用户直接说"代码已写完要验收"但没有 QA 报告 | review passed 后先 `cs-feat-qa`，不要跳到 accept |
 | 用户说"我想要一个 X 系统"大需求 | 转 `cs-brainstorm` 分诊（大概率 case 3 → `cs-roadmap`） |
 | roadmap 里某条子 feature 该启动 | `cs-feat-design` 的"从 roadmap 条目起头"入口 |

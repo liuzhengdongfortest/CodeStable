@@ -11,9 +11,9 @@ cs
     ├── cs-roadmap
     │   ├── cs-roadmap-review
     │   └── cs-roadmap-impl-goal
-    ├── cs-feat-design -> cs-feat-design-review -> cs-feat-impl -> cs-feat-review -> cs-feat-qa -> cs-feat-accept
-    ├── cs-issue-report -> cs-issue-analyze -> cs-issue-fix
-    ├── cs-refactor / cs-refactor-ff
+    ├── cs-feat-design -> cs-feat-design-review -> cs-feat-impl -> cs-code-review -> cs-feat-qa -> cs-feat-accept
+    ├── cs-issue-report -> cs-issue-analyze -> cs-issue-fix -> cs-code-review
+    ├── cs-refactor / cs-refactor-ff -> cs-code-review
     └── cs-learn / cs-trick / cs-decide / cs-explore / cs-note / cs-docs-neat
 ```
 

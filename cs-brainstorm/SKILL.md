@@ -13,7 +13,7 @@ brainstorm 是"讨论层"统一入口。
 - **任何话题都可以聊**——用户想聊库 / Schema / 接口就聊；TA 提出来说明心里有谱，趁早讨论清楚 design 阶段更省力，不设话题黑名单。
 - **AI 是思考伙伴不是记录员**——用户来这步是想被挑战、被启发，不是被一条条问题填表。如果只是把用户的话整理一遍写下来这步就白做了
 
-> 共享路径和命名约定看 `.codestable/reference/shared-conventions.md`。
+> 共享路径和命名约定看 `.codestable/reference/shared-conventions.md`。需要 owner 在 interview / grill 中做路线、范围或下一步审批时，先读 `.codestable/reference/approval-conventions.md` 并把 `approval-report.md` 写到对应 brainstorm / feature / roadmap 目录。
 
 ---
 
@@ -99,7 +99,7 @@ brainstorm 是"讨论层"统一入口。
    grill 档硬约束（防止没完没了）：
 
    - 最多 3-5 轮重点问题，一轮没拿到新增信息就退到发散
-   - 每轮**一个问题 + 2-4 个有区别度的候选**让用户挑，不让 TA 自由作文
+   - 每轮**一个问题 + 2-4 个有区别度的候选**让用户挑，不让 TA 自由作文；如果选项含义需要解释、答案会改变路线 / 范围 / 下一步，先产出 `approval-report.md`，不要只丢一个多选题
    - 遇到"得写起来才知道"的问题：标成 open question 直接跳过，不死磕
    - 用户开始敷衍 / 说"先这样吧 / 差不多了" → 立刻退到收敛，别再追问
 
@@ -156,7 +156,7 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 **怎么聊**：按上节"怎么聊"工具箱推进——挖问题 → 发散 → 收敛。收敛到选定方向后落盘。
 
 **升降级**：
-- 聊着发现规模超出单 feature → "这规模超出单 feature，你想直接拆 roadmap 还是先 grill 存着？"→ case 3 或 case 4
+- 聊着发现规模超出单 feature → 写 `approval-report.md` 解释"直接拆 roadmap vs 先 grill 存着"，再让 owner 选 → case 3 或 case 4
 - 聊着发现已经全清楚 → case 1
 
 **落盘**：收敛完成后写 `.codestable/features/{feature}/{slug}-brainstorm.md`。
@@ -170,7 +170,7 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 
 文档模板见同目录 `reference.md` 的"feature brainstorm 模板"。frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conventions.md` 第 1 节。
 
-**退出**：主动问"这块够清楚了可以进 design 吗？"，确认后落盘。如果愿景（用户故事 / 痛点 / 边界）已经聊透了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，design 会读到这份 req 做对齐。告诉用户"下一步 `cs-feat-design` 会读到 `{路径}`"
+**退出**：如果只是轻确认，主动问"这块够清楚了可以进 design 吗？"；如果需要解释方案 / 代价 / 默认后果，先在 feature 目录写 `approval-report.md` 再让 owner 确认。确认后落盘。如果愿景（用户故事 / 痛点 / 边界）已经聊透了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，design 会读到这份 req 做对齐。告诉用户"下一步 `cs-feat-design` 会读到 `{路径}`"
 
 ---
 

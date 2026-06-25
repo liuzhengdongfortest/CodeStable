@@ -16,8 +16,10 @@ CodeStable 把这几类场景各配一套子技能，产物放进统一的目录
 **做事**——从一段模糊想法走到上线的功能、或者从一份错误报告走到修好的 bug:
 
 - `cs-feat` — 新功能,design → design-review → implement → code-review → QA → acceptance（想法还模糊时先走讨论层 `cs-brainstorm` 做分诊，不属于 feature 流程内部）
+- `cs-goal` — 目标达成,限定起点/终点 → interview/grill 写起点报告 → 自主迭代实现/验证 → 完成前 subagent 功能验收
 - `cs-issue` — 修 bug,report → analyze → fix
 - `cs-refactor` — 代码优化(行为不变、结构/性能/可读性变),scan → design → apply
+- `cs-code-review` — 各执行流末端、commit 前的横切独立 diff 评审（质量门禁）
 
 两类都不直接让 AI 写代码,而是先产出 spec(功能方案 / 问题分析),用户 review 后再动手,代码和 doc 一起交付。针对的是术语冲突、范围失控、改完不留存档这三种 AI 默认会出的问题。
 
@@ -45,6 +47,7 @@ CodeStable 把这几类场景各配一套子技能，产物放进统一的目录
 - `cs-guide` — 写给外部读者的开发者指南 / 用户指南
 - `cs-libdoc` — 为库的公开 API 逐条目生成参考文档
 - `cs-docs-neat` — 阶段 / 里程碑收尾时，全局整理 `.codestable/`、README/docs、`CLAUDE.md` / `AGENTS.md` 和 agent 记忆，做反膨胀、补漏和冲突修正
+- `codestable-maintainer` — 维护 CodeStable 自身技能库 / harness / verifier / installed copy（源仓分支验证 + main-only 同步）
 
 
 ## 场景路由
@@ -55,8 +58,10 @@ CodeStable 把这几类场景各配一套子技能，产物放进统一的目录
 |---|---|
 | 想法还模糊 / "有个想法没想清楚" / "先聊聊" | `cs-brainstorm`(分诊后路由到 design / feature-brainstorm 落盘 / roadmap) |
 | 新功能 / 新能力 | `cs-feat` |
+| 限定起点/终点的目标达成 / "自主迭代直到完成" | `cs-goal` |
 | BUG / 异常 / 文档错误 | `cs-issue` |
 | 代码优化 / 重构 / 重写(行为不变) | `cs-refactor` |
+| 合并前代码评审 / "code review" / 准备 PR / merge | `cs-code-review` |
 | 摸代码、提问调研 | `cs-explore` |
 | 补 / 更新需求文档 | `cs-req` |
 | 补 / 更新 / 检查架构文档 | `cs-arch` |

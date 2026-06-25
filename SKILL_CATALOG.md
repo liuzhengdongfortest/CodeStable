@@ -14,7 +14,7 @@
 | 特性流程 | `cs-feat-design` | 起草 `{slug}-design.md` 作为后续唯一输入 |
 | 特性流程 | `cs-feat-design-review` | feature design 人工确认前的独立方案审查 gate |
 | 特性流程 | `cs-feat-impl` | 按 design 的推进顺序写代码 |
-| 特性流程 | `cs-feat-review` | 实现完成后的只读代码审查 gate |
+| 特性流程 | `cs-code-review` | 实现完成后的只读代码审查 gate |
 | 特性流程 | `cs-feat-qa` | 代码审查通过后的本地 QA 验证 gate |
 | 特性流程 | `cs-feat-accept` | 对照 design 核对实现并完成验收闭环 |
 | 特性流程 | `cs-feat-ff` | 超轻量通道：不写 design、不分阶段，直接实现 |

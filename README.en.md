@@ -12,7 +12,7 @@ Tired of OpenSpec's flimsiness, Oh-My-OpenAgent's over-engineering, and Superpow
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/cs--skills-32-6366F1?style=flat-square" alt="CodeStable Skills"/>
+  <img src="https://img.shields.io/badge/cs--skills-35-6366F1?style=flat-square" alt="CodeStable Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -87,30 +87,34 @@ I built CodeStable because I believe **the chaos of software engineering isn't r
 
 ---
 
-## Design: 6 entities + 3 flows
+## Design: entities + flows
 
-CodeStable models real coding work as **6 entities** and **3 flows**.
+CodeStable models real coding work as a set of **entities** and **flows**.
 
-### 6 entities
+### Entities
 
 | Entity | Slug | What it does |
 |------|------|--------|
 | **Requirement** | requirements | Original user stories, the discussion and trade-offs at the time. The escape hatch — when code rots, you can throw it all out and let AI regenerate from these |
 | **Architecture** | architecture | What the system's orchestration layer looks like to deliver the requirements. Concise, unified, **for humans to read** — not for AI to talk to itself |
 | **Roadmap** | roadmap | "I want a permission system" — too big to throw at AI as a feature; cut it into a roadmap and advance step by step |
+| **Goal** | goals | Bounded start/end: write a start report, then let AI iterate autonomously on implementation/validation, with subagent functional acceptance before completion |
 | **Feature** | feature | The actual engineering execution. Human and AI collaborate, jointly responsible for design / implementation / acceptance |
 | **Issue** | issue | The bug list after release. AI and human solve it together |
 | **Compound** | compound | The compounding-engineering knowledge base — pitfalls, good practices, technical decisions |
 
-### 3 flows
+### Flows
 
 | Flow | Key skill chain | Notes |
 |------|------------|------|
-| **Feature delivery** | `cs-feat` → `cs-feat-design` → `cs-feat-design-review` → `cs-feat-impl` → `cs-feat-review` → `cs-feat-qa` → `cs-feat-accept` | Think it through → design review → step-by-step coding → code review → QA → acceptance |
-| **Issue fixing** | `cs-issue-report` → `cs-issue-analyze` → `cs-issue-fix` | Tell AI what's wrong → AI finds the root cause → AI fixes precisely |
-| **Refactoring** | `cs-refactor` (beta) | Architectural rot doesn't happen overnight. AI assists, but **humans refactor**. Still iterating — feedback welcome |
+| **Feature delivery** | `cs-feat` → `cs-feat-design` → `cs-feat-design-review` → `cs-feat-impl` → `cs-code-review` → `cs-feat-qa` → `cs-feat-accept` | Think it through → design review → step-by-step coding → code review → QA → acceptance |
+| **Goal achievement** | `cs-goal` | Bounded start/end → interview/grill + start report → autonomous implement/validate/iterate → subagent functional acceptance before completion |
+| **Issue fixing** | `cs-issue-report` → `cs-issue-analyze` → `cs-issue-fix` → `cs-code-review` | Tell AI what's wrong → AI finds the root cause → AI fixes precisely → independent review before commit |
+| **Refactoring** | `cs-refactor` (beta) → `cs-code-review` | Architectural rot doesn't happen overnight. AI assists, but **humans refactor**. Still iterating — feedback welcome |
 
-At a phase or milestone boundary, use `cs-docs-neat` to reconcile `.codestable/`, README/docs, `CLAUDE.md` / `AGENTS.md`, and agent memory so docs do not drift from code.
+`cs-code-review` is the cross-cutting quality gate at the tail of every execution flow, before commit — feature, fast path, issue fixing, and refactoring all route their pre-commit diff review through it. At a phase or milestone boundary, use `cs-docs-neat` to reconcile `.codestable/`, README/docs, `CLAUDE.md` / `AGENTS.md`, and agent memory so docs do not drift from code.
+
+> Strong branch protection: `cs-onboard` can optionally release the `codestable-ai-branch-guard` hook, which blocks AI from implementing directly on `main`/`master` and forces a worktree. See the "branch protection hook" section in `cs-onboard`.
 
 ---
 
@@ -130,7 +134,7 @@ See [WORKFLOW.en.md](./WORKFLOW.en.md) for the full diagram.
 
 ## Runtime structure
 
-After `/cs-onboard`, a `codestable/` directory appears at your project root as the aggregate root for requirements, architecture, roadmap, features, issues, refactors, compound, tools, and reference.
+After `/cs-onboard`, a `.codestable/` directory appears at your project root as the aggregate root for requirements, architecture, roadmap, goals, features, issues, refactors, audits, compound, tools, hooks, and reference.
 
 See [WORKFLOW.en.md](./WORKFLOW.en.md) for the full directory model and cross-skill reference constraints.
 

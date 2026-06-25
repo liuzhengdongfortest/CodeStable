@@ -13,29 +13,30 @@ Filter syntax (--filter flag, repeatable, AND logic):
 
 Usage examples:
   # Search .codestable/compound (learning / trick / decision / explore docs share this dir)
-  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=learning --filter track=pitfall
-  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter "doc_type=decision|explore|learning"
-  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=trick --filter tags~=prisma
-  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=decision --filter status=active --full
+  python3 .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=learning --filter track=pitfall
+  python3 .codestable/tools/search-yaml.py --dir .codestable/compound --filter "doc_type=decision|explore|learning"
+  python3 .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=trick --filter tags~=prisma
+  python3 .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=decision --filter status=active --full
 
   # Full-text search in body + frontmatter values
-  python .codestable/tools/search-yaml.py --dir .codestable/compound --query "shadow database"
+  python3 .codestable/tools/search-yaml.py --dir .codestable/compound --query "shadow database"
 
   # JSON output for AI agent consumption
-  python .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=learning --filter track=knowledge --json
+  python3 .codestable/tools/search-yaml.py --dir .codestable/compound --filter doc_type=learning --filter track=knowledge --json
 
   # Sort by a frontmatter date field (works on any ISO-8601 date string, YAML date, or sortable value)
-  python .codestable/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc   # oldest first (stalest)
-  python .codestable/tools/search-yaml.py --dir .codestable/compound --sort-by date --order desc              # newest first
+  python3 .codestable/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc   # oldest first (stalest)
+  python3 .codestable/tools/search-yaml.py --dir .codestable/compound --sort-by date --order desc              # newest first
 
   # Works on any yaml-frontmatter markdown directory
-  python .codestable/tools/search-yaml.py --dir docs/decisions --filter status=accepted
-  python .codestable/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
+  python3 .codestable/tools/search-yaml.py --dir docs/decisions --filter status=accepted
+  python3 .codestable/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
 """
 
 import argparse
 import json
 import sys
+from datetime import date, datetime
 from pathlib import Path
 
 try:
@@ -255,7 +256,13 @@ def print_json(results: list[dict], full: bool) -> None:
         if not full and len(body) > 400:
             body = body[:400] + "…"
         output.append({"file": doc["file"], "meta": doc["meta"], "body": body})
-    print(json.dumps(output, ensure_ascii=False, indent=2))
+    print(json.dumps(output, ensure_ascii=False, indent=2, default=_json_default))
+
+
+def _json_default(value):
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return str(value)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,4 @@
+interface:
+  display_name: "cs-goal"
+  short_description: "Run goals through reports and acceptance."
+  default_prompt: "Use $cs-goal for a bounded start/end objective: create a dated goal directory, grill lightly, write start and iteration reports in the project's report language, iterate autonomously, and require subagent functional acceptance before completion."

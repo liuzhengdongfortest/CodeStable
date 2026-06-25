@@ -25,6 +25,12 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 │       ├── {slug}-items.yaml   机器可读子 feature 清单，acceptance 回写状态
 │       ├── {slug}-roadmap-review.md 人工确认前的规划审查报告
 │       └── drafts/             可选
+├── goals/                 目标聚合根（起点报告 / 自主迭代 / 功能验收）
+│   └── {slug}/           一个 bounded goal 一个子目录（cs-goal 产出）
+│       ├── {slug}-start-report.md 起点报告
+│       ├── {slug}-state.yaml     机器可读状态
+│       ├── {slug}-iteration-*.md 迭代报告
+│       └── {slug}-functional-acceptance.md 子 agent 功能验收
 ├── features/              feature spec 聚合根
 │   └── YYYY-MM-DD-{slug}/  每个 feature 一个目录
 │       ├── {slug}-brainstorm.md  （可选，case 2 时产出）
@@ -268,3 +274,16 @@ feature-design / issue-analyze / issue-fix 动手前到 `.codestable/compound/` 
 **停下来之后**：反射检查只把问题提出来，结论用户定。停下来想清楚的动作（拆 / 新建 / 重命名 / 抽共用）会让改动超出现有 steps 范围 → 跟用户对齐再决定（纳入当前推进 / 记顺手发现留后续）。
 
 不许偷偷拆完继续写，也不许忽略信号硬冲。默认动作是停、问、再继续。
+
+## 8. 报告语言策略
+
+- CodeStable 技能不在技能说明里硬编码报告语言；所有人读报告的正文语言以 `.codestable/attention.md` 的项目规则为准。
+- attention 未写报告语言策略时，使用 owner 当前对话语言。
+- 默认只写 canonical 报告文件；只有 attention 明确要求多语言副本时，才额外写 `{name}.{lang}.md`。
+- 机器状态以 YAML / JSON / `state.yaml` 为准，不从不同语言的叙述反推状态。
+
+## 9. 执行约定与 worktree
+
+实现执行拓扑、worktree gate、code review、finish gate、context packet 和 subagent 选择拆在 `.codestable/reference/execution-conventions.md`，approval 报告口径在 `approval-conventions.md`。
+
+- **不要让 AI 在主协调检出里 `git switch` / `git checkout`**——需要执行分支时用 git worktree；可用 `branch-guard-hooks.md` 配 command hook 硬拦在 `main`/`master` 上的直接实现。

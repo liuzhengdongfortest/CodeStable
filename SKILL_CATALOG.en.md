@@ -14,7 +14,7 @@
 | Feature flow | `cs-feat-design` | Draft `{slug}-design.md` as the single input for what follows |
 | Feature flow | `cs-feat-design-review` | Independent feature design review gate before human approval |
 | Feature flow | `cs-feat-impl` | Code in the order the design lays out |
-| Feature flow | `cs-feat-review` | Read-only code review gate after implementation |
+| Feature flow | `cs-code-review` | Read-only code review gate after implementation |
 | Feature flow | `cs-feat-qa` | Local QA verification gate after code review |
 | Feature flow | `cs-feat-accept` | Verify implementation against the design and close the loop |
 | Feature flow | `cs-feat-ff` | Ultra-light lane: no design, no phases, direct implementation |

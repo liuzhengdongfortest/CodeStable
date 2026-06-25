@@ -24,7 +24,7 @@
 
 本协议只在用户已经确认 roadmap 和全部 feature design 后运行。用户粘贴 `/goal` 代表授权 goal 会话按本协议连续执行后续 impl / review / QA / accept。
 
-普通 `cs-feat-impl` / `cs-feat-review` / `cs-feat-qa` / `cs-feat-accept` 中的"汇报后停等用户 review"、"用户终审确认"等阶段 checkpoint，在 goal 模式下改为写入报告和审计记录，不逐 feature 停下等用户。以下情况仍必须停止并打印 `CS_ROADMAP_GOAL_HANDOFF`：
+普通 `cs-feat-impl` / `cs-code-review` / `cs-feat-qa` / `cs-feat-accept` 中的"汇报后停等用户 review"、"用户终审确认"等阶段 checkpoint，在 goal 模式下改为写入报告和审计记录，不逐 feature 停下等用户。以下情况仍必须停止并打印 `CS_ROADMAP_GOAL_HANDOFF`：
 
 - 需要改变已批准 design、roadmap item、接口契约或 feature 范围
 - 独立 reviewer 已启动但 pending / failed / blocked，且没有用户明确降级
@@ -106,9 +106,9 @@ Evidence required: <证据列表>
 - 普通实现完成汇报写入本 feature 证据记录；goal 模式不在这里停等用户 review。
 - 失败时走本文“失败恢复”。
 
-### 3. 执行 cs-feat-review
+### 3. 执行 cs-code-review
 
-按 `cs-feat-review` 规则执行：
+按 `cs-code-review` 规则执行：
 
 - 读取 design、checklist、实现证据、`git status --short`、`git diff` 和相关代码。
 - 只读审查；不要在 review 阶段直接修代码。
@@ -122,10 +122,10 @@ Evidence required: <证据列表>
 CS_ROADMAP_GOAL_REVIEW_FIX
 Feature: <feature-slug>
 Findings: <REV 编号列表>
-Next: cs-feat-impl review-fix then rerun cs-feat-review
+Next: cs-feat-impl review-fix then rerun cs-code-review
 ```
 
-然后按 `cs-feat-impl` 的 review-fix 模式只修 blocking findings，修完回到本节重跑 `cs-feat-review`。review 未 passed 时不能进入 QA / acceptance。
+然后按 `cs-feat-impl` 的 review-fix 模式只修 blocking findings，修完回到本节重跑 `cs-code-review`。review 未 passed 时不能进入 QA / acceptance。
 
 ### 4. 执行 cs-feat-qa
 
@@ -145,10 +145,10 @@ Next: cs-feat-impl review-fix then rerun cs-feat-review
 CS_ROADMAP_GOAL_QA_FIX
 Feature: <feature-slug>
 Findings: <QA 编号列表>
-Next: cs-feat-impl qa-fix then rerun cs-feat-review and cs-feat-qa
+Next: cs-feat-impl qa-fix then rerun cs-code-review and cs-feat-qa
 ```
 
-然后按 `cs-feat-impl` 的 qa-fix 模式只修 QA failed / blocked items。qa-fix 改变 diff，修完必须回到 `cs-feat-review`，review passed 后再重跑 `cs-feat-qa`。QA 未 passed 时不能进入 acceptance。
+然后按 `cs-feat-impl` 的 qa-fix 模式只修 QA failed / blocked items。qa-fix 改变 diff，修完必须回到 `cs-code-review`，review passed 后再重跑 `cs-feat-qa`。QA 未 passed 时不能进入 acceptance。
 
 ### 5. 执行 cs-feat-accept
 

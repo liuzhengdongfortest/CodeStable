@@ -1,19 +1,32 @@
 ---
-name: cs-feat-review
-description: feature 流程阶段 2.5——实现完成后的本地代码审查 gate。对照 design / checklist / 实现汇报和当前 git diff 做只读 code review，产出 {slug}-review.md；可选检测 Paseo / 外部 agent 并用独立 audit subagent 辅助审查，但最终由本 skill 合并定级。有 blocking findings 时回到 cs-feat-impl 的 review-fix，通过后进入 cs-feat-qa，不直接验收。触发：用户说"做代码审查"、"review 这个 feature"、"实现完了先 code review"、"跑 cs-feat-review"。
+name: cs-code-review
+description: 横切代码审查 gate——任何流程（feature / issue / refactor / fastforward）实现完成后、commit 前，对照对应 spec 产物和当前 git diff 做独立只读 code review，产出 {slug}-review.md；可选检测 Paseo / 外部 agent 并用独立 audit subagent 辅助审查，但最终由本 skill 合并定级。有 blocking findings 时回到对应实现技能修复，通过后交回上游收尾（feature 进 cs-feat-qa，其余进各自验收/提交）。触发：用户说"做代码审查"、"code review"、"review 这次改动"、"合并前审一下"、"跑 cs-code-review"。
 ---
 
-# cs-feat-review
+# cs-code-review
 
 ## 启动必读
 
 开始任何判断或动作前，先读取 `.codestable/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `cs-onboard`，不要回退到外部 AI 入口文件。
 
-本阶段是实现完成后、QA 前的独立代码审查 gate。它只读代码和产物，只写 `{slug}-review.md`，不直接修代码、不更新 checklist、不改 design、不替代 QA 或 acceptance。
+本技能是**横切代码审查 gate**：任何流程实现完成后、commit / QA / 验收前，对当前改动做独立只读 review。它只读代码和产物，只写 `{slug}-review.md`，不直接修代码、不更新 checklist、不改 spec、不替代 QA 或 acceptance。
 
-审查目标不是追求完美代码，而是确认本次改动没有降低系统代码健康，并且确实朝 design 的目标前进。能自动格式化或 lint 的问题不要手工阻塞；会影响正确性、维护性、安全、性能、可测试性、需求满足或后续验收可信度的问题必须指出。
+审查目标不是追求完美代码，而是确认本次改动没有降低系统代码健康，并且确实朝对应 spec（design / fix-note / refactor-design / 用户确认范围）的目标前进。能自动格式化或 lint 的问题不要手工阻塞；会影响正确性、维护性、安全、性能、可测试性、需求满足或后续验收可信度的问题必须指出。
 
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节。
+
+## 进入来源（横切）
+
+| 来源 | 进入点 | spec 产物 | 通过后去向 |
+|---|---|---|---|
+| `cs-feat-impl`（标准 feature） | impl 完成、QA 前 | design + checklist | `cs-feat-qa` |
+| `cs-feat-ff`（feature 快速通道） | ff-note 落盘、commit 前 | ff-note + 用户原始需求 | 收尾提交 |
+| `cs-issue-fix` | fix-note 落盘、commit 前 | report + analysis + fix-note | 收尾提交 |
+| `cs-refactor` | apply-notes 完成、commit 前 | scan + refactor-design + checklist | 收尾提交 |
+| `cs-refactor-ff` | 自证通过、commit 前 | 用户确认的重构范围 + 验证命令 | 收尾提交 |
+| ad-hoc / pre-merge | 用户要求 | 用户指定范围 / git range | 给结论 |
+
+**不是 `cs-audit`**：audit 主动扫一片代码找潜在问题；code review 只审当前变更范围。
 
 ---
 
@@ -22,26 +35,26 @@ description: feature 流程阶段 2.5——实现完成后的本地代码审查 
 进入 review 前必须读取：
 
 - `.codestable/attention.md`
-- `{slug}-design.md`
-- `{slug}-checklist.yaml`
+- 来源的 spec 产物（feature 看 `{slug}-design.md` + `{slug}-checklist.yaml`；issue 看 report+analysis+fix-note；refactor 看 scan+refactor-design+checklist；ff / ad-hoc 看用户确认范围）
 - 实现完成汇报 / 最近实现记录（如果在对话里，按对话事实引用；如果已落文件，读文件）
 - `git status --short`
 - `git diff`（有 staged diff 时也读 `git diff --cached`）
 - diff 涉及的人写代码文件和相邻关键调用点
-- design 第 4 节指向的 architecture / requirement / roadmap 相关文档（只读，判断改动是否会影响归并）
+- spec 指向的 architecture / requirement / roadmap 相关文档（只读，判断改动是否会影响归并；feature 即 design 第 4 节）
 - independent reviewer 输出（如果本轮启用了 Paseo 或其他外部 reviewer）
 
-如果工作区有 feature 外的既有 dirty 文件，先记录为 baseline/无关变更；审查结论只针对本 feature 可归因的改动。无法区分归因时写成 `residual-risk`，不要把不确定当通过。
+如果工作区有本轮范围外的既有 dirty 文件，先记录为 baseline/无关变更；审查结论只针对本轮可归因的改动。无法区分归因时写成 `residual-risk`，不要把不确定当通过。
 
 ---
 
 ## 启动检查
 
-1. `{slug}-design.md` 存在，frontmatter `doc_type=feature-design`、`status=approved`、`feature` 与目录一致。
-2. `{slug}-checklist.yaml` 存在，`steps` 全部 `done`，`checks` 仍处于验收前状态（通常是 `pending`）。
-3. 当前 diff 能看到本 feature 的实现改动；如果完全没有代码或产物改动，退回 `cs-feat-impl`。
-4. 如果已有 `{slug}-review.md`：
-   - `status: passed` 且 diff 未变化：提示可进入 `cs-feat-qa`。
+先按「进入来源」表确认本轮来源，再做对应前置校验：
+
+1. 来源的 spec 产物存在且已定稿——feature 看 `{slug}-design.md`（`doc_type=feature-design`、`status=approved`、`feature` 与目录一致）+ `{slug}-checklist.yaml`（`steps` 全 `done`）；issue 看 report+analysis+fix-note；refactor 看 scan+refactor-design+checklist；ff / ad-hoc 看用户确认范围。缺定稿 spec 时退回对应实现技能，不硬审。
+2. 当前 diff 能看到本轮实现改动；完全没有代码或产物改动时退回来源实现技能。
+3. 如果已有 `{slug}-review.md`：
+   - `status: passed` 且 diff 未变化：提示按表进入「通过后去向」。
    - `status: changes-requested` / `blocked`：读取旧 findings，确认是否处于 review-fix 后的复审。
    - diff 已变化：重新 review，并在报告里记录这是第几轮。
 
@@ -51,7 +64,7 @@ description: feature 流程阶段 2.5——实现完成后的本地代码审查 
 
 本阶段默认由当前 agent 完成本地 review；独立 reviewer 是增强项，不是硬依赖。检测不到外部 agent、Paseo 不可用、provider 未配置或用户明确要求快速完成时，可以继续本地 review，并在报告里记录 `Independent reviewer: local-only` / `skipped-by-user`。
 
-但一旦本轮已经启动 independent reviewer，它就成为本轮 review gate 的输入。主 agent 可以先做本地审查草稿，但不能在 independent reviewer 返回前定稿 `{slug}-review.md`、不能给出 `passed`、不能进入 `cs-feat-qa`。如果 reviewer 卡住、失败、权限阻塞或耗时过长，只能把本轮标成 `blocked` / `independent-review-pending`，然后让用户决定：继续等待、重试 reviewer，或明确降级为 local-only review。
+但一旦本轮已经启动 independent reviewer，它就成为本轮 review gate 的输入。主 agent 可以先做本地审查草稿，但不能在 independent reviewer 返回前定稿 `{slug}-review.md`、不能给出 `passed`、不能进入通过后去向。如果 reviewer 卡住、失败、权限阻塞或耗时过长，只能把本轮标成 `blocked` / `independent-review-pending`，然后让用户决定：继续等待、重试 reviewer，或明确降级为 local-only review。
 
 先运行本 skill 自带检测脚本。按已加载的 `SKILL.md` 所在目录解析脚本路径，不要按业务仓库根目录猜路径：
 
@@ -70,7 +83,7 @@ python3 scripts/detect-review-agent.py --pretty
 Paseo subagent prompt 必须只给原始材料和边界，不透露本地 review 结论：
 
 ```text
-你是 CodeStable feature 的独立代码审查 agent。只读，不修改文件，不更新 checklist/design。
+你是 CodeStable 本次改动的独立代码审查 agent。只读，不修改文件，不更新 checklist/design。
 
 请读取：
 - .codestable/attention.md
@@ -79,7 +92,7 @@ Paseo subagent prompt 必须只给原始材料和边界，不透露本地 review
 - 当前 git status / git diff / staged diff
 - diff 涉及的人写代码和相邻关键调用点
 
-按 cs-feat-review 的严重度语义输出：blocking / important / nit / suggestion / learning / praise / residual-risk。
+按 code review 严重度语义输出：blocking / important / nit / suggestion / learning / praise / residual-risk。
 每条 finding 必须有 file:line 或仓库事实证据、影响、建议修复边界。
 额外输出 Test And QA Focus：QA 必须重点复核的场景、建议新增或加强的测试、review 无法确认的点。
 不要写 {slug}-review.md；只把审查结果回传给主 agent。
@@ -138,6 +151,12 @@ Paseo subagent prompt 必须只给原始材料和边界，不透露本地 review
 - `changes-requested`：有 blocking，或 important 多到会影响验收可信度。
 - `blocked`：缺少关键输入、diff 归因无法判断、设计/实现状态不满足 review 前置条件，或本轮已启动 independent reviewer 但结果仍 pending / failed / blocked 且用户尚未确认降级。
 
+**`reviewer` 字段（gate 锚点）**：`{slug}-review.md` 的 frontmatter `reviewer` 决定下游 worktree / commit / finish gate 是否放行，按「独立 reviewer 增强项」实际三态写：
+
+- independent reviewer completed 并已合并核验 → `reviewer: subagent`。
+- 没启动外部 reviewer（local-only / skipped-by-user）→ `reviewer: self`；gate 默认要求 `subagent`，`self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。
+- pending / failed / blocked → 不定稿 `passed`，也不写 `reviewer: subagent`。
+
 ---
 
 ## 严重度
@@ -156,127 +175,47 @@ Paseo subagent prompt 必须只给原始材料和边界，不透露本地 review
 
 ## 报告模板
 
-报告路径：`.codestable/features/{feature}/{slug}-review.md`。
+报告落在来源流程的 spec 目录，文件名 `{slug}-review.md`；feature 来源即 `.codestable/features/{feature}/{slug}-review.md`，issue/refactor 等放各自流程目录。
 
-```markdown
----
-doc_type: feature-review
-feature: YYYY-MM-DD-slug
-status: passed|changes-requested|blocked
-reviewed: YYYY-MM-DD
-round: 1
----
-
-# {slug} 代码审查报告
-
-## 1. Scope And Inputs
-
-- Design: {path}
-- Checklist: {path}
-- Implementation evidence: {实现汇报 / 对话 / 文件}
-- Diff basis: {git status / git diff 摘要}
-- Baseline dirty files: {none / 列表 + 归因}
-
-### Independent Review
-
-- Status: not-available|skipped-by-user|local-only|pending|completed|failed|blocked
-- Detection: paseo-subagent|local-review-with-agent-cli-available|local-review|skipped
-- Provider / agent: {providers.audit / agent id / none}
-- Raw output: {摘要 / 路径 / none}
-- Merge policy: {已逐条核验 / 未启用原因 / pending 时不得定稿}
-- Gate effect: {none | blocks final verdict until completed / user-approved downgrade}
-
-## 2. Diff Summary
-
-- 新增：{文件列表}
-- 修改：{文件列表}
-- 删除：{文件列表}
-- 未跟踪 / staged：{文件列表}
-- 风险热点：{跨模块 / 权限 / 数据 / 并发 / UI / API / none}
-
-## 3. Findings
-
-### blocking
-
-- [ ] REV-001 `{file:line}` {问题}
-  - Evidence: {仓库事实 / design 契约 / 失败路径}
-  - Impact: {为什么阻塞 QA / acceptance}
-  - Expected fix scope: {只描述问题边界，不替实现写方案}
-
-### important
-
-- [ ] REV-00N `{file:line}` {问题}
-  - Evidence: {证据}
-  - Impact: {影响}
-
-### nit
-
-- [ ] REV-00N `{file:line}` {建议}
-
-### suggestion
-
-- [ ] REV-00N {建议}
-
-### learning
-
-- {可复用经验或注意点}
-
-### praise
-
-- {值得保留的做法}
-
-## 4. Test And QA Focus
-
-- QA 必须重点复核：{场景 / 命令 / 手工验证}
-- 建议新增或加强的测试：{unit / integration / e2e / function / none}
-- 不能靠 review 完全确认的点：{列表}
-
-## 5. Residual Risk
-
-- {风险 + QA / acceptance 如何处理；没有写 none}
-
-## 6. Verdict
-
-- Status: passed|changes-requested|blocked
-- Next: `cs-feat-qa` | `cs-feat-impl` review-fix | 等 independent reviewer 完成 / 用户确认降级后重跑 `cs-feat-review` | 补齐输入后重跑 `cs-feat-review`
-```
-
-没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。
+完整 frontmatter 与各章节模板见同包 `references/report-template.md`（按已加载 `SKILL.md` 所在目录解析，不要按业务仓库根目录猜路径）。没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。
 
 ---
 
 ## review-fix 衔接
 
+下一步去向按「进入来源」表确定（feature 来源即 review-fix→`cs-feat-impl`、通过→`cs-feat-qa`；issue/refactor/ff 各回对应实现技能与提交收尾）。
+
 如果有 `blocking`：
 
 1. 报告 `status: changes-requested`。
-2. 告诉用户下一步触发 `cs-feat-impl` 的 review-fix 模式。
+2. 告诉用户下一步触发来源实现技能的 review-fix 模式。
 3. review-fix 只修 blocking findings；important 是否修由用户或实现者判断，但不能顺手扩大范围。
-4. review-fix 完成后必须重跑 `cs-feat-review`，不能直接进入 `cs-feat-qa` 或 `cs-feat-accept`。
+4. review-fix 完成后必须重跑本审查，不能跳过直接进入来源的通过后去向。
 
 如果只有 `important`：
 
-- 默认建议先修；如果用户明确接受延后，报告里把它移入 residual risk，并允许进入 `cs-feat-qa`。
+- 默认建议先修；如果用户明确接受延后，报告里把它移入 residual risk，并允许进入通过后去向。
 
 如果没有 blocking，且 important 已处理或被明确接受：
 
 - 报告 `status: passed`。
-- 告诉用户下一步是 `cs-feat-qa`。
+- 告诉用户下一步是「进入来源」表的通过后去向（feature→`cs-feat-qa`）。
 
 ---
 
 ## 退出条件
 
-- [ ] 已读取 attention、design、checklist、实现证据、git status、git diff 和相关代码。
-- [ ] 已确认 checklist steps 全 done；否则退回 `cs-feat-impl`。
+- [ ] 已读取 attention、来源 spec 产物、实现证据、git status、git diff 和相关代码。
+- [ ] 已确认来源 spec 产物已定稿（feature 看 checklist steps 全 done）；否则退回来源实现技能。
 - [ ] 已运行 independent reviewer 检测，或记录为什么跳过。
 - [ ] 如果没有启动 independent reviewer，已记录 not-available / skipped-by-user / local-only 原因。
 - [ ] 如果启动了 independent reviewer，已等到 completed 并逐条本地核验合并 / 驳回 findings；否则报告 `status: blocked`，没有进入 QA。
 - [ ] 已做整体审查和行级审查。
 - [ ] 已明确区分 blocking / important / nit / suggestion / learning / praise / residual-risk。
-- [ ] 已写 `.codestable/features/{feature}/{slug}-review.md`。
-- [ ] 有 blocking 时没有进入 QA / acceptance，而是指向 `cs-feat-impl` review-fix。
-- [ ] 无 blocking 时明确告诉用户下一步 `cs-feat-qa`。
+- [ ] 已写来源 spec 目录下的 `{slug}-review.md`（feature 即 `.codestable/features/{feature}/{slug}-review.md`）。
+- [ ] `status: passed` 时 frontmatter `reviewer` 已按独立 review 实际写 `subagent`（或确属无 subagent 平台的 `self` fallback）——这是下游 gate 的放行锚点。
+- [ ] 有 blocking 时没有进入下游，而是指向来源实现技能的 review-fix。
+- [ ] 无 blocking 时明确告诉用户「进入来源」表的通过后去向（feature→`cs-feat-qa`）。
 
 ---
 

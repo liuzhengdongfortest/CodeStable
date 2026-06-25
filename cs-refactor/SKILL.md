@@ -17,6 +17,16 @@ scan（扫优化点清单）→ design（和用户定做哪几条 + 顺序）→
 
 **核心纪律**：行为等价是底线。一旦会改外部可观察行为 → 不走 refactor，走 feature（需求变）或 issue（bug 修）。
 
+## 执行 gate（worktree + commit）
+
+进入 apply 前运行 start gate，`{slug}` 为 refactor 目录名：
+
+```bash
+python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/refactors/YYYY-MM-DD-{slug}
+```
+
+gate 不通过不开始改代码；override 时先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。apply 完成、收尾 commit 前运行 commit gate（同命令 `commit`）；不通过先处理 findings。gate 安装与 branch-guard hook 见 `.codestable/reference/branch-guard-hooks.md`。
+
 ---
 
 ## Fastforward 模式（小重构）
@@ -184,6 +194,7 @@ refactor: {YYYY-MM-DD}-{slug}
 
 ### 全部完成后
 
+- 完成后先进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不进 commit，scoped-commit 发起权归 `cs-code-review`
 - 跑全量测试 + 类型检查 + lint
 - 最后一次请用户整体目视确认（前端：打开主要页面点一圈）
 - 确认通过后收尾 commit，message 引用 refactor 目录

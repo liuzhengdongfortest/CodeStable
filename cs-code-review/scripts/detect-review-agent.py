@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detect optional independent reviewer capabilities for cs-feat-review."""
+"""Detect optional independent reviewer capabilities for cs-code-review."""
 
 from __future__ import annotations
 
@@ -107,7 +107,7 @@ def build_result() -> dict[str, object]:
         reason = "Paseo appears available; use an audit subagent only when the runtime exposes Paseo tools or the CLI can be invoked."
     elif direct_agents:
         mode = "local-review-with-agent-cli-available"
-        reason = "Direct agent CLIs exist, but cs-feat-review should not invoke them automatically."
+        reason = "Direct agent CLIs exist, but cs-code-review should not invoke them automatically."
     else:
         mode = "local-review"
         reason = "No managed independent reviewer was detected."

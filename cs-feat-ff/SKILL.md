@@ -43,6 +43,28 @@ Glob `.codestable/` 发现可用目录和文档，按需取用：
 
 ---
 
+## 执行 gate（worktree + commit）
+
+fastforward 直接改项目源码且是快速通道末端，两道 gate 仍要走。slug 未定时先按动作敲定（见下文"自动生成 slug"），unit 路径用 `.codestable/features/YYYY-MM-DD-{slug}`。
+
+动手前运行 start gate：
+
+```bash
+python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/features/YYYY-MM-DD-{slug}
+```
+
+gate 不通过就不要开始改代码；用户批准 override 时先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。
+
+ff-note 落盘、收尾提交前运行 commit gate：
+
+```bash
+python3 .codestable/tools/codestable-worktree-gate.py --root . --json commit --unit .codestable/features/YYYY-MM-DD-{slug}
+```
+
+gate 不通过就先处理 findings，不把"验证已过"当成完成。gate 工具的安装与 branch-guard hook 说明见 `.codestable/reference/branch-guard-hooks.md`。
+
+---
+
 ## 写代码时守住这几条
 
 design / implement 的硬约束在 fastforward 的精简版。没 design doc 不代表可以不讲——这些是让你"直接动手"时不偏向 AI 默认会踩的坑。
@@ -179,6 +201,8 @@ tags: [...]
 
 - **提交范围**：本次代码改动 + `{slug}-ff-note.md`
 - ff-note 落盘后告诉用户"已就绪，是否代为 commit？"，用户明确同意才执行
+
+收尾 commit 前先进入 `cs-code-review` 做一轮独立 diff 评审，Critical / Important 未清零不进 commit；scoped-commit 发起权归 `cs-code-review`。
 
 按 `shared-conventions.md` 第 3 节"feature-ff"收尾推荐顺序逐项一句话提示（用户"不用"立即跳过）：
 
