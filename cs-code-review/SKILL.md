@@ -61,37 +61,29 @@ description: 横切代码审查 gate——任何流程（feature / issue / refac
 
 ---
 
-## 独立 reviewer 增强项
+## 独立 reviewer（双环节）
 
-本阶段支持三路独立 reviewer **并行启动**，互为补充而非互斥：
+本阶段是**双环节 review**，两个环节互补：
 
-| reviewer | 手段 | 审查角度 |
+| 环节 | 目的 | 是否 gate 必需 |
 |---|---|---|
-| Paseo subagent | Paseo `audit` subagent | spec-aware 整体审查，独立上下文 |
-| 原生 Agent tool | 主 agent 调用 `Agent` tool 启动子 agent | spec-aware 整体审查，独立上下文（Claude Code / Codex 均支持） |
-| OCR CLI | `ocr review --audience agent` | 行级代码扫描（bug / 安全 / 代码模式） |
+| **A 独立隔离 agent review** | spec 视角整体审查，用**独立上下文**避免主 agent 确认偏误 | 是（gate 放行靠它） |
+| **B OCR 行级扫描** | 行级 bug / 安全 / 代码模式扫描，补 A 的盲区 | 否（装了就跑，缺了降级） |
 
-三路都检测到时全部并行启动；主 agent 等所有已启动 reviewer 返回后统一合并。用户明确要求快速完成时可跳过全部，报告记录 `skipped-by-user`。
-
-**核心原则**：独立上下文是目的（避免主 agent 确认偏误），Paseo 和原生 Agent tool 都能达到这个目的，OCR 提供互补的行级视角。
-
-先运行本 skill 自带检测脚本（按已加载 `SKILL.md` 所在目录解析路径）：
-
-```bash
-python3 scripts/detect-review-agent.py --pretty
-```
-
-脚本输出 `recommendation.parallel_reviewers` 列表，主 agent 按此决定启动哪几路。
+**检测由主 agent 在运行时自检自己的工具**，不靠脚本猜环境——主 agent 最清楚自己手上有哪些工具。
 
 ---
 
-### 路 1：Paseo subagent
+### 环节 A：独立隔离上下文 agent review（gate 必需）
 
-检测脚本 `paseo.cli` 存在或 `paseo.health.ok` 为 true 时可启动。
+主 agent 自检工具，按优先级选一个启动独立 reviewer：
 
-启动前先加载 / 读取 `paseo` skill 的当前说明，遵守其规则：读取 `~/.paseo/orchestration-preferences.json`，使用 `providers.audit`，不要硬编码 provider；文件缺失时用合理默认并在报告说明。没有可用工具 / CLI 时记录 `not-available`，不要伪装启动。
+1. **有 `mcp__paseo__create_agent` 工具** → 用 Paseo `audit` subagent（**首选**：能换 provider，做到真正异构审查）。
+   先加载 / 读取 `paseo` skill 的当前说明并遵守其规则：读取 `~/.paseo/orchestration-preferences.json`，使用 `providers.audit`，不要硬编码 provider；文件缺失时用合理默认并在报告说明。
+2. **否则有 `Agent`（subagent）工具** → 用原生 subagent。独立上下文同样达成，只是与主 agent 同模型——仍显著优于自审。
+3. **两者都没有** → 记 `local-only`，不能伪装启动。gate 默认不放行，需用户明确降级（见 `reviewer` 字段）。
 
-Paseo subagent prompt（只给原始材料，不透露本地 review 结论）：
+独立 reviewer prompt（只给原始材料，不透露主 agent 的任何 review 结论）：
 
 ```text
 你是 CodeStable 本次改动的独立代码审查 agent。只读，不修改文件，不更新 checklist/design。
@@ -111,28 +103,21 @@ Paseo subagent prompt（只给原始材料，不透露本地 review 结论）：
 
 ---
 
-### 路 2：原生 Agent tool（Claude Code / Codex）
+### 环节 B：OCR 行级扫描（装了就跑）
 
-检测脚本 `native_agent_tool.available` 为 true 时可用（无需额外 CLI）。
-
-主 agent 通过 `Agent` tool 启动一个子 agent，赋予独立上下文，prompt 与 Paseo subagent 相同。这是没有 Paseo 时的等价替代——独立上下文是目的，工具只是手段。
-
-```text
-你是 CodeStable 本次改动的独立代码审查 agent。只读，不修改文件，不更新 checklist/design。
-（其余 prompt 同 Paseo subagent）
-```
-
----
-
-### 路 3：OCR CLI
-
-检测脚本 `ocr_cli.available` 为 true 时自动调用（不需要用户显式要求）：
+主 agent 自检 `ocr` CLI 是否可用：
 
 ```bash
-ocr review --audience agent --background "{spec 摘要：feature slug / 目标 / 本次改动范围}"
+which ocr && ocr llm test
 ```
 
-OCR 输出的 High / Medium / Low 映射到 cs-code-review 严重度体系后合并：
+可用则自动调用（不需要用户显式要求），用 `--background` 传入 spec 摘要提升质量：
+
+```bash
+ocr review --audience agent --background "{feature slug / 目标 / 本次改动范围}"
+```
+
+OCR 的 High / Medium / Low 映射到 cs-code-review 严重度后合并：
 
 | OCR 优先级 | 映射规则 |
 |---|---|
@@ -140,27 +125,30 @@ OCR 输出的 High / Medium / Low 映射到 cs-code-review 严重度体系后合
 | Medium | `nit` 或 `suggestion` |
 | Low | 丢弃（视为噪音），不进入报告 |
 
-OCR 不做 spec-fit 判断，mapping 后的 finding 必须经主 agent 本地事实核验才能升级为 `blocking`。
+OCR 不做 spec-fit 判断；mapping 后的 finding 必须经主 agent 本地事实核验才能升级为 `blocking`。`ocr` 未安装 / `ocr llm test` 失败 → 记 `not-available`，提示用户可在 onboard 或手动 `npm install -g @alibaba-group/open-code-review` 安装；不阻塞本轮。
 
 ---
 
 ### 合并原则
 
-一旦某路 reviewer 已启动，主 agent **不能在其返回前定稿 `{slug}-review.md`、给出 `passed` 或进入通过后去向**。
+A、B 两环节可并行启动。一旦某环节已启动，主 agent **不能在其返回前定稿 `{slug}-review.md`、给出 `passed` 或进入通过后去向**。
 
-- 已启动的 reviewer 返回 → 逐条本地事实核验，去重，合并进报告，保留来源标注。
+- 已启动的 reviewer 返回 → 逐条本地事实核验，去重，合并进报告，保留来源标注（`paseo` / `native-agent` / `ocr` / `local`）。
 - reviewer 失败 / 卡住 / 权限阻塞 → 报告 `status: blocked`，记录 `pending|failed|blocked` 和原因，让用户决定：重试、等待或明确降级。
 - 不要无限轮询；等通知或用户带回结果。
 
 未经本地仓库事实核验的外部结论只能写 `residual-risk` 或忽略，不能直接升级为 `blocking`。
 
-**`reviewer` 字段（gate 锚点）**：
+**`reviewer` 字段（gate 锚点）**，按本轮实际完成的环节写：
 
-- Paseo 或原生 Agent tool 已完成并合并（无论是否同时有 OCR）→ `subagent` 或 `subagent+ocr`
-- 仅 OCR 完成 → `ocr`
-- 全部跳过 / 不可用 → `self`
+| 值 | 含义 | gate |
+|---|---|---|
+| `subagent+ocr` | 环节 A（Paseo/原生 subagent）+ 环节 B 都完成（理想） | 放行 |
+| `subagent` | 环节 A 完成，OCR 不可用 / 跳过 | 放行 |
+| `ocr` | 仅 OCR，缺独立 agent review | 需 override |
+| `self` | 两环节都缺 | 需 override |
 
-gate 默认要求 `subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。
+gate 默认要求 `subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。OCR 不能替代环节 A——目的不同（A 是 spec 隔离审查，B 是行级扫描）。
 
 ## 审查流程
 
@@ -173,12 +161,12 @@ gate 默认要求 `subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODES
 
 ### 2. 独立审查合并
 
-- 记录检测结果：`recommendation.parallel_reviewers` 列表（来自 detect-review-agent.py）。
-- 三路并行启动（按检测结果）：Paseo subagent、原生 Agent tool、OCR CLI，互不等待对方。
+- 主 agent 自检工具：是否有 `mcp__paseo__create_agent` / `Agent`（subagent）工具，`which ocr` 是否可用。
+- 环节 A（独立隔离 agent，Paseo 优先→原生 subagent）和环节 B（OCR）可并行启动，互不等待。
 - 本地可以先做整体审查草稿，但最终 verdict 必须等所有已启动 reviewer 返回后才能定稿。
-- 每路 reviewer 返回后：逐条本地事实核验，OCR 结果按 High/Medium/Low 映射严重度，能复现 / 有证据才采纳；证据不足只写 residual-risk。
-- 某路 reviewer 失败 / 卡住：不要默默降级；报告该路 `failed|blocked`，交给用户决定重试或明确降级。
-- 报告里保留来源：标注每条 finding 来自哪路 reviewer（`paseo` / `native-agent` / `ocr` / `local`）。
+- 每环节返回后：逐条本地事实核验，OCR 结果按 High/Medium/Low 映射严重度，能复现 / 有证据才采纳；证据不足只写 residual-risk。
+- 某环节失败 / 卡住：不要默默降级；报告该环节 `failed|blocked`，交给用户决定重试或明确降级。
+- 报告里保留来源：标注每条 finding 来自哪个 reviewer（`paseo` / `native-agent` / `ocr` / `local`）。
 
 ### 3. 整体审查
 
@@ -213,11 +201,7 @@ gate 默认要求 `subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODES
 - `changes-requested`：有 blocking，或 important 多到会影响验收可信度。
 - `blocked`：缺少关键输入、diff 归因无法判断、设计/实现状态不满足 review 前置条件，或本轮已启动 independent reviewer 但结果仍 pending / failed / blocked 且用户尚未确认降级。
 
-**`reviewer` 字段（gate 锚点）**：`{slug}-review.md` 的 frontmatter `reviewer` 决定下游 worktree / commit / finish gate 是否放行，按「独立 reviewer 增强项」实际三态写：
-
-- independent reviewer completed 并已合并核验 → `reviewer: subagent`。
-- 没启动外部 reviewer（local-only / skipped-by-user）→ `reviewer: self`；gate 默认要求 `subagent`，`self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。
-- pending / failed / blocked → 不定稿 `passed`，也不写 `reviewer: subagent`。
+**`reviewer` 字段（gate 锚点）**：`{slug}-review.md` 的 frontmatter `reviewer` 决定下游 worktree / commit / finish gate 是否放行，按「独立 reviewer（双环节）」实际完成情况写 `subagent+ocr` / `subagent` / `ocr` / `self`（语义见上节表）。任一已启动环节仍 pending / failed / blocked 时不定稿 `passed`，也不写 `subagent`。
 
 ---
 
@@ -269,13 +253,13 @@ gate 默认要求 `subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODES
 
 - [ ] 已读取 attention、来源 spec 产物、实现证据、git status、git diff 和相关代码。
 - [ ] 已确认来源 spec 产物已定稿（feature 看 checklist steps 全 done）；否则退回来源实现技能。
-- [ ] 已运行 detect-review-agent.py，记录 parallel_reviewers 检测结果。
-- [ ] 检测到的各路 reviewer（Paseo / 原生 Agent tool / OCR）均已并行启动，或记录跳过原因。
-- [ ] 所有已启动的 reviewer 均已返回并逐条本地核验合并 / 驳回；否则报告 `status: blocked`，没有进入 QA。
+- [ ] 主 agent 已自检工具（Paseo `mcp__paseo__create_agent` / 原生 `Agent` / `ocr` CLI），记录可用情况。
+- [ ] 环节 A（独立隔离 agent）和环节 B（OCR，可用时）均已启动，或记录跳过原因。
+- [ ] 所有已启动的环节均已返回并逐条本地核验合并 / 驳回；否则报告 `status: blocked`，没有进入 QA。
 - [ ] 已做整体审查和行级审查。
 - [ ] 已明确区分 blocking / important / nit / suggestion / learning / praise / residual-risk。
 - [ ] 已写来源 spec 目录下的 `{slug}-review.md`（feature 即 `.codestable/features/{feature}/{slug}-review.md`）。
-- [ ] `status: passed` 时 frontmatter `reviewer` 已按独立 review 实际写 `subagent`（或确属无 subagent 平台的 `self` fallback）——这是下游 gate 的放行锚点。
+- [ ] `status: passed` 时 frontmatter `reviewer` 已按双环节实际完成写 `subagent+ocr` / `subagent`（或确属无 subagent 平台的 `ocr` / `self` fallback）——这是下游 gate 的放行锚点。
 - [ ] 有 blocking 时没有进入下游，而是指向来源实现技能的 review-fix。
 - [ ] 无 blocking 时明确告诉用户「进入来源」表的通过后去向（feature→`cs-feat-qa`）。
 

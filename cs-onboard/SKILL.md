@@ -185,12 +185,42 @@ Copy-Item -Recurse -Force <技能包路径>\cs-onboard\hooks\*      .codestable\
 
 ---
 
+## 行级代码审查工具 open-code-review（可选）
+
+`cs-code-review` 的审查分两环节：独立隔离 agent review（必需）+ OCR 行级扫描（增强）。OCR 用的是 [open-code-review](https://github.com/alibaba/open-code-review) 的 `ocr` CLI——装上后 `cs-code-review` 会自动检测并调用，没装则自然降级，不阻塞。
+
+onboard 时**问 owner 是否安装**（默认建议装）：
+
+- **同意** → 全局安装：
+
+  ```bash
+  npm install -g @alibaba-group/open-code-review
+  ```
+
+  装完提醒 owner 首次使用前要配 LLM（二选一），并用 `ocr llm test` 自检：
+
+  ```bash
+  ocr config set llm.url https://api.anthropic.com/v1/messages
+  ocr config set llm.auth_token <api-key>
+  ocr config set llm.model claude-opus-4-8
+  ocr config set llm.use_anthropic true
+  ```
+
+  绝不替 owner 编造 / 硬编码 API key——只给命令模板，由 owner 自己填。
+
+- **拒绝 / 跳过** → 不装。`cs-code-review` 检测不到 `ocr` 会记 `not-available` 并继续，owner 日后可随时手动 `npm install -g @alibaba-group/open-code-review` 补上。
+
+> 这是 owner 全局环境的改动（需联网、装全局 npm 包），所以必须先确认再装，不自动执行。
+
+---
+
 ## 退出条件
 
 - [ ] `.codestable/` 各聚合根目录（requirements/roadmap/goals/features/issues/refactors/audits/brainstorms/compound）都存在
 - [ ] `.codestable/attention.md` 已建
 - [ ] `.codestable/tools/`、`.codestable/reference/`、`.codestable/hooks/` 已从技能包复制
 - [ ] 已告知 owner 分支保护 hook 是可选项及如何接入 / 关闭
+- [ ] 已询问 owner 是否安装 open-code-review（`ocr`）；同意则已全局安装并提示配 LLM，拒绝则记录跳过
 - [ ] 迁移路径：每条映射都有明确处理结果（迁移 / 保留原位）
 - [ ] 迁移路径：没有未经确认就移动的文件
 - [ ] 验收汇报已给出

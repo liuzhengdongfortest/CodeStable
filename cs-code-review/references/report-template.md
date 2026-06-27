@@ -43,13 +43,12 @@ round: 1
 
 ### Independent Review
 
-- Detection: {detect-review-agent.py 输出的 parallel_reviewers 列表}
-- Paseo subagent: not-available|pending|completed|failed|blocked|skipped-by-user
-- Native Agent tool: not-available|pending|completed|failed|skipped-by-user
-- OCR CLI: not-available|completed|failed|skipped-by-user
+- Detection: {主 agent 自检结果——Paseo create_agent / 原生 Agent / ocr CLI 各是否可用}
+- 环节 A 独立隔离 agent: {paseo|native-agent|local-only} + {not-available|pending|completed|failed|blocked|skipped-by-user}
+- 环节 B OCR CLI: not-available|completed|failed|skipped-by-user
 - OCR severity mapping: High→blocking/important, Medium→nit/suggestion, Low→discarded
-- Merge policy: {各路 reviewer 结果已逐条本地核验后合并 / 未启用原因 / pending 时不得定稿}
-- Gate effect: {none | blocks final verdict until all started reviewers complete / user-approved downgrade}
+- Merge policy: {各环节结果已逐条本地核验后合并 / 未启用原因 / pending 时不得定稿}
+- Gate effect: {none / blocks final verdict until started lanes complete / user-approved downgrade}
 
 ## 2. Diff Summary
 
