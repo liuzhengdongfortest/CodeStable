@@ -1,11 +1,11 @@
 ---
 name: cs-keep
-description: 把刚发现的坑、技巧、决策、调研沉淀到 .codestable/compound/，纯 markdown 文件，靠 grep 检索。触发：用户说"记下来"、"沉淀一下"、"留个 note"，或 cs-feat-accept / cs-issue-fix / cs-feat-design / cs-issue-analyze 收尾时推送。
+description: 把刚发现的坑、技巧、决策、调研沉淀到 .codestable/compound/，纯 markdown 文件，靠 grep 检索。触发：用户说"记下来"、"沉淀一下"、"留个 note"，或 cs-issue / cs-epic / cs-audit 收尾时推送。
 ---
 
 # cs-keep
 
-先读 `.codestable/attention.md`；缺失就提示跑 `cs-onboard`。
+遵循 `.codestable/convention.md`。
 
 把这次值得记的事写到 `.codestable/compound/YYYY-MM-DD-{slug}.md`：
 
