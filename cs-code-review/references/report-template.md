@@ -10,14 +10,23 @@
 | issue | `issue-review` | `issue: YYYY-MM-DD-slug` |
 | refactor / refactor-ff | `refactor-review` | `refactor: YYYY-MM-DD-slug` |
 
-`status` / `reviewed` / `round` 各来源通用。`reviewer` 是 gate 锚点字段：启用了独立 subagent review 时写 `subagent`，仅本地 self review 时写 `self`。worktree / commit / finish gate 默认要求 `reviewer: subagent`；`self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。`status: passed` 时必填 `reviewer`。
+`status` / `reviewed` / `round` 各来源通用。`reviewer` 是 gate 锚点字段，按本轮实际启动的独立 reviewer 组合写：
+
+| 值 | 含义 |
+|---|---|
+| `subagent+ocr` | Paseo 或原生 Agent tool（独立上下文）+ ocr CLI 均已完成并合并 |
+| `subagent` | 仅独立上下文 reviewer（Paseo 或原生 Agent tool）完成 |
+| `ocr` | 仅 ocr CLI 完成 |
+| `self` | 仅主 agent 本地 review |
+
+worktree / commit / finish gate 默认要求 `reviewer: subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。`status: passed` 时必填 `reviewer`。
 
 ```markdown
 ---
 doc_type: feature-review
 feature: YYYY-MM-DD-slug
 status: passed|changes-requested|blocked
-reviewer: subagent|self
+reviewer: subagent+ocr|subagent|ocr|self
 reviewed: YYYY-MM-DD
 round: 1
 ---
@@ -34,12 +43,13 @@ round: 1
 
 ### Independent Review
 
-- Status: not-available|skipped-by-user|local-only|pending|completed|failed|blocked
-- Detection: paseo-subagent|local-review-with-agent-cli-available|local-review|skipped
-- Provider / agent: {providers.audit / agent id / none}
-- Raw output: {摘要 / 路径 / none}
-- Merge policy: {已逐条核验 / 未启用原因 / pending 时不得定稿}
-- Gate effect: {none | blocks final verdict until completed / user-approved downgrade}
+- Detection: {detect-review-agent.py 输出的 parallel_reviewers 列表}
+- Paseo subagent: not-available|pending|completed|failed|blocked|skipped-by-user
+- Native Agent tool: not-available|pending|completed|failed|skipped-by-user
+- OCR CLI: not-available|completed|failed|skipped-by-user
+- OCR severity mapping: High→blocking/important, Medium→nit/suggestion, Low→discarded
+- Merge policy: {各路 reviewer 结果已逐条本地核验后合并 / 未启用原因 / pending 时不得定稿}
+- Gate effect: {none | blocks final verdict until all started reviewers complete / user-approved downgrade}
 
 ## 2. Diff Summary
 
