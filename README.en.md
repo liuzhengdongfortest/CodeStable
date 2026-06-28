@@ -70,7 +70,7 @@ CodeStable goes the **other way**:
 <tr><th></th><th>Agent-orchestration camp</th><th>CodeStable</th></tr>
 <tr><td><b>Core entity</b></td><td>Agent / Role / Team</td><td>Change axis (issue / epic) · State axis (context)</td></tr>
 <tr><td><b>Main question</b></td><td>How do agents divide work, hand off, coordinate?</td><td>How do requirements, constraints, trade-offs get recorded, retrieved, reused?</td></tr>
-<tr><td><b>Where state lives</b></td><td>Agent sessions / message buses / queues</td><td>The <code>.codestable/</code> file tree + optional GitHub issues (readable by both humans and AI)</td></tr>
+<tr><td><b>Where state lives</b></td><td>Agent sessions / message buses / queues</td><td>The <code>.cs/</code> file tree + optional GitHub issues (readable by both humans and AI)</td></tr>
 <tr><td><b>Pain it solves</b></td><td>One agent isn't enough; need coordination to scale</td><td>Software complexity overflows context; tacit knowledge gets lost; requirements drift</td></tr>
 <tr><td><b>Role of humans</b></td><td>The less the better — full automation is the ideal</td><td>Human-in-the-loop — the programmer owns the whole; AI is an efficient executor</td></tr>
 </table>
@@ -125,7 +125,7 @@ The change axis is the increment; the state axis is the current truth those incr
 <tr><td><b>Discussion entry</b></td><td><code>cs-clarify</code></td><td>Discussion + triage when ideas are fuzzy: route to writing directly or to cs-epic</td></tr>
 <tr><td rowspan="3"><b>Cross-cut & periphery</b></td><td><code>cs-keep</code></td><td>Sink pitfalls / tricks / decisions / exploration into <code>compound/</code> as plain markdown, full-text searchable</td></tr>
 <tr><td><code>cs-note</code></td><td>Append one-line startup must-knows to <code>attention.md</code></td></tr>
-<tr><td><code>cs-convention</code></td><td>Maintain the system's shared conventions, distributed as <code>.codestable/convention.md</code></td></tr>
+<tr><td><code>cs-convention</code></td><td>Maintain the system's shared conventions, distributed as <code>.cs/convention.md</code></td></tr>
 <tr><td rowspan="2"><b>Outward docs</b></td><td><code>cs-doc-tutorial</code></td><td>Outward-facing dev / user guides (task-oriented: how to use X to do Y)</td></tr>
 <tr><td><code>cs-doc-api</code></td><td>API reference reverse-engineered from source (entry-by-entry, parts lookup)</td></tr>
 </table>
@@ -155,7 +155,7 @@ CodeStable isn't a single linear pipeline — it's **two axes + event-driven**:
         │   coding via cs-code (stop the moment you drift)
         ▼   on close, write graduated trade-offs back ▼
 ═══════════════════════════════════════════════════════════════
- State axis · what it is now, and why         (.codestable/context/)
+ State axis · what it is now, and why         (.cs/context/)
 ───────────────────────────────────────────────────────────────
    cs-context ──▶ domain glossary + rationale notes
                   (happy path / boundaries / why flexibility is needed)
@@ -163,8 +163,8 @@ CodeStable isn't a single linear pipeline — it's **two axes + event-driven**:
 ═══════════════════════════════════════════════════════════════
             ▼ any time something is worth recording ▼
  Cross-cut · knowledge sink (compounding engineering)
-   cs-keep ──▶ .codestable/compound/    plain markdown, full-text search
-   cs-note ──▶ .codestable/attention.md  one-line startup must-knows
+   cs-keep ──▶ .cs/compound/    plain markdown, full-text search
+   cs-note ──▶ .cs/attention.md  one-line startup must-knows
 ═══════════════════════════════════════════════════════════════
 ```
 
@@ -178,11 +178,11 @@ CodeStable isn't a single linear pipeline — it's **two axes + event-driven**:
 
 ## Runtime structure
 
-After `/cs-onboard`, a `.codestable/` directory appears at your project root — the aggregate root for all local artifacts and the only workspace each skill reads/writes at runtime.
+After `/cs-onboard`, a `.cs/` directory appears at your project root — the aggregate root for all local artifacts and the only workspace each skill reads/writes at runtime.
 
 ```
 your-project/
-├── .codestable/
+├── .cs/
 │   ├── attention.md          # Startup must-reads + change-axis carrier (github / local)
 │   ├── convention.md         # Shared conventions (distributed by onboard, don't hand-edit)
 │   │
@@ -209,7 +209,7 @@ your-project/
 
 **Key points:**
 
-- All local artifacts aggregate under `.codestable/`, so "how did we handle that change last time" is three seconds away
+- All local artifacts aggregate under `.cs/`, so "how did we handle that change last time" is three seconds away
 - `context/` is the **state axis** (glossary + rationale notes), describing only the current truth with no historical narrative; history lives in closed issues
 - **The change-axis carrier is one of two**: GitHub issues (native closeable entities) or local `issues/ epics/`, chosen at onboard and recorded in `attention.md`
 - `compound/` is the knowledge sink — plain markdown, no frontmatter, full-text searchable. Easy to write, easy to find
@@ -219,7 +219,7 @@ your-project/
 
 > A skill is an independent install unit. At runtime, **each skill can only see files inside its own package**. References like `B-skill/reference/xxx.md` written in skill A's SKILL.md are **simply unreachable** at runtime.
 >
-> Cross-skill shared conventions must go through the "working project" layer: the source of truth lives in `cs-convention` (at `cs-onboard/reference/convention.md`), `cs-onboard` distributes it to the project's `.codestable/convention.md`, and other skills read it via the project-relative path.
+> Cross-skill shared conventions must go through the "working project" layer: the source of truth lives in `cs-convention` (at `cs-onboard/reference/convention.md`), `cs-onboard` distributes it to the project's `.cs/convention.md`, and other skills read it via the project-relative path.
 
 To change shared conventions, go through `cs-convention`; new projects pick them up at onboard time, and existing projects re-run `cs-onboard` to sync.
 
