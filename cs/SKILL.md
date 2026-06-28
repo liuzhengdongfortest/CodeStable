@@ -27,15 +27,15 @@ LITE 要消除两件事：
 
 | 实体 | 用处 |
 |---|---|
-| issue / task | 一件可关闭的变更：bug、feature、小重构、chore。|
-| epic | 大到塞不进单个 issue 的需求容器，负责方向、取舍和子 issue 依赖。|
-| context/ | 现状轴：当前系统的事实、领域词汇和设计取舍。|
-| convention.md | 跨 skill 共享口径：命名、结构、边界和稳定约定。|
-| attention.md | 启动必读：少量当前最影响判断的提醒和变更轴载体。|
-| compound/ | 知识沉淀：坑点、技巧、调查结论、可复用判断。|
+| facts.md | 启动必读事实：少量当前最影响判断的稳定事实。|
+| talks/ | 讨论整理：想法还没进入 epics / issues 前的澄清记录。|
+| epics/ | 过大的讨论产物进入这里规划，拆出一组 issues。|
+| issues/ | 一组可关闭的变更；单个 issue 可以是 bug、feature、小重构、chore。|
+| requirements/ | 需求承载处：当前需求、约束、领域词汇和设计取舍。|
+| notes/ | 知识笔记：坑点、技巧、调查结论、可复用判断。|
 | tools/ | 跨工作流共享的小工具和脚本。|
-| clarify/ | 大需求进入 epic / issue 前的讨论材料。|
-| reports/ | 维护和检查产生的报告；稳定结论再回写 context。|
+
+读取 `facts.md` 要按上下文判断：当前对话或执行上下文里没读过就读一次；已经读过且没有修改迹象，就复用已知事实，不要求每个技能机械重读。
 
 ## 技能（用户的控制面）
 
@@ -47,7 +47,7 @@ LITE 要消除两件事：
 |---|---|---|
 | cs-onboard | 用 cs 之前，先搭好 cs 的基础结构 | 规划中 |
 | cs-talk | 有想法没想清、先聊聊、方向还在摇摆——把真问题、术语、约束聊出来 | 已落地 |
-| cs-plan | 把讨论清楚的需求落到当前系统：拆成 epic 还是 task | 规划中 |
+| cs-plan | 把 talks 里聊清楚的需求落到当前系统：进 epics 还是 issues | 已落地 |
 | cs-do | 计划布置好后，用户明确下令开始实现 | 规划中 |
 | cs-finish | 结果明确可接受后，收尾和总结 | 规划中 |
 | cs-complain | 系统行为和预期不符时，把行为拉回来 | 规划中 |
@@ -65,8 +65,8 @@ LITE 要消除两件事：
 ## 怎么用（典型一条线）
 
 1. 还没接入 → `cs-onboard` 搭好结构
-2. 新东西没想清 → `cs-talk` 聊出真问题、术语、约束（必要时先沉到 `clarify/`，想清后进入 epic / issue）
-3. 想清了 → `cs-plan` 判断拆 epic 还是 task
+2. 新东西没想清 → `cs-talk` 聊出真问题、术语、约束，并整理进 `talks/`
+3. 想清了 → `cs-plan` 读取 talks，判断进 epics 还是 issues
 4. 计划就绪 → `cs-do` 开干
 5. 行为跑偏 → `cs-complain` 拉回预期
 6. 满意了 → `cs-finish` 收尾总结

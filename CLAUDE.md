@@ -1,5 +1,5 @@
 1. 不同的技能之间不要相互耦合，即 A 技能在非必须情况下不要看 B 技能。
-2. skill 是独立安装单元，运行时每个 skill 只能看到自己包内的文件。A 技能的 SKILL.md 里写 `B-skill/reference/xxx.md` 这种引用在运行时**根本读不到**——skill 之间没有共享的文件系统父目录。跨 skill 共享的参考文档必须走"工作项目"这一层：由 `cs-onboard` 从技能包复制到项目的 `.cs/reference/`，其他 skill 用项目相对路径 `.cs/reference/xxx.md` 读取。要改共享口径时改 `cs-onboard/reference/` 下的模板，新项目 onboard 时带上新版本。
+2. skill 是独立安装单元，运行时每个 skill 只能看到自己包内的文件。A 技能的 SKILL.md 里写 `B-skill/reference/xxx.md` 这种引用在运行时**根本读不到**——skill 之间没有共享的文件系统父目录。跨 skill 共享的参考文档必须走"工作项目"这一层：由 `cs-onboard` 从技能包复制到项目的 `.cs/reference/`，其他 skill 用项目相对路径 `.cs/reference/xxx.md` 读取。体系口径由 `cs` 技能及其 references/templates 承载。
 
 增加、更新技能时注意更新其他相关技能中的表述。
 
@@ -14,6 +14,5 @@
 
 ### 语言风格
 缩写传递的信息更加丰富，但是会造成阅读者的理解困难，不要为了字数或者行数而将语义压缩到更少的词汇中，保持语言的易理解性。
-
 
 

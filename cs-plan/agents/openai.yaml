@@ -1,0 +1,4 @@
+interface:
+  display_name: "CS Plan"
+  short_description: "把 talks 转成 epics 或 issues"
+  default_prompt: "Use $cs-plan to turn a clarified discussion into epics or issues."

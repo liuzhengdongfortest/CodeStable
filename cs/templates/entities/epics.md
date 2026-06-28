@@ -20,6 +20,6 @@
 
 - [整体完成的判断标准]
 
-## 回写 context
+## 回写 requirements
 
-- [关闭时要沉淀到 context 的结论]
+- [关闭时要沉淀到 requirements 的结论]

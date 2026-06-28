@@ -2,90 +2,79 @@
 
 CodeStable 的实体都落在项目的 `.cs/` 里。它们不是 Agent 的私有状态，而是人和 AI 都能读、能改、能追溯的工作产物。
 
-实体分三类：
+实体按工作流顺序分四类：
 
-- **变更轴**：记录这次要改什么，做完就关闭。
-- **现状轴**：记录系统现在为什么这样，保持当前真相。
-- **横切实体**：让下一次工作更省力。
+- **启动和讨论**：先读事实，再把没想清楚的想法整理到 talks。
+- **事项**：记录这次要做什么，做完就关闭。
+- **requirements**：记录当前需求、约束、领域词汇和设计取舍。
+- **辅助资料**：让检索、复用和自动化更省力。
 
 对应模板在 `templates/entities/`。
 
-## 变更轴
+## 启动和讨论
 
-### issue / task
+### facts.md
 
-一件可关闭的变更。bug、feature、小重构、chore 都是同一种东西：有目标、有范围、有验证方式，做完就关闭。
+启动必读事实。只放少量当前最容易忘、最影响判断的稳定事实。
 
-它可以存在于 GitHub issue，也可以存在于本地 `.cs/issues/`。二选一由 `cs-onboard` 决定，并记录在 `attention.md`。
+facts 不是知识库。能沉淀成长期知识的，放进 `notes/` 或 `requirements/`。
 
-issue 不长期描述现状。关闭后，只有稳定下来的取舍和事实才回写到 `context/`。
+读取 facts 不需要每个技能都重新来一遍。当前对话或执行上下文里没读过就读；已经读过且没有修改迹象，就复用已知事实。
+
+模板：`templates/entities/facts.md`
+
+### talks/
+
+讨论整理。它承接还没进入 epics / issues 的模糊想法，保存问题、术语、约束、分歧和下一步。
+
+talks 是临时承接区，不是最终归档。聊完后先把讨论整理进去；再由 `cs-plan` 判断：过大就进入 epics 规划并产生 issues，足够小就直接进入 issues。稳定结论只在事项关闭后进入 `requirements/`。
+
+模板：`templates/entities/talk.md`
+
+## 事项
+
+### epics/
+
+过大的讨论产物进入 epics 规划。单个 epic 负责大方向、关键取舍、拆分方式和子 issue 的依赖关系。
+
+epic 不替 issue 承担细节复杂度。真正落地仍然拆到 issues；每个 issue 都应该能独立验证和关闭。
+
+模板：`templates/entities/epics.md`
+
+### issues/
+
+一组可关闭的变更。单个 issue 可以是 bug、feature、小重构、chore，本质都是同一种东西：有目标、有范围、有验证方式，做完就关闭。
+
+issues 存在于本地 `.cs/issues/`。它是 CodeStable 当前的默认事项实体。
+
+issue 不长期描述需求和取舍。关闭后，只有稳定下来的约束、事实和判断才回写到 `requirements/`。
 
 模板：`templates/entities/issue.md`
 
-### epic
+## requirements
 
-大到塞不进单个 issue 的需求容器。epic 负责大方向、关键取舍、拆分方式和子 issue 的依赖关系。
+### requirements/
 
-epic 不替 issue 承担细节复杂度。真正落地仍然拆到 issue；每个 issue 都应该能独立验证和关闭。
+当前需求、约束、领域词汇和设计取舍。它讲代码本身看不出来的东西：为什么要这样、为什么不走另一条路、哪些边界会变化、哪些用户故事必须被守住。
 
-模板：`templates/entities/epic.md`
+requirements 不记流水账，不替关闭的 issue 保存历史。它只保留当前仍然有效、会影响未来判断和实现的内容。
 
-## 现状轴
+模板：`templates/entities/requirements.md`
 
-### context/
+## 辅助资料
 
-当前系统的事实和取舍。它讲代码本身看不出来的东西：领域词汇、为什么这样设计、为什么不走另一条路、哪些边界会变化。
+### notes/
 
-context 不记流水账，不引用一堆代码位置，不替关闭的 issue 保存历史。它只保留当前仍然有效、会影响未来判断的内容。
+知识笔记。坑点、技巧、调查结论、可复用判断、操作经验，都可以放成纯 markdown，靠全文检索找回来。
 
-模板：`templates/entities/context.md`
+notes 不要求结构优雅，重点是下次能搜到。稳定到会影响系统判断的结论，再回写到 `requirements/`。
 
-### convention.md
-
-跨 skill 共享口径。命名、结构、边界、稳定约定放这里。
-
-它不是随手笔记。源头由 `cs-convention` 维护，`cs-onboard` 分发到项目里；其他 skill 读取项目相对路径 `.cs/convention.md`。
-
-模板：`templates/entities/convention.md`
-
-## 横切实体
-
-### attention.md
-
-启动必读。只放一两行当前最容易忘、最影响判断的提醒，也记录变更轴载体是 GitHub 还是本地。
-
-attention 不是知识库。能沉淀成长期知识的，放进 `compound/` 或 `context/`。
-
-模板：`templates/entities/attention.md`
-
-### compound/
-
-知识沉淀。坑点、技巧、调查结论、可复用判断、操作经验，都可以放成纯 markdown，靠全文检索找回来。
-
-compound 不要求结构优雅，重点是下次能搜到。稳定到会影响系统判断的结论，再回写到 `context/`。
-
-模板：`templates/entities/compound.md`
+模板：`templates/entities/notes.md`
 
 ### tools/
 
-跨工作流共享的小工具和脚本。比如登录、抓取、批处理、生成报告这类 AI 反复需要但不该每次重写的东西。
+跨工作流共享的小工具和脚本。比如登录、抓取、批处理这类 AI 反复需要但不该每次重写的东西。
 
 工具需要说明输入、输出、运行方式和危险边界。复杂脚本不要只靠记忆使用。
 
 模板：`templates/entities/tool.md`
-
-### clarify/
-
-大需求还没拆成 epic / issue 前的讨论材料。它承接模糊想法，保存问题、术语、约束和分歧。
-
-clarify 是临时承接区，不是最终归档。想清楚后，要进入 epic / issue；稳定结论再进入 `context/`。
-
-模板：`templates/entities/clarify.md`
-
-### reports/
-
-维护和检查产生的报告。它保存某次观察结果，例如扫描、对账、评估、运行记录。
-
-report 不替代 context。报告里的事实只有在稳定、仍然影响判断时，才回写到现状轴。
-
-模板：`templates/entities/report.md`

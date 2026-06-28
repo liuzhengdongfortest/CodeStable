@@ -13,7 +13,7 @@ bug | feature | refactor | chore
 - 包含：
 - 不包含：
 
-## 现状证据
+## 当前证据
 
 - [错误、截图、日志、用户反馈、代码位置]
 
@@ -27,4 +27,4 @@ bug | feature | refactor | chore
 
 ## 关闭回写
 
-- [需要写回 context / compound / convention 的内容]
+- [需要写回 requirements / notes 的内容]

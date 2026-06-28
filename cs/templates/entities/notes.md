@@ -14,4 +14,4 @@
 
 ## 相关位置
 
-- [issue / epic / context / 文件路径]
+- [issues / epics / requirements / 文件路径]
