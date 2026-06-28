@@ -18,6 +18,8 @@
 
 `failed` 表示 gate 完成但有 blocking。`blocked` 表示缺输入或环境不可判断。`skipped` 只允许非核心 gate，必须写理由。
 
+`status: protocol-only` 表示该 gate 是协议阶段规则，由对应 review / QA / acceptance / audit 技能读取 evidence 后执行；它不是可直接调用的脚本，机器 runner 不应把它当成缺失脚本。
+
 ## 2. feature_design.before_approve
 
 必须有：
@@ -37,7 +39,7 @@
 - `dod-runner`
 - `evidence-pack`
 
-`scope-gate` / `dod-runner` / `evidence-pack` 由后续 `minimal-hook-gates` feature 提供脚本；本 policy 先声明接入点。
+`scope-gate` / `dod-runner` / `evidence-pack` 由 `cs-onboard` 安装到项目 `.codestable/tools/`；缺脚本说明项目骨架过旧，应先重跑 `cs-onboard` 刷新 gate runtime。
 
 检查：
 

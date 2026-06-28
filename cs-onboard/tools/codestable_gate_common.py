@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.dont_write_bytecode = True
+
 
 def repo_root() -> Path:
     current = Path.cwd()
@@ -80,11 +82,96 @@ def run_command(command: str, cwd: Path) -> dict[str, Any]:
     }
 
 
+def _parse_scalar(value: str) -> Any:
+    value = value.strip()
+    if value.startswith("[") and value.endswith("]"):
+        return [item.strip().strip("'\"") for item in value[1:-1].split(",") if item.strip()]
+    lower = value.lower()
+    if lower in {"true", "yes"}:
+        return True
+    if lower in {"false", "no"}:
+        return False
+    if lower in {"null", "~"}:
+        return None
+    return value.strip("'\"")
+
+
+def _minimal_yaml(text: str) -> Any:
+    lines: list[tuple[int, str]] = []
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        lines.append((indent, raw.strip()))
+
+    def parse_block(index: int, indent: int) -> tuple[Any, int]:
+        if index >= len(lines):
+            return {}, index
+        if lines[index][1].startswith("- "):
+            return parse_list(index, indent)
+        return parse_dict(index, indent)
+
+    def parse_dict(index: int, indent: int) -> tuple[dict[str, Any], int]:
+        result: dict[str, Any] = {}
+        while index < len(lines):
+            current_indent, line = lines[index]
+            if current_indent < indent or current_indent != indent or line.startswith("- "):
+                break
+            if ":" not in line:
+                index += 1
+                continue
+            key, _, value = line.partition(":")
+            key = key.strip()
+            if value.strip():
+                result[key] = _parse_scalar(value)
+                index += 1
+                continue
+            index += 1
+            if index < len(lines) and lines[index][0] > current_indent:
+                result[key], index = parse_block(index, lines[index][0])
+            else:
+                result[key] = {}
+        return result, index
+
+    def parse_list(index: int, indent: int) -> tuple[list[Any], int]:
+        result: list[Any] = []
+        while index < len(lines):
+            current_indent, line = lines[index]
+            if current_indent < indent or current_indent != indent or not line.startswith("- "):
+                break
+            item_text = line[2:].strip()
+            index += 1
+            if not item_text:
+                item: Any = {}
+            elif ":" in item_text:
+                key, _, value = item_text.partition(":")
+                item = {key.strip(): _parse_scalar(value)}
+                if not value.strip() and index < len(lines) and lines[index][0] > current_indent:
+                    item[key.strip()], index = parse_block(index, lines[index][0])
+            else:
+                item = _parse_scalar(item_text)
+            if index < len(lines) and lines[index][0] > current_indent:
+                child, index = parse_block(index, lines[index][0])
+                if isinstance(item, dict) and isinstance(child, dict):
+                    item.update(child)
+                elif isinstance(item, dict):
+                    item["items"] = child
+                else:
+                    item = {"value": item, "items": child}
+            result.append(item)
+        return result, index
+
+    if not lines:
+        return {}
+    parsed, _ = parse_block(0, lines[0][0])
+    return parsed
+
+
 def load_yaml(path: Path) -> Any:
     try:
         import yaml  # type: ignore
     except ImportError:
-        raise SystemExit("PyYAML is required for this gate script")
+        return _minimal_yaml(path.read_text(encoding="utf-8"))
     with path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
 

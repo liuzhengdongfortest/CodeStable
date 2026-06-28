@@ -3,8 +3,15 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 from typing import Any
+
+if os.environ.get("PYTHONDONTWRITEBYTECODE") != "1":
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+    os.execvpe(sys.executable, [sys.executable, *sys.argv], os.environ)
+sys.dont_write_bytecode = True
 
 from codestable_gate_common import gate_result, load_yaml, main_exit, parse_args, repo_root, run_command
 

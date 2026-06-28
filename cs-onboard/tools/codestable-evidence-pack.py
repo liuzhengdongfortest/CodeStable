@@ -4,8 +4,15 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import sys
 from pathlib import Path
+
+if os.environ.get("PYTHONDONTWRITEBYTECODE") != "1":
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+    os.execvpe(sys.executable, [sys.executable, *sys.argv], os.environ)
+sys.dont_write_bytecode = True
 
 from codestable_gate_common import gate_result, main_exit, parse_args, read_text
 
@@ -38,7 +45,7 @@ def provider_status(name: str, mode: str) -> dict:
                 "status": "available",
                 "signal_type": "availability",
                 "summary": f"archguard binary found at {binary}; risk summary not collected in this minimal mode",
-                "warnings": [],
+                "warnings": ["archguard available but risk summary not collected"],
             }
         return {"status": "unavailable", "reason": "archguard binary not found on PATH", "warnings": []}
     digest = Path(".codestable/meta-cc-summary.md")

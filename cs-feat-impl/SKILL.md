@@ -29,6 +29,8 @@ python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --un
 
 gate 不通过就不要开始改代码；用户批准 override 时先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。
 
+dogfood / 临时隔离仓库例外：只有当用户任务明确要求在一次性隔离 repo 里真实执行 workflow，且该 repo 不是交付目标主仓库时，允许不创建 linked worktree；仍必须在 unit 目录写 `worktree-override.md`，记录 `reason=dogfood-ephemeral-repo`、用户授权原文、影响范围和后续清理策略。不能把这个例外用于普通 feature 实现。
+
 实现完成、输出汇报前运行 commit gate：
 
 ```bash

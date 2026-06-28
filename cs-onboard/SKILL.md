@@ -150,12 +150,16 @@ cp -rf <技能包路径>/cs-onboard/gates/.      .codestable/gates/
 cp -rf <技能包路径>/cs-onboard/tools/.      .codestable/tools/
 cp -rf <技能包路径>/cs-onboard/reference/.  .codestable/reference/
 cp -rf <技能包路径>/cs-onboard/hooks/.      .codestable/hooks/
+find .codestable/tools -type d -name __pycache__ -prune -exec rm -rf {} +
+find .codestable/tools -type f -name '*.pyc' -delete
 
 # Windows PowerShell
 Copy-Item -Recurse -Force <技能包路径>\cs-onboard\gates\*      .codestable\gates\
 Copy-Item -Recurse -Force <技能包路径>\cs-onboard\tools\*      .codestable\tools\
 Copy-Item -Recurse -Force <技能包路径>\cs-onboard\reference\*  .codestable\reference\
 Copy-Item -Recurse -Force <技能包路径>\cs-onboard\hooks\*      .codestable\hooks\
+Remove-Item -Recurse -Force .codestable\tools\__pycache__ -ErrorAction SilentlyContinue
+Get-ChildItem .codestable\tools -Recurse -Filter *.pyc | Remove-Item -Force
 ```
 
 不要：Read+Write 手工搬（截断 / 改缩进）、一个个 cp（多步骤多出错）、先比 diff（规则就是无条件覆盖）。
@@ -241,6 +245,7 @@ onboard 时**问 owner 是否安装**（默认建议装）：
 - **低置信度直接执行**——低 = 必须问
 - **`.codestable/gates/`、`.codestable/tools/` 和 `.codestable/reference/` 走"不覆盖"保守策略**——这些目录**必须**用技能包新版本覆盖，否则升级后用户停留在过时口径
 - **用 Read + Write 手工搬**——必须 `cp -rf` / `Copy-Item -Recurse -Force` 整目录覆盖
+- **把 `__pycache__` / `*.pyc` 带进目标项目**——复制后必须清理生成缓存，不能把本机运行产物当技能资产
 - **Glob 时忘记排除 `node_modules/` `.git/`**——会让扫描结果充斥噪声
 
 ---

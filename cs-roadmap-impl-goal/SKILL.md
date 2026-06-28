@@ -153,7 +153,7 @@ features:
 
 从 `references/protocol.md`、`protocol-feature-loop.md`、`protocol-gates.md`、`protocol-audit.md` 复制到 roadmap 目录，并把 `{roadmap-slug}` / `{roadmap-path}` / `{roadmap-file}` / `{items-file}` 替换为本次实际值。不要替换 `<feature-slug>` 这类运行时占位；它们必须保留给 goal 会话在每个 feature 边界填写。
 
-`goal-protocol-gates.md` 是 Gate Policy 的运行时权威入口；`scope-gate`、`dod-runner`、`evidence-pack` 等具体脚本可由后续 feature 提供，但 goal 执行包必须先声明阶段、输入、失败返回和 handoff 语义。
+`goal-protocol-gates.md` 是 Gate Policy 的运行时权威入口；`scope-gate`、`dod-runner`、`evidence-pack` 等具体脚本由 `cs-onboard` 安装到项目 `.codestable/tools/`。缺脚本时先刷新 onboard 骨架，不要把缺失脚本当作 gate passed。
 
 ### `goal-features/{feature-slug}.md`
 
