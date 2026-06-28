@@ -117,6 +117,22 @@ Paseo subagent prompt 必须只给原始材料和边界，不透露本地 review
 - 风险与恢复：Top 风险、外部依赖、迁移 / 权限 / 安全 / 回滚是否提前暴露。
 - 交付物与知识回写：后续 acceptance 是否能从仓库事实核验产物；稳定约定 / 坑点是否有沉淀候选。
 
+### 4. Roadmap Review Invariants 与证据分级
+
+每轮 review 必须形成 Evidence Confidence Ledger。证据分级只描述依据来源，不计算质量分：
+
+- `E` Embedded：roadmap / items.yaml / checklist / 命令输出里直接可见。
+- `C` Context：相关 req / arch / compound / 代码事实支撑。
+- `H` Heuristic：工程经验或 reviewer 判断，缺少直接仓库证据。
+
+核心 invariants：
+
+- Granularity Gate 能解释为什么进入 roadmap，而不是 single feature / brainstorm。
+- Goal Coverage Matrix 中每个核心完成信号都有 item、验证入口和 evidence type。
+- items.yaml 仍是 DAG，且最小闭环可独立验收。
+- 接口契约可被 feature-design 当硬约束。
+- 核心检查若只有 `H` 证据，不能静默 `passed`；至少写入 residual risk，必要时列 important / blocking finding。
+
 ---
 
 ## 严重度
@@ -209,11 +225,22 @@ round: 1
 - 后续 feature-design 需要重点复核：{接口 / 风险 / 验证}
 - 不能靠 roadmap review 完全确认的点：{列表}
 
-## 5. Residual Risk
+## 5. Evidence Confidence Ledger
+
+| Check | Verdict | Evidence Class | Basis | Follow-up |
+|---|---|---|---|---|
+| Granularity Gate | pass|warn|fail | E|C|H | {路径 / 事实 / 判断依据} | {none / 复核点} |
+| Goal Coverage Matrix | pass|warn|fail | E|C|H | {依据} | {复核点} |
+| DAG and minimal loop | pass|warn|fail | E|C|H | {依据} | {复核点} |
+| Interface contract usability | pass|warn|fail | E|C|H | {依据} | {复核点} |
+
+Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
+
+## 6. Residual Risk
 
 - {风险 + 用户 review / feature-design 如何处理；没有写 none}
 
-## 6. Verdict
+## 7. Verdict
 
 - Status: passed|changes-requested|blocked
 - Next: 交给用户 review | 回 `cs-roadmap` 修订后重跑 `cs-roadmap-review` | 等 independent reviewer 完成 / 用户确认降级后重跑
@@ -231,6 +258,8 @@ round: 1
 - [ ] 已运行 independent reviewer 检测，或记录为什么跳过。
 - [ ] 如果启动了 independent reviewer，已等到 completed 并逐条本地核验合并 / 驳回 findings；否则报告 `status: blocked`，没有进入用户 review。
 - [ ] 已审查目标、范围、模块、接口、feature 原子性、依赖、最小闭环、验证、风险、知识回写。
+- [ ] 已检查 Granularity Gate、Goal Coverage Matrix 和 Roadmap Review Invariants。
+- [ ] 已写 Evidence Confidence Ledger；核心检查 H-only 时没有静默 passed。
 - [ ] 已写 `.codestable/roadmap/{slug}/{slug}-roadmap-review.md`。
 - [ ] 有 blocking / 未处理 important 时指向 `cs-roadmap` 修订并重跑 review。
 - [ ] 无 blocking 且 important 已处理或明确接受时，明确告诉用户下一步是 roadmap 人工 review。

@@ -60,6 +60,19 @@ checks:
   - 前端：静态结构 → 交互逻辑 → 状态接入 → 联调 / 样式收尾
 - 4-8 步；每步必须有可独立验证的退出信号
 - 第 2.5 节结论是"微重构"时，**第 1 步固定是"按第 2.5 节方案做微重构（只搬不改行为）"**，独立退出信号（如"全部测试通过 + 编译绿灯 + 行为相关 diff 为零"），跑通后再进 feature 主体步骤
+- 可选 `dod` 字段用于给后续 gate 机器读取提示；不改变 `steps.status` / `checks.status` 生命周期。
+
+```yaml
+dod:
+  commands:
+    - id: CMD-001
+      command: "npm test"
+      core: true
+      failure_handling: fix-or-block
+  evidence_required: [command_output, diff_summary]
+  cleanliness:
+    debug_output: forbidden
+```
 
 `checks`（design draft 成型后先产出，提取来源）：
 
@@ -211,6 +224,39 @@ implement 完成的判据，acceptance 核对的依据。**不写测试代码 / 
 
 - **关键场景清单**：每条"输入 / 触发 → 期望可观察结果"——能被一个测试或一次手工操作验证。覆盖正常路径（对应成功标准）+ 关键边界（边界值、空输入、上下限）+ 关键错误路径（流程级约束的可观察行为）
 - **明确不做的反向核对项**：第 1 节"明确不做"每条 → 写成可被 grep 或测试反向核对的形式（"代码中不应出现对 X API 的调用"、"输出 JSON 不应包含字段 Y"）
+- **Acceptance Coverage Matrix**：把每个核心场景追踪到 checklist step、证据类型和命令 / 动作；核心场景没有 step 或证据时，先修 design/checklist。
+- **DoD Contract**：把 design / implementation / review / QA / acceptance 的通过条件写成固定小表；Validation Commands 表是人读投影，checklist `dod.commands` 是机读权威源。
+
+```markdown
+### 3.x Acceptance Coverage Matrix
+
+| Scenario | Covered By Step | Evidence Type | Command / Action | Core? |
+|---|---|---|---|---|
+| {关键场景 slug 或描述} | S1 / S2 / manual | test / command / screenshot / API response / diff review | `{命令}` / {手工动作} | yes |
+| {边界或错误场景} | S3 | {证据类型} | {动作} | no |
+```
+
+规则：`Core? = yes` 的场景必须有明确 step 和可观察证据；只靠 reviewer 经验判断的核心场景不能静默通过 design review。
+
+### 3.y DoD Contract
+
+| ID | 要求 | 证据 | 阻塞级别 |
+|---|---|---|---|
+| DOD-DESIGN-001 | design 自身完整且关键契约可执行 | design review | blocking |
+| DOD-IMPL-001 | checklist steps 全部完成且实现证据落盘 | checklist / evidence | blocking |
+| DOD-REVIEW-001 | code review passed 且无 unresolved blocking | review report | blocking |
+| DOD-QA-001 | QA 覆盖核心场景和必跑命令 | QA report | blocking |
+| DOD-ACCEPT-001 | acceptance 完成回写和最终审计 | acceptance report | blocking |
+
+Validation Commands:
+
+| ID | 命令 | 目的 | 核心性 | 失败处理 |
+|---|---|---|---|---|
+| CMD-001 | `{真实命令}` | {验证目的} | core|supporting | fix-or-block|document-baseline |
+
+Required Artifacts: {review / QA / acceptance / evidence pack / screenshots / command logs}。
+
+规则：同一命令若同时写在 design 表格和 checklist `dod.commands`，字段必须一致；gate / runner 只解析 checklist 的 `{id, command, core, failure_handling}`。
 
 ### `## 4. 与项目级架构文档的关系`
 
@@ -231,7 +277,7 @@ implement 完成的判据，acceptance 核对的依据。**不写测试代码 / 
 > 4. 第 2.2 编排层：主流程图和现状→变化能不能跑通你脑子里的场景？流程级约束有没有漏？
 > 5. 第 2.3 挂载点：照这份清单能不能完整卸载？有没有项是内部改动被误列进来？
 > 6. 第 2.5 结构健康度：评估的文件 + 目录是否准确？结论（不做 / 拆文件 / 重组目录）和方案是否同意？若有"建议沉淀的 convention"是否真属稳定模式？"超出范围的观察"有没有遗漏或写错？
-> 7. 第 3 节验收场景：覆盖正常 + 边界 + 错误路径了吗？
+> 7. 第 3 节验收场景：覆盖正常 + 边界 + 错误路径了吗？Acceptance Coverage Matrix 和 DoD Contract 是否能被下游执行与核验？
 >
 > 有修改意见直接说，确认后进入实现阶段。
 

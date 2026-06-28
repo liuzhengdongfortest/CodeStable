@@ -29,6 +29,8 @@ python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --un
 
 gate 不通过就不要开始改代码；用户批准 override 时先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。
 
+dogfood / 临时隔离仓库例外：只有当用户任务明确要求在一次性隔离 repo 里真实执行 workflow，且该 repo 不是交付目标主仓库时，允许不创建 linked worktree；仍必须在 unit 目录写 `worktree-override.md`，记录 `reason=dogfood-ephemeral-repo`、用户授权原文、影响范围和后续清理策略。不能把这个例外用于普通 feature 实现。
+
 实现完成、输出汇报前运行 commit gate：
 
 ```bash
@@ -261,108 +263,34 @@ qa-fix 不要求 checklist 新增普通 step，除非用户明确要求把修复
 
 ## 写完后输出统一汇报
 
-所有步骤完成后用下面模板汇报，**停下来等用户 review**。
-
-固定模板的意义：含糊汇报等于把验证责任推回用户。固定模板逼你把改了哪些文件、是否触碰方案外、是否引入新概念一一说清楚。
-
-```markdown
-## 实现完成汇报
-
-### 动了哪些文件
-{git status 真实输出}
-
-### 改了哪些函数 / 类型（按步骤分组）
-**步骤 N：{步骤名}**
-- file:line  函数名  改动类型（新增 / 修改 / 删除）
-
-### 是否触碰到方案外的文件？
-{是 / 否。是的话说明原因 + 是否已同步更新方案 doc}
-
-### 是否引入了方案 doc 里没有的新概念 / 抽象？
-{是 / 否。是的话说明已回填方案 doc（标准 design 补第 0 节 + 第 2.1 节；fastforward 补第 1 节）并做过 grep 防冲突}
-
-### 代码质量反射检查自检
-{对照 shared-conventions 第 7 节，触发哪些信号 + 怎么处理；都没触发写"无触发"}
-
-### Step 证据与失败恢复
-{逐步列 exit_signal、验证动作、结果；如发生失败，列失败诊断 / 窄范围修复说明 / 最终状态}
-
-### 基线预检与清洁度
-{基线预检命令和结果；每步清洁度检查结论；如有既有红灯，说明归因和隔离方式}
-
-### 实际交付物索引
-{按代码 / 配置 / schema / 路由 / 文档 / roadmap 状态列出，供 acceptance 复核}
-
-### 知识回写候选
-{下个 feature 还会用到的命令 / 环境 / 约定 / 坑点；没有写"无候选"}
-
-### 最后一轮本地审计
-{列 build/typecheck/lint/test/browser/diff review 的真实结论；没有可运行命令就说明原因}
-
-### 推进顺序退出信号核对
-{对照 steps 逐条列 action + exit_signal + status（应全为 done）}
-
-### 验收场景自检
-**标准 design**：对照第 3 节关键场景清单，每条靠什么证据满足（类型 / 单测 / 集成 / 手工 / assert）+ 反向核对项是否守住
-**Fastforward design**：对照第 2 节验收标准逐条核对
-```
-
-汇报后停等 review。
+所有步骤完成后，按 `reference.md` 的"实现完成汇报"模板输出并停等用户 review。模板必须列出真实 `git status`、按步骤归类的改动、方案外触碰、新概念、step 证据、清洁度、交付物、知识候选、最后一轮本地审计和验收场景自检。
 
 ---
 
 ## 测试用例怎么落
 
-标准 design 第 3 节"关键场景清单"每条 = 一个可验证行为约束。你的活是把每条变成可观察证据：单测 / 集成 / 手工操作 / 类型编译期保证。
-
-具体怎么测、用什么 framework、mock 怎么搭——design 没规定，自决。但你得在 `steps` 里写清楚"哪一步落哪个测试"，汇报里逐项核对每条场景都有证据。
-
-**测试通过 ≠ 验收场景满足**——前者只说明你写的用例过了，不说明每条场景都有用例覆盖。
-
-类型系统保证的（如 TypeScript 签名直接排除某种调用），汇报里说"类型签名已落地，编译期保证"。
+标准 design 第 3 节"关键场景清单"每条 = 一个可验证行为约束。把每条变成可观察证据：单测 / 集成 / 手工操作 / 类型编译期保证。具体测试策略看 `reference.md`。
 
 ---
 
 ## 退出条件
 
-- [ ] 所有 steps 的 status 都 `done`
-- [ ] 完成汇报已输出，用户 review 通过（或 review-fix / qa-fix 汇报已输出，等待重跑 `cs-code-review`）
-- [ ] 没有未处理的"需要叫停"信号
-- [ ] 每个 step 都有退出信号证据；失败按诊断 / 窄范围修复说明 / 交还机制处理过
-- [ ] 开始前做过基线预检，既有红灯已归因或已和用户对齐
-- [ ] 每步完成后 checklist 状态已即时落盘，可断点恢复
-- [ ] 每步做过清洁度检查，无未解释的调试输出 / 临时 TODO / 注释掉代码 / 无用 import / 方案外文件
-- [ ] 完成汇报前已做最后一轮本地审计（命令 / 浏览器 / diff review 按需覆盖）
-- [ ] 实际交付物索引和知识回写候选已写进完成汇报
-- [ ] 第 3 节关键场景每条都有证据 / 测试覆盖（fastforward 对照第 2 节）
-- [ ] 没有"顺手发现"被偷偷修掉（都进 issue 列表）
-- [ ] 没有方案外文件改动（或已同步更新方案 doc）
+完整 checklist 见 `reference.md`。主文件保留硬门摘要：
+
+- [ ] 所有 steps 的 status 都 `done`，且每步有退出信号证据。
+- [ ] 完成汇报已输出，用户 review 通过（或 review-fix / qa-fix 汇报已输出，等待重跑对应 gate）。
+- [ ] 没有未处理的"需要叫停"信号、方案外改动或清洁度缺口。
+- [ ] 开始前做过基线预检；完成前做过最后一轮本地审计。
+- [ ] 第 3 节关键场景每条都有证据 / 测试覆盖（fastforward 对照第 2 节）。
 
 ---
 
 ## 退出后
 
-告诉用户："所有步骤完成，方案 doc 已同步。下一步阶段 2.5 代码审查，触发 cs-code-review。"
-
-如果本轮是 review-fix，告诉用户："review blocking 已按范围修复。下一步重跑 cs-code-review；复审通过后再进入 cs-feat-qa。"
-
-如果本轮是 qa-fix，告诉用户："QA 失败项已按范围修复。下一步重跑 cs-code-review；review 通过后重跑 cs-feat-qa，再进入 cs-feat-accept。"
-
-别自己顺手开始写验收报告——验收需要独立的 checklist 节奏，提前进入会让把关失效。
-
-**实现过程中如果踩到了项目通用的硬约束 / 命令陷阱 / 环境设置**（"啊原来这个项目要先 X 才能 Y"，一两行能讲清、下个 feature 的 AI 还会再撞一次）→ 在告诉用户去 accept 前**顺便提一句**："这次发现 {具体那条}，是不是要 `cs-note` 一下加到 attention.md，免得下次再踩？"——单条即可，不连写多条；用户说"等 accept 一起处理" 就跳过，accept 第 8 节会兜底盘点。
+告诉用户下一步：普通实现完成后触发 `cs-code-review`；review-fix 后重跑 `cs-code-review`；qa-fix 后重跑 `cs-code-review` 和 `cs-feat-qa`。不要顺手进入验收报告；完整话术见 `reference.md`。
 
 ---
 
 ## 容易踩的坑
 
-- 代码只写了一部分就发完成汇报——汇报只在全部完成后发一次
-- 汇报里写"修改了相关文件"而不列 file:line
-- 看到方案外的代码顺手改了
-- 引入新类型 / 概念但没回去更新方案 doc
-- 加 `if (用户是 X) { 特殊处理 }` 补丁分支而不停下来
-- 用户 review 还没通过就自己进入代码审查或验收阶段
-- review-fix 修完后跳过 `cs-code-review` 直接进入 `cs-feat-accept`
-- qa-fix 修完后跳过 `cs-code-review` 或 `cs-feat-qa` 直接进入 `cs-feat-accept`
-- 关键场景清单一条都没落证据
-- 把 paradigm 维度 steps 当 file:line 读——steps 是切片策略不是改动清单；step 内部偷偷拆子步骤而不跟用户对齐 = 绕过 review
+完整列表见 `reference.md`。最常见红线：半成品汇报、方案外顺手改、新概念不回填、补丁分支硬冲、跳过 review/QA gate、关键场景没有证据。

@@ -277,22 +277,24 @@ def _validate_single(path_str: str, require: list[str], yaml_only: bool) -> list
     return [validate_markdown_file(fp, require)]
 
 
-def _validate_directory(dir_str: str, require: list[str]) -> list[ValidationResult]:
+def _validate_directory(dir_str: str, require: list[str], yaml_only: bool) -> list[ValidationResult]:
     dp = Path(dir_str)
     if not dp.is_dir():
         print(f"Error: Directory not found: {dp}", file=sys.stderr)
         sys.exit(2)
 
+    if yaml_only:
+        yaml_files = sorted(dp.rglob("*.yaml")) + sorted(dp.rglob("*.yml"))
+        if not yaml_files:
+            print(f"No .yaml files found under {dp}", file=sys.stderr)
+            sys.exit(2)
+        return [validate_yaml_file(yf, require, dp) for yf in yaml_files]
+
     md_files = sorted(dp.rglob("*.md"))
-    yaml_files = sorted(dp.rglob("*.yaml")) + sorted(dp.rglob("*.yml"))
-
-    if not md_files and not yaml_files:
-        print(f"No .md or .yaml files found under {dp}", file=sys.stderr)
+    if not md_files:
+        print(f"No .md files found under {dp}", file=sys.stderr)
         sys.exit(2)
-
-    results = [validate_markdown_file(md, require, dp) for md in md_files]
-    results += [validate_yaml_file(yf, require, dp) for yf in yaml_files]
-    return results
+    return [validate_markdown_file(md, require, dp) for md in md_files]
 
 
 def main() -> None:
@@ -301,7 +303,7 @@ def main() -> None:
     if args.file:
         results = _validate_single(args.file, args.require, args.yaml_only)
     else:
-        results = _validate_directory(args.dir, args.require)
+        results = _validate_directory(args.dir, args.require, args.yaml_only)
 
     if args.json_output:
         print_json_results(results)

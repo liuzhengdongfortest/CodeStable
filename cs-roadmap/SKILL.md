@@ -94,6 +94,8 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 
 按 `reference.md` "主文档结构"和"items.yaml 格式"写**完整初稿**不分批。
 
+先做 **Granularity Gate**：确认本需求为什么应该进入 roadmap，而不是 single feature 或 brainstorm；结论写进主文档第 2 节，详细判据见 `reference.md`。
+
 **先写深度规划底稿**（可写进主文档第 6 / 7 节，不必单独成文件）：
 
 - **目标完成信号**：这块大需求做到什么可观察状态才算完成，不写"能力完善"这种感受词
@@ -103,6 +105,8 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 - **基线与验证入口**：后续 feature 应优先使用哪些命令 / 手工验证入口；如果当前仓库很可能缺测试或基线不稳，要在拆解里安排 safety net / characterization 条目
 - **交付物落点**：每条子 feature 完成后应该真实落在哪些代码 / 配置 / 文档 / roadmap 状态里，避免只在汇报里说完成
 - **知识回写点**：哪些约定、环境坑、跨 feature 规则如果被验证成立，应在 acceptance 收尾时沉淀到 attention / learning / decide / guide
+
+同时维护 **Goal Coverage Matrix**：每个 roadmap goal / completion signal 必须追踪到至少一个 item、验证入口和证据类型；没有可追踪项时先调整拆解，不把缺口留给后续 feature-design。
 
 **拆解纪律**：
 
@@ -141,6 +145,7 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 15. **基线自查**：是否知道后续 feature 的验证入口？当前基线不稳 / 测试薄弱时是否安排了 safety net？
 16. **交付物自查**：每条做完后是否能从仓库事实看到产物，而不是只从汇报看到？
 17. **知识回写自查**：哪些规则或坑会影响后续 feature？是否放进观察项，等 acceptance 验证后触发对应沉淀流程？
+18. **Goal Coverage 自查**：每个 goal / completion signal 是否已映射到 item、验证入口和 evidence type？核心目标不能只靠模糊描述或后续再说。
 
 ### Phase 5：候选落盘 + 独立 review gate
 
@@ -223,6 +228,7 @@ feature-design 发现接口契约不合理 / 漏了 / 描述不准 → **回 `cs
 - [ ] 最小闭环条目已标
 - [ ] Top 3 风险、非显然依赖、关键假设已写入主文档或 review 摘要
 - [ ] 每条子 feature 都有可独立验证的完成信号 / 证据类型
+- [ ] 已完成 Granularity Gate 和 Goal Coverage Matrix；每个核心目标都能追踪到 item 与证据
 - [ ] 已做可证伪性 / 条目原子性 / 最弱依赖 / 收口覆盖自查并汇报
 - [ ] 已识别验证入口 / 基线风险；必要时拆出 safety net 条目
 - [ ] 每条子 feature 的交付物能被后续 acceptance 从仓库事实核验

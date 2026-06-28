@@ -28,6 +28,12 @@ The hook reads JSON from stdin. It recognizes common `tool_name` /
 edit tools. A blocked action exits with status `2` and prints the reason to
 stderr.
 
+For shell tools, the guard blocks known Git write commands (`git add`,
+`commit`, `merge`, `push`, etc.) and branch switches. It does not parse arbitrary
+shell programs such as `python -c 'open("app.py", "a")...'`; direct file writes
+must be caught by Edit/Write tool payload paths or by the implementation review
+and worktree gates after the command.
+
 ## Git Hook Fallback
 
 Install local Git hook fallbacks from a project that has been onboarded:

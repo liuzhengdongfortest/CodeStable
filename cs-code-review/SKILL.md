@@ -42,6 +42,7 @@ description: 横切代码审查 gate——任何流程（feature / issue / refac
 - `git diff`（有 staged diff 时也读 `git diff --cached`）
 - diff 涉及的人写代码文件和相邻关键调用点
 - spec 指向的 architecture / requirement / roadmap 相关文档（只读，判断改动是否会影响归并；feature 即 design 第 4 节）
+- goal / gate 模式下的 evidence pack、gate results、DoD results；缺失时回 implementation gate 补证据，不现场猜测
 - independent reviewer 输出（如果本轮启用了 Paseo 或其他外部 reviewer）
 
 如果工作区有本轮范围外的既有 dirty 文件，先记录为 baseline/无关变更；审查结论只针对本轮可归因的改动。无法区分归因时写成 `residual-risk`，不要把不确定当通过。
@@ -53,8 +54,9 @@ description: 横切代码审查 gate——任何流程（feature / issue / refac
 先按「进入来源」表确认本轮来源，再做对应前置校验：
 
 1. 来源的 spec 产物存在且已定稿——feature 看 `{slug}-design.md`（`doc_type=feature-design`、`status=approved`、`feature` 与目录一致）+ `{slug}-checklist.yaml`（`steps` 全 `done`）；issue 看 report+analysis+fix-note；refactor 看 scan+refactor-design+checklist；ff / ad-hoc 看用户确认范围。缺定稿 spec 时退回对应实现技能，不硬审。
-2. 当前 diff 能看到本轮实现改动；完全没有代码或产物改动时退回来源实现技能。
-3. 如果已有 `{slug}-review.md`：
+2. goal / gate 模式下，先读取 `{slug}-evidence-pack.md`、`{slug}-gate-results.json` 和 `{slug}-dod-results.json`；缺失或 gate blocking 未解释时退回 implementation.before_review。
+3. 当前 diff 能看到本轮实现改动；完全没有代码或产物改动时退回来源实现技能。
+4. 如果已有 `{slug}-review.md`：
    - `status: passed` 且 diff 未变化：提示按表进入「通过后去向」。
    - `status: changes-requested` / `blocked`：读取旧 findings，确认是否处于 review-fix 后的复审。
    - diff 已变化：重新 review，并在报告里记录这是第几轮。
@@ -92,6 +94,7 @@ description: 横切代码审查 gate——任何流程（feature / issue / refac
 - .codestable/attention.md
 - {design_path}
 - {checklist_path}
+- {evidence_pack_path}、{gate_results_path}、{dod_results_path}（存在时）
 - 当前 git status / git diff / staged diff
 - diff 涉及的人写代码和相邻关键调用点
 

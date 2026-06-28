@@ -37,6 +37,9 @@ round: 1
 
 - Design: {path}
 - Checklist: {path}
+- Evidence pack: {path / none}
+- Gate results: {path / none}
+- DoD results: {path / none}
 - Implementation evidence: {实现汇报 / 对话 / 文件}
 - Diff basis: {git status / git diff 摘要}
 - Baseline dirty files: {none / 列表 + 归因}
@@ -92,6 +95,7 @@ round: 1
 ## 4. Test And QA Focus
 
 - QA 必须重点复核：{场景 / 命令 / 手工验证}
+- Evidence pack residual risks / gate warnings：{已解释 / 交给 QA 的项}
 - 建议新增或加强的测试：{unit / integration / e2e / function / none}
 - 不能靠 review 完全确认的点：{列表}
 

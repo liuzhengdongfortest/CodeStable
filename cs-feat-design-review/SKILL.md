@@ -120,6 +120,24 @@ Paseo subagent prompt 必须只给原始材料和边界，不透露本地 review
 - 基线与验证：必跑命令、预检策略、基线红灯归因是否写清。
 - 交付物与清洁度：acceptance 是否能从仓库事实核验；调试输出、TODO、死 import 等规则是否明确。
 
+### 4. Feature Design Review Invariants 与证据分级
+
+每轮 review 必须形成 Evidence Confidence Ledger。证据分级只描述依据来源，不计算质量分：
+
+- `E` Embedded：design / checklist / roadmap item / 命令输出里直接可见。
+- `C` Context：相关 req / arch / compound / 代码事实支撑。
+- `H` Heuristic：工程经验或 reviewer 判断，缺少直接仓库证据。
+
+核心 invariants：
+
+- Acceptance Coverage Matrix 覆盖每个核心验收场景。
+- 每个核心场景能追踪到 checklist step、证据类型和命令 / 动作。
+- checklist steps 独立可验证，checks 能回到 design 来源。
+- roadmap 起头的 design 没有绕开 roadmap 接口契约。
+- DoD Contract 覆盖 Design / Implementation / Review / QA / Acceptance DoD、Validation Commands 和 Required Artifacts。
+- checklist `dod.commands` 若存在，字段使用 `{id, command, core, failure_handling}`；design 表格只是人读投影。
+- 核心检查若只有 `H` 证据，不能静默 `passed`；至少写入 residual risk，必要时列 important / blocking finding。
+
 ---
 
 ## 严重度
@@ -214,11 +232,23 @@ round: 1
 - implement 需要重点遵守：{契约 / steps / 验证}
 - code review / QA / acceptance 需要重点复核：{风险 / 证据}
 
-## 5. Residual Risk
+## 5. Evidence Confidence Ledger
+
+| Check | Verdict | Evidence Class | Basis | Follow-up |
+|---|---|---|---|---|
+| Acceptance Coverage Matrix | pass|warn|fail | E|C|H | {路径 / 事实 / 判断依据} | {none / 复核点} |
+| DoD Contract | pass|warn|fail | E|C|H | {依据} | {复核点} |
+| Steps and checks traceability | pass|warn|fail | E|C|H | {依据} | {复核点} |
+| Roadmap contract compliance | pass|warn|fail | E|C|H | {依据} | {复核点} |
+| Validation and artifacts | pass|warn|fail | E|C|H | {依据} | {复核点} |
+
+Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
+
+## 6. Residual Risk
 
 - {风险 + 下游如何处理；没有写 none}
 
-## 6. Verdict
+## 7. Verdict
 
 - Status: passed|changes-requested|blocked
 - Next: 交给用户整体 review | 回 `cs-feat-design` 修订后重跑 `cs-feat-design-review` | 等 independent reviewer 完成 / 用户确认降级后重跑
@@ -236,6 +266,8 @@ round: 1
 - [ ] 已运行 independent reviewer 检测，或记录为什么跳过。
 - [ ] 如果启动了 independent reviewer，已等到 completed 并逐条本地核验合并 / 驳回 findings；否则报告 `status: blocked`，没有进入用户 review。
 - [ ] 已审查需求边界、术语、名词层、编排层、挂载点、结构健康度、验收契约、steps/checks、基线、交付物、清洁度。
+- [ ] 已检查 Acceptance Coverage Matrix、Feature Design Review Invariants 和 Evidence Confidence Ledger。
+- [ ] 核心检查 H-only 时没有静默 passed。
 - [ ] 已写 `.codestable/features/{feature}/{slug}-design-review.md`。
 - [ ] 有 blocking / 未处理 important 时指向 `cs-feat-design` 修订并重跑 review。
 - [ ] 无 blocking 且 important 已处理或明确接受时，明确告诉用户下一步是 feature design 人工 review。

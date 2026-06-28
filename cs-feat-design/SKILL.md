@@ -207,7 +207,7 @@ AI 默认翻车的姿势是**不思考就往眼前最顺手的文件里加**。
 
 整稿成型后先落盘 draft design，并从 `{slug}-design.md` 抽出 candidate `{slug}-checklist.yaml`。checklist 的 steps/checks 初始都保持 `pending`，用 `validate-yaml.py` 校验。不要等用户确认后才生成 checklist，因为人审前的 `cs-feat-design-review` 需要同时审 design 和 checklist 是否对齐。
 
-第 3 节"验收契约"提示：每条写成"输入 / 触发 → 期望可观察结果"，覆盖正常 + 边界 + 错误。不写测试代码 / framework / mock。
+第 3 节"验收契约"提示：每条写成"输入 / 触发 → 期望可观察结果"，覆盖正常 + 边界 + 错误，并补 `Acceptance Coverage Matrix` 和 `DoD Contract`；完整模板看 reference.md。
 
 **补一段执行风险与证据计划**（写进第 1 节或第 2.4 节，按文档自然位置放）：
 
@@ -272,7 +272,7 @@ AI 默认翻车的姿势是**不思考就往眼前最顺手的文件里加**。
 - [ ] 第 2.3 挂载点按"删了它 feature 是否消失"判据收紧（一般 3-5 条）
 - [ ] 第 2.4 推进策略按 paradigm 维度切片，每步有退出信号
 - [ ] 第 2.5 结构健康度评估覆盖文件级 + 目录级；评估前已查 compound convention；结论显式写出（不做 / 拆文件 / 重组目录）；选"微重构"时 checklist 第 1 步是它且有独立退出信号；选"重组目录"且属稳定模式时含"建议沉淀的 convention"段；超出"只搬不改行为"的结构性问题列在"超出范围的观察"，仅提示不阻塞
-- [ ] 第 3 节关键场景覆盖正常 + 边界 + 错误；含"明确不做"反向核对项；每条都有证据类型
+- [ ] 第 3 节关键场景覆盖正常 + 边界 + 错误；含"明确不做"反向核对项；每条都有证据类型、Acceptance Coverage Matrix 和 DoD Contract
 - [ ] Top 3 风险 / 非显然依赖 / 关键假设已写入 design 或 review 摘要
 - [ ] checklist steps 每步都能独立验证，exit_signal 是 yes/no；UI / 安全 / 迁移类 feature 已覆盖 polish / harden 或写明不适用
 - [ ] 已做可证伪性 / 步骤原子性 / 最弱依赖 / 证据完整性自我批判并修正问题

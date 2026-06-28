@@ -44,6 +44,15 @@ related_architecture: []    # 相关 architecture doc slug，可空
 - 能力 X（理由）
 - 能力 Y（指向另一份 roadmap / req）
 
+### Granularity Gate
+
+| 判断项 | 结论 |
+|---|---|
+| 为什么不是 single feature | {涉及多个独立交付 / 跨模块接口 / 依赖 DAG / 多阶段验证；若不是则退回 `cs-feat`} |
+| 为什么不是 brainstorm | {目标和成功标准已足够清楚；若不清楚则退回 `cs-brainstorm`} |
+| roadmap 边界 | {本次只覆盖哪些目标，哪些明确不做} |
+| 最小闭环 | {哪条 item 完成后产生最窄可验收闭环} |
+
 ## 3. 模块拆分（概设）
 
 拆成哪几个模块 / 组件、各自做什么。文字版结构树或 ASCII 框图都行 + 每个模块一段说明：
@@ -120,6 +129,15 @@ payload: { user_id: str, role: str, changed_at: ISO8601 }
    - 备注：{可选}
 
 **最小闭环**：第 {N} 条 `{slug}` 做完后 {描述能端到端跑通的最窄路径}。
+
+### Goal Coverage Matrix
+
+| Goal / completion signal | Covered by item(s) | Verification entry | Evidence type | Core? |
+|---|---|---|---|---|
+| {可观察完成信号 1} | {item slug} | {命令 / 手工路径 / API / 文档核验} | {test / command / screenshot / diff review / acceptance report} | yes |
+| {可观察完成信号 2} | {item slug} | {验证入口} | {证据类型} | no |
+
+规则：每个核心 goal 至少有一个 item 和一个验证入口；只有 H 类推断、没有可执行或可审计证据的核心目标不能静默通过 review。
 
 ## 6. 排期思路
 
@@ -210,6 +228,7 @@ python .codestable/tools/validate-yaml.py --file .codestable/roadmap/{slug}/{slu
 - [ ] 依赖关系讲得清具体理由？"B 需要 A 提供的 {具体产物}"
 - [ ] 最小闭环真是"最窄的端到端路径"？还是只是"最容易的一条"？
 - [ ] 有条目其实应该是 requirement 变化而不是 feature？（"把 XX 能力的边界改一下"）那种转 `cs-req`
+- [ ] Goal Coverage Matrix 是否覆盖每个核心完成信号？证据类型是否可被后续 acceptance 核验？
 
 ---
 

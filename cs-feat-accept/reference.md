@@ -49,6 +49,7 @@ final audit 发现任何缺口：
 ## 10. 最终审计
 
 - 验证证据来源：`{slug}-qa.md` / accept-inline verification
+- Evidence sources：`{slug}-evidence-pack.md` / `{slug}-dod-results.json` / `{slug}-gate-results.json`
 - Inline Verification Matrix（无 QA 报告时必填）：{ID / 来源 / 核心性 / 命令或动作 / 结果}
 - 聚合命令：{命令 + 退出码 + 摘要}
 - 场景复核：re-verified {N} / trust-prior-verify {M}

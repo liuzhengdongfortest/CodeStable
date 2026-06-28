@@ -87,7 +87,7 @@ doc-api 产物**不在 `.codestable/` 下**——API 参考是面向外部读者
 1. **先出样板**——从清单选 2-3 个有代表性的条目（不同 category）走"读源码 → 提取 → 按模板生成"并落盘，状态先 `draft`（不直接进 current——批量模式下样板是"风格参考样本"等整体 review 一起转 current）
 2. **用户确认质量标准**——review 这 2-3 篇确认模板 / 详略 / 风格。**这步不能跳**——50 篇全白写就因为用户想要的风格不一样
 3. **批量生成**——剩余 `pending` 逐条走"读源码 → 提取 → 生成"，可用 subagent 并行；每条 `status: draft`
-4. **整体 review**——批量完成展示概况（条目数 / 跳过数 / 待确认数）；review 前先 `validate-yaml.py --dir docs/api --require doc_type --require entry --require status` 批量校验
+4. **整体 review**——批量完成展示概况（条目数 / 跳过数 / 待确认数）；review 前先 `validate-yaml.py --dir docs/api --require doc_type --require entry --require status` 批量校验 Markdown docs（目录模式默认不扫 `manifest.yaml`）
 5. **确认落定**——用户确认后把样板和批量产出一起改 `status: current`
 
 **批量模式硬规则**：

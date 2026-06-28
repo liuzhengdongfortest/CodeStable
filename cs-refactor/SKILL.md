@@ -95,7 +95,7 @@ gate 不通过不开始改代码；override 时先在 unit 目录写 `worktree-o
 - **L3 结构拆分**：组件 > 300 行 / 文件承担多件事 / 容器与展示混在一起 / 相同逻辑多组件各写一份（前端）；Controller 直接调 DB / Service 缺失 / Repository 被绕开（后端）
 - **L4 性能**：重复计算（可 memo）/ N+1 查询 / 列表无虚拟化或分页 / 事件监听无清理 / 大对象深响应（Vue）
 
-完整方法库在 `reference/methods.md`，扫描时全量加载作匹配表。
+完整方法库在 `reference/methods.md` 和 `reference/methods-l4.md`，扫描时全量加载作匹配表。
 
 ### 产出格式
 
@@ -241,5 +241,6 @@ refactor: {YYYY-MM-DD}-{slug}
 - `cs-refactor-ff/SKILL.md` — 小重构超轻量通道
 - `reference/scan-checklist-format.md` — scan 清单条目字段 / 顺序 / 硬约束
 - `reference/refusal-routing.md` — scan 前置检查 7 条 + 路由表
-- `reference/methods.md` — 方法库（L1-L4 四层分类）
+- `reference/methods.md` — 方法库（L1-L3）
+- `reference/methods-l4.md` — 方法库（L4 性能与异步）
 - `.codestable/reference/shared-conventions.md` — 跨工作流共享口径
