@@ -53,7 +53,7 @@ LITE 要消除两件事：
 | 技能 | 讲什么 | 状态 |
 |---|---|---|
 | cs-how-codedesign | 架构设计的指导原则 | 已落地 |
-| cs-how-debug | 如何找出问题（debug） | 规划中 |
+| cs-how-debug | 如何找出问题（debug） | 已落地 |
 | cs-how-evolve | 如何找出现实中的主要矛盾、解决、沉淀积累，下次更快更强 | 规划中 |
 | cs-how-great-skills | 什么是好的技能 | 已落地 |
 
