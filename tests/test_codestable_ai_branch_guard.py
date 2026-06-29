@@ -231,3 +231,74 @@ def test_codex_hook_definition_invokes_branch_guard() -> None:
 
     assert "codestable-ai-branch-guard.py" in hook_command
     assert "PreToolUse" in payload["hooks"]
+
+
+def test_allows_worktree_edit_when_root_is_main(tmp_path: Path) -> None:
+    """Regression: PreToolUse passes --root=main checkout, but the edited file
+    lives in a linked worktree on a typed branch (often under main's
+    .claude/worktrees/). It must be allowed, judged by the file's own worktree."""
+    repo = init_repo(tmp_path)
+    worktree = repo / ".claude" / "worktrees" / "feat-demo"
+    worktree.parent.mkdir(parents=True, exist_ok=True)
+    run(repo, "worktree", "add", "-b", "feat/demo", worktree.as_posix())
+    payload = {"tool_name": "Write", "tool_input": {"file_path": worktree / "cs-onboard/tools/x.py"}}
+
+    # root is the MAIN checkout (on main), not the worktree
+    result = guard.guard_payload(payload, repo, {"main", "master"})
+
+    assert result.ok, result.message
+
+
+def test_still_blocks_main_edit_when_worktree_exists(tmp_path: Path) -> None:
+    """A file on the main checkout itself is still blocked even when worktrees exist."""
+    repo = init_repo(tmp_path)
+    worktree = repo / ".claude" / "worktrees" / "feat-demo"
+    worktree.parent.mkdir(parents=True, exist_ok=True)
+    run(repo, "worktree", "add", "-b", "feat/demo", worktree.as_posix())
+    payload = {"tool_name": "Write", "tool_input": {"file_path": repo / "src/app.py"}}
+
+    result = guard.guard_payload(payload, repo, {"main", "master"})
+
+    assert not result.ok
+    assert result.reason == "implementation_edit_on_protected_branch"
+
+
+def test_bash_uses_cwd_worktree_branch(tmp_path: Path) -> None:
+    """A Bash git command whose cwd is a typed-branch worktree is judged by that
+    worktree's branch, not by the main --root."""
+    repo = init_repo(tmp_path)
+    worktree = repo / ".claude" / "worktrees" / "feat-demo"
+    worktree.parent.mkdir(parents=True, exist_ok=True)
+    run(repo, "worktree", "add", "-b", "feat/demo", worktree.as_posix())
+    (worktree / "src").mkdir(parents=True, exist_ok=True)
+    (worktree / "src/app.py").write_text("x=1\n", encoding="utf-8")
+    run(worktree, "add", "src/app.py")
+    payload = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git commit -m wip", "cwd": worktree.as_posix()},
+    }
+
+    result = guard.guard_payload(payload, repo, {"main", "master"})
+
+    assert result.ok, result.message
+
+
+def test_main_publish_default_remote_follows_upstream(tmp_path: Path) -> None:
+    """detect_default_remote returns the branch's upstream remote (fork-friendly)."""
+    repo = init_repo_with_remote(tmp_path)
+    # rename origin -> fork and re-point upstream, simulating a fork remote
+    run(repo, "remote", "rename", "origin", "fork")
+    run(repo, "fetch", "fork", "main")
+    run(repo, "branch", "--set-upstream-to=fork/main", "main")
+
+    assert main_publish.detect_default_remote(repo, "main") == "fork"
+
+
+def test_main_publish_begin_accepts_custom_remote(tmp_path: Path) -> None:
+    """begin compares against the given --remote, not a hardcoded origin."""
+    repo = init_repo_with_remote(tmp_path)
+    run(repo, "remote", "rename", "origin", "fork")
+    created = main_publish.begin(repo, "main", "fork", [], "owner approved release", 5)
+
+    assert created["ok"] is True
+    assert created["remote"] == "fork"

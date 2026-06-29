@@ -271,11 +271,86 @@ def branch_switch_block(command: str) -> bool:
     return any(subcommand in {"switch", "checkout"} for subcommand, _args in git_invocations(command))
 
 
+def worktree_of(path: Path) -> Path | None:
+    """Return the git worktree toplevel that owns *path* (file or dir), or None.
+
+    Used so the guard judges the branch of the file/command being acted on,
+    not the branch of the --root passed by the PreToolUse hook (which is the
+    session project dir and does not follow EnterWorktree)."""
+    target = path if path.is_dir() else path.parent
+    # The path may not exist yet (e.g. a Write to a new file/dir); walk up to the
+    # nearest existing ancestor so run_git has a valid cwd.
+    while not target.exists() and target != target.parent:
+        target = target.parent
+    if not target.exists():
+        return None
+    result = run_git(target, "rev-parse", "--show-toplevel")
+    if result.returncode == 0 and result.stdout.strip():
+        return Path(result.stdout.strip()).resolve()
+    return None
+
+
+def collect_raw_paths(value: Any) -> list[str]:
+    """Collect raw (un-normalized, possibly absolute) edit target paths."""
+    out: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in {"file_path", "path", "filename"} and isinstance(child, (str, os.PathLike)):
+                out.append(os.fspath(child))
+            else:
+                out.extend(collect_raw_paths(child))
+    elif isinstance(value, list):
+        for child in value:
+            out.extend(collect_raw_paths(child))
+    return out
+
+
+def edit_impl_paths_on_protected(payload: dict[str, Any], root: Path, protected: set[str]) -> tuple[str, ...]:
+    """Implementation files being edited that truly live on a protected branch.
+
+    A file whose own worktree is on a typed branch (feat/fix/...) is allowed,
+    even if it sits physically under the main checkout (e.g. .claude/worktrees/)."""
+    impl: list[str] = []
+    for raw in collect_raw_paths(payload_tool_input(payload)):
+        if not raw or "\n" in raw:
+            continue
+        ap = Path(raw).expanduser()
+        if not ap.is_absolute():
+            ap = root / ap
+        try:
+            ap = ap.resolve()
+        except OSError:
+            continue
+        wt = worktree_of(ap)
+        if wt is not None:
+            wb = current_branch(wt)
+            if wb is not None and wb not in protected:
+                continue  # file belongs to a typed-branch worktree -> allow
+        base = wt or root
+        try:
+            rel = ap.relative_to(base).as_posix()
+        except ValueError:
+            rel = ap.name
+        if is_implementation_path(rel):
+            impl.append(rel)
+    return tuple(sorted(set(impl)))
+
+
 def guard_payload(payload: dict[str, Any], root: Path, protected: set[str]) -> GuardResult:
-    branch = current_branch(root)
-    linked = is_linked_worktree(root)
     command = payload_command(payload)
     tool_name = str(payload.get("tool_name") or payload.get("name") or "")
+
+    # A Bash command runs in its cwd's worktree; judge by that real worktree so a
+    # command issued from a linked worktree is not mistaken for the main checkout.
+    eff_root = root
+    cwd_value = payload_tool_input(payload).get("cwd") or payload.get("cwd")
+    if command and isinstance(cwd_value, str) and cwd_value.strip():
+        wt = worktree_of(Path(cwd_value).expanduser())
+        if wt is not None:
+            eff_root = wt
+
+    branch = current_branch(eff_root)
+    linked = is_linked_worktree(eff_root)
 
     if command and branch_switch_block(command):
         return GuardResult(
@@ -287,9 +362,9 @@ def guard_payload(payload: dict[str, Any], root: Path, protected: set[str]) -> G
         )
 
     on_protected = branch in protected
-    intent = active_publish_intent(root, protected)
+    intent = active_publish_intent(eff_root, protected)
     if command and on_protected:
-        blocked = command_write_block(root, command, intent)
+        blocked = command_write_block(eff_root, command, intent)
         if blocked:
             reason, paths = blocked
             return GuardResult(
@@ -302,8 +377,8 @@ def guard_payload(payload: dict[str, Any], root: Path, protected: set[str]) -> G
             )
 
     if on_protected and tool_name in EDIT_TOOL_NAMES:
-        impl_paths = tuple(path for path in payload_paths(payload, root) if is_implementation_path(path))
-        if impl_paths and not (intent and merge_in_progress(root)):
+        impl_paths = edit_impl_paths_on_protected(payload, root, protected)
+        if impl_paths and not (intent and merge_in_progress(eff_root)):
             return GuardResult(
                 False,
                 "AI agents must not edit implementation files on main/master. Use a linked execution worktree on a typed branch (feat/fix/refactor/...).",

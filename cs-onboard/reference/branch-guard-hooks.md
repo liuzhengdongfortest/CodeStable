@@ -10,6 +10,12 @@ meant to run before AI tool calls, and it can also install Git hook fallbacks.
 - AI must use a linked execution worktree on a typed branch (`feat/` / `fix/` / `refactor/`) for code work.
 - Planning files such as `.codestable/**` can still be edited in the coordinator
   checkout when the agent hook payload names those files directly.
+- The guard judges each edited file (and each Bash command) by the branch of the
+  file/command's **own git worktree**, not by the `--root` the hook passes. So a
+  file in a linked typed-branch worktree is allowed even when the hook's `--root`
+  is the `main` checkout (e.g. the worktree lives under `.codestable/`/`.claude/`
+  worktrees of the main checkout). This makes the worktree execution flow usable
+  with hosts whose project-dir env var does not follow `EnterWorktree`.
 
 Git cannot stop branch switches before they happen, so command-hook enforcement
 is the primary guard. Git hooks only catch commit, merge, rebase, and push
@@ -54,12 +60,17 @@ Use `--force` only when replacing an existing local hook is intentional.
 ## Owner-Intent Main Publish
 
 Protected-branch merge and push are allowed only during a short owner-approved
-publish window. Start the window from a clean `main` checkout that matches
-`origin/main`:
+publish window. Start the window from a clean `main` checkout that matches the
+publish remote's `main`.
+
+The publish remote defaults to the **current branch's upstream remote** (so fork
+workflows work out of the box), falling back to `origin`. If your `origin` is an
+upstream mirror and you publish to a fork, pass `--remote` explicitly:
 
 ```bash
 python3 .codestable/tools/codestable-main-publish.py --root . --json begin \
   --owner-intent "owner approved publishing branch X to main" \
+  --remote <your-fork-remote> \
   --branch feat/example
 ```
 

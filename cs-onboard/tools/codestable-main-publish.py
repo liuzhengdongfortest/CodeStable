@@ -39,6 +39,17 @@ def git_head(root: Path, ref: str) -> str:
     return result.stdout.strip()
 
 
+def detect_default_remote(root: Path, branch: str) -> str:
+    """Default publish remote = the upstream remote of *branch* (fork-friendly),
+    falling back to 'origin'. Avoids forcing fork users (whose origin is an
+    upstream mirror) to remember --remote on every publish."""
+    if branch:
+        result = run_git(root, "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}")
+        if result.returncode == 0 and "/" in result.stdout.strip():
+            return result.stdout.strip().split("/", 1)[0]
+    return "origin"
+
+
 def ensure_clean_target(root: Path, target_branch: str, remote: str) -> None:
     branch = current_branch(root)
     if branch != target_branch:
@@ -50,11 +61,11 @@ def ensure_clean_target(root: Path, target_branch: str, remote: str) -> None:
 
     fetch = run_git(root, "fetch", remote, target_branch)
     if fetch.returncode != 0:
-        raise RuntimeError(fetch.stderr.strip() or f"failed to fetch {remote}/{target_branch}")
+        raise RuntimeError((fetch.stderr.strip() or f"failed to fetch {remote}/{target_branch}") + f"; 若发布到 fork,用 --remote <你的 fork remote>(当前 remote={remote})")
     local_head = git_head(root, "HEAD")
     remote_head = git_head(root, f"refs/remotes/{remote}/{target_branch}")
     if local_head != remote_head:
-        raise RuntimeError(f"{target_branch} must match {remote}/{target_branch} before publish: {local_head} != {remote_head}")
+        raise RuntimeError(f"{target_branch} must match {remote}/{target_branch} before publish: {local_head} != {remote_head}; 若发布到 fork(origin 常是上游镜像),用 --remote <你的 fork remote>")
 
 
 def resolve_publish_refs(root: Path, remote: str, branches: list[str]) -> list[str]:
@@ -161,7 +172,7 @@ def main() -> int:
 
     begin_parser = subparsers.add_parser("begin", help="Create a short-lived publish intent")
     begin_parser.add_argument("--target-branch", default="main")
-    begin_parser.add_argument("--remote", default="origin")
+    begin_parser.add_argument("--remote", default=None, help="Publish remote (default: current branch upstream remote, else origin)")
     begin_parser.add_argument("--branch", action="append", default=[], help="Remote branch intended for merge")
     begin_parser.add_argument("--owner-intent", required=True)
     begin_parser.add_argument("--ttl-minutes", type=int, default=30)
@@ -173,7 +184,8 @@ def main() -> int:
     root = Path(args.root).expanduser().resolve()
     try:
         if args.command == "begin":
-            payload = begin(root, args.target_branch, args.remote, args.branch, args.owner_intent, args.ttl_minutes)
+            remote = args.remote or detect_default_remote(root, args.target_branch)
+            payload = begin(root, args.target_branch, remote, args.branch, args.owner_intent, args.ttl_minutes)
         elif args.command == "status":
             payload = {"ok": True, **intent_status(root)}
         elif args.command == "end":
