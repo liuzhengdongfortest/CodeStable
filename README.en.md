@@ -12,7 +12,7 @@ Tired of OpenSpec's flimsiness, Oh-My-OpenAgent's over-engineering, and Superpow
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/skills-18-6366F1?style=flat-square" alt="Skills"/>
+  <img src="https://img.shields.io/badge/skills-20-6366F1?style=flat-square" alt="Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -122,7 +122,7 @@ Work items are the increments; requirements is the current requirements truth th
 <table>
 <tr><th>Group</th><th>Skill</th><th>Purpose</th></tr>
 <tr><td><b>Root entry</b></td><td><code>cs</code></td><td>Unified entry — introduces the system and routes open-ended intents to the right cs-* skill. Call it when you don't know which one fits</td></tr>
-<tr><td><b>Onboard</b></td><td><code>cs-onboard</code></td><td>Bring CodeStable into a repo: skeleton + distribute shared assets + migrate old docs</td></tr>
+<tr><td><b>Onboard</b></td><td><code>cs-onboard</code></td><td>Bring CodeStable into a repo: create or complete the <code>.cs/</code> workspace and base entity directories</td></tr>
 <tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy: write the result into <code>talks/</code></td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, pin expected / actual / repro / evidence and create a bug issue</td></tr>
 <tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code>, decide whether to create a direct issue or enter an epic first, then draft the artifact</td></tr>
@@ -134,7 +134,8 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><td><code>cs-epics</code></td><td>Big need: enter epics, settle architecture (module split + interface contracts), then break into dependency issues</td></tr>
 <tr><td><code>cs-audit</code></td><td>Proactive scan + reconciliation against requirements, producing candidate changes</td></tr>
 <tr><td><b>Requirements</b></td><td><code>cs-requirements</code></td><td>Current needs, constraints, domain glossary, and rationale notes (happy path / boundaries / why flexibility is needed)</td></tr>
-<tr><td rowspan="2"><b>Support files</b></td><td><code>cs-keep</code></td><td>Sink pitfalls / tricks / decisions / exploration into <code>notes/</code> as plain markdown, full-text searchable</td></tr>
+<tr><td rowspan="3"><b>Support files</b></td><td><code>cs-maketools</code></td><td>Let a human guide AI through an unknown workflow, then sink notes, a facts reference, and optional tools</td></tr>
+<tr><td><code>cs-keep</code></td><td>Sink pitfalls / tricks / decisions / exploration into <code>notes/</code> as plain markdown, full-text searchable</td></tr>
 <tr><td><code>cs-note</code></td><td>Append one-line startup facts to <code>facts.md</code></td></tr>
 <tr><td rowspan="2"><b>Outward docs</b></td><td><code>cs-doc-tutorial</code></td><td>Outward-facing dev / user guides (task-oriented: how to use X to do Y)</td></tr>
 <tr><td><code>cs-doc-api</code></td><td>API reference reverse-engineered from source (entry-by-entry, parts lookup)</td></tr>
@@ -180,6 +181,7 @@ CodeStable isn't a single linear pipeline — it's **work items + requirements +
 ═══════════════════════════════════════════════════════════════
             ▼ any time something is worth recording ▼
  Support files · knowledge sink (compounding engineering)
+   cs-maketools ─▶ human-guided unknown workflow → notes + facts reference + optional tools
    cs-keep ──▶ .cs/notes/       plain markdown, full-text search
    cs-note ──▶ .cs/facts.md  one-line startup facts
 ═══════════════════════════════════════════════════════════════
@@ -216,11 +218,7 @@ your-project/
 │   ├── notes/                # Knowledge notes, plain markdown, full-text search (cs-keep)
 │   │   └── YYYY-MM-DD-{slug}.md
 │   │
-│   ├── tools/                # Cross-workflow shared scripts (released by onboard)
-│   └── reference/            # Shared reference docs (released by onboard)
-│       ├── system-overview.md
-│       ├── maintainer-notes.md
-│       └── tools.md
+│   └── tools/                # Cross-workflow shared scripts (added by cs-maketools as needed)
 │
 └── (work items stay under .cs/ by default so humans and AI can both read and edit them)
 ```
@@ -231,15 +229,18 @@ your-project/
 - `requirements/` holds current needs, constraints, domain language, and trade-offs; it describes only the current truth with no historical narrative; history lives in closed issues
 - Issues default to local `issues/YYYY/MM/{slug}.md`, avoiding too many files in one directory; search recursively under `issues/`
 - `notes/` is the knowledge notes area — plain markdown, no frontmatter, full-text searchable. Easy to write, easy to find
-- `reference/` is distributed by `cs-onboard` from the skill package; system rules live in the `cs` skill and its references/templates
+- `cs-maketools` turns human-guided unknown workflows into `notes/`, adds a `facts.md` reference, and only writes `tools/` when automation is stable
+- When one Markdown file exceeds 150 lines, split by progressive disclosure into same-directory resources instead of hard-compressing the entry file
 
 ### Hard constraint
 
 > A skill is an independent install unit. At runtime, **each skill can only see files inside its own package**. References like `B-skill/reference/xxx.md` written in skill A's SKILL.md are **simply unreachable** at runtime.
 >
-> Cross-skill shared references must go through the "working project" layer: `cs-onboard` distributes them from the skill package to `.cs/reference/`, and other skills read them via the project-relative path.
+> Do not solve cross-skill system rules by making skills reference each other's files. Keep system rules inside the `cs` skill, or sink project-specific stable knowledge into `.cs/requirements/`, `.cs/notes/`, and `.cs/facts.md`.
 
-To change system rules, update the `cs` skill and its references/templates; new projects pick them up at onboard time, and existing projects re-run `cs-onboard` to sync shared references.
+Each cs action skill first checks the `cs` skill: reuse it if it has already been read in the current conversation or execution context; otherwise read it once to load the entity and skill boundaries.
+
+To change system rules, update the `cs` skill and its references/templates; project-specific stable needs and operating knowledge belong in the matching `.cs/` entities.
 
 ---
 

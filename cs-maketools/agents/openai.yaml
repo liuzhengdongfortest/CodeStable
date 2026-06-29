@@ -1,0 +1,4 @@
+interface:
+  display_name: "CS MakeTools"
+  short_description: "Capture guided workflows as reusable CodeStable knowledge"
+  default_prompt: "Use $cs-maketools to learn a guided workflow and turn it into reusable project notes and tools."

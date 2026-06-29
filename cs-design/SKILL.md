@@ -21,7 +21,7 @@ description: 针对某个明确 issue 做实现设计：读取目标 `.cs/issues
 
 开始前确认四类东西：
 
-- `cs` 技能：如果当前对话/执行上下文里还没读过，就先读一次，理解 CodeStable 的实体、技能边界和 `cs-design` 在 `cs-plan` 与 `cs-do` 之间的位置；读过就复用。
+- `cs` 技能：如果当前对话/执行上下文已经读过 `cs` 技能，就复用；没读过就先读一次，理解 CodeStable 的实体、技能边界和 `cs-design` 在 `cs-plan` 与 `cs-do` 之间的位置。
 - `.cs/facts.md`：没读过就读；读过且没有修改迹象就复用。
 - 目标 issue：读目标、范围、当前证据、方案判断、验证和关闭回写。
 - `.cs/requirements/`：只读和该 issue 相关的当前需求、约束、领域词汇和设计取舍。
