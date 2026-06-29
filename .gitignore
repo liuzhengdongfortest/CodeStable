@@ -1,3 +1,4 @@
 .claude
 __pycache__
 *.pyc
+.codex
