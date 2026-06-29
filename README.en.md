@@ -125,7 +125,7 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><th>Group</th><th>Skill</th><th>Purpose</th></tr>
 <tr><td><b>Root entry</b></td><td><code>cs</code></td><td>Unified entry — introduces the system and routes open-ended intents to the right cs-* skill. Call it when you don't know which one fits</td></tr>
 <tr><td><b>Onboard</b></td><td><code>cs-onboard</code></td><td>Bring CodeStable into a repo: create or complete the <code>.cs/</code> workspace and base entity directories</td></tr>
-<tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy: write the result into <code>talks/</code></td></tr>
+<tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy or context is missing: inspect repo context first, then write the result into <code>talks/</code></td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, pin expected / actual / repro / evidence and create a bug issue</td></tr>
 <tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code>, decide whether to create a direct issue or enter an epic first, then draft the artifact</td></tr>
 <tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Design the implementation for one issue, writing back module ownership, interfaces/data/state, test surface, and execution order</td></tr>
@@ -158,7 +158,7 @@ CodeStable isn't a single linear pipeline — it's **work items + requirements +
         ┌─────────────────┼─────────────────┐
    (not onboarded)     (idea fuzzy)        (onboarded)
    cs-onboard          cs-talk ─▶ cs-plan ─▶ cs-design ─▶ cs-test? ─▶ cs-do ─▶ cs-close  go to work items / requirements
-   skeleton            synthesize talks → create items → design issue → optional tests → execute → close and sink
+   skeleton            inspect context + synthesize talks → create items → design issue → optional tests → execute → close and sink
                        cs-complain ─▶ create a bug issue when behavior drifts
 ═══════════════════════════════════════════════════════════════
  Work items · things to do that get closed   (.cs/issues/ or .cs/epics/)
