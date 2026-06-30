@@ -63,7 +63,7 @@ issue 的测试设计由 `cs-test` 按需写回。它是可插拔关卡，不要
 
 issue 的代码执行由 `cs-do` 推进，并把实际改动、验证结果和设计偏差写回执行记录。
 
-issue 的关闭由 `cs-close` 完成。关闭时把仍然有效的需求、约束、取舍、坑点、操作经验和工具说明，分别沉淀到 `requirements/`、`notes/`、`facts.md` 或 `tools/`。
+issue 的关闭由 `cs-close` 完成。关闭时把仍然有效的需求、约束、取舍、坑点、操作经验和工具说明，分别沉淀到 `requirements/`、`notes/`、`facts.md` 或 `tools/`；如果项目是 git 仓库，把相关代码、目标 issue 和 `.cs` 回写一起提交。
 
 issue 不长期描述需求和取舍。关闭后，只有稳定下来的约束、事实和判断才回写到长期实体。
 

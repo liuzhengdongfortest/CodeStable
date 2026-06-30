@@ -100,7 +100,7 @@ Bugs, refactors, small features, big needs — they're all "a change to make tha
 - **`cs-design`** — implementation design for a single issue: module ownership, interfaces/data/state, test surface, and execution order
 - **`cs-test`** — optional test design for one issue when the user or company requires test cases and execution guidance
 - **`cs-do`** — implement from the issue design, verify, and write back the execution record
-- **`cs-close`** — close an issue and write durable conclusions back to requirements, notes, facts, or tools
+- **`cs-close`** — close an issue, write durable conclusions back to requirements, notes, facts, or tools, and commit related code plus issue/.cs writebacks in git repos
 - **`cs-issue`** — one closeable change, tagged `bug` / `refactor` / `feature` / `chore`. Bugs run through the full `cs-complain` diagnose/fix loop; other work items move through design → execution → close
 - **`cs-epics`** — too big for a single issue: settle the architecture in epics first (module split + interface contracts), then break it into a dependency-DAG of issues
 - **`cs-audit`** — proactive scanner + reconciliation against requirements, producing a triage list; selected findings become issues
@@ -131,7 +131,7 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Design the implementation for one issue, writing back module ownership, interfaces/data/state, test surface, and execution order</td></tr>
 <tr><td><b>Test entry</b></td><td><code>cs-test</code></td><td>Optional gate: when test design is needed, write test goals, cases, and execution guidance for one issue</td></tr>
 <tr><td><b>Execution entry</b></td><td><code>cs-do</code></td><td>Implement from the issue design, verify, and write back the execution record</td></tr>
-<tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue and sink durable conclusions into requirements / notes / facts / tools</td></tr>
+<tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue, sink durable conclusions, and commit related code plus issue/.cs writebacks in git repos</td></tr>
 <tr><td rowspan="3"><b>Work items</b></td><td><code>cs-issue</code></td><td>One closeable change: bug / refactor / small feature / chore, tagged by type</td></tr>
 <tr><td><code>cs-epics</code></td><td>Big need: enter epics, settle architecture (module split + interface contracts), then break into dependency issues</td></tr>
 <tr><td><code>cs-audit</code></td><td>Proactive scan + reconciliation against requirements, producing candidate changes</td></tr>
@@ -167,7 +167,7 @@ CodeStable isn't a single linear pipeline — it's **work items + requirements +
    cs-design ──▶ design one issue's implementation (modules / interfaces / data / tests)
    cs-test   ──▶ optional test design (goals / cases / levels / test-first)
    cs-do     ──▶ implement, verify, and write back the execution record
-   cs-close  ──▶ close the issue and sink durable conclusions into long-lived entities
+   cs-close  ──▶ close the issue, sink durable conclusions, and commit code + issue/.cs writebacks
    cs-issue  ──▶ one closeable change (bug / refactor / small feature / chore)
    cs-epics  ──▶ big need: enter epics → settle architecture → break into issues
    cs-audit  ──▶ proactive scan + reconcile requirements → candidate issues
