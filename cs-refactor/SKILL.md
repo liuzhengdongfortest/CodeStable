@@ -17,6 +17,8 @@ scan（扫优化点清单）→ design（和用户定做哪几条 + 顺序）→
 
 **核心纪律**：行为等价是底线。一旦会改外部可观察行为 → 不走 refactor，走 feature（需求变）或 issue（bug 修）。
 
+**架构 deepening 模式**：用户说"架构优化 / 模块太浅 / seam 不对 / 可测试性差 / AI 难导航"时，仍走本技能三阶段，不生成 HTML。scan 用 `codebase-design` 词汇找 deepening opportunities；这是内嵌词汇引用，不切换到独立 `codebase-design` skill。候选项写进标准 `{slug}-scan.md`，用户勾选后再进 design/checklist/apply。
+
 ## 执行 gate（worktree + commit）
 
 进入 apply 前运行 start gate，`{slug}` 为 refactor 目录名：
@@ -94,8 +96,9 @@ gate 不通过不开始改代码；override 时先在 unit 目录写 `worktree-o
 - **L2 代码级重构**：超长函数（> 50 行 / 圈复杂度 > 10）、重复条件片段、神秘临时变量、多层嵌套 if-else
 - **L3 结构拆分**：组件 > 300 行 / 文件承担多件事 / 容器与展示混在一起 / 相同逻辑多组件各写一份（前端）；Controller 直接调 DB / Service 缺失 / Repository 被绕开（后端）
 - **L4 性能**：重复计算（可 memo）/ N+1 查询 / 列表无虚拟化或分页 / 事件监听无清理 / 大对象深响应（Vue）
+- **Architecture deepening**：shallow module、pass-through wrapper、seam 泄漏、假 adapter、测试越过 interface、locality 缺失。候选项分类写"架构"，字段按 `reference/scan-checklist-format.md` 的架构扩展。
 
-完整方法库在 `reference/methods.md` 和 `reference/methods-l4.md`，扫描时全量加载作匹配表。
+完整方法库在 `reference/methods.md`、`reference/methods-l4.md` 和 `reference/methods-architecture.md`，扫描时全量加载作匹配表。
 
 ### 产出格式
 
@@ -113,7 +116,7 @@ gate 不通过不开始改代码；override 时先在 unit 目录写 `worktree-o
 ### 输入
 
 - 用户勾选过的 `{slug}-scan.md`
-- 方法库（每条勾选项必须映射到方法号 M-Ln-NN）
+- 方法库（每条勾选项必须映射到方法号 M-Ln-NN，含 architecture deepening 方法）
 
 ### 做的事
 
@@ -243,4 +246,5 @@ refactor: {YYYY-MM-DD}-{slug}
 - `reference/refusal-routing.md` — scan 前置检查 7 条 + 路由表
 - `reference/methods.md` — 方法库（L1-L3）
 - `reference/methods-l4.md` — 方法库（L4 性能与异步）
+- `reference/methods-architecture.md` — 方法库（architecture deepening）
 - `.codestable/reference/shared-conventions.md` — 跨工作流共享口径
