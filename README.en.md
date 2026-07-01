@@ -12,7 +12,7 @@ Tired of OpenSpec's flimsiness, Oh-My-OpenAgent's over-engineering, and Superpow
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/skills-15-6366F1?style=flat-square" alt="Skills"/>
+  <img src="https://img.shields.io/badge/skills-16-6366F1?style=flat-square" alt="Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -109,8 +109,9 @@ Bugs, refactors, small features, big needs — they're all "a change to make tha
 
 This is CodeStable's north star: **read it and you know the requirements, constraints, and trade-offs behind the code.** It is not a field table. It should explain, in human language, the background, the rough capability being built, why this path was chosen, which user stories must hold, and which boundaries may vary.
 
-Requirements use progressive disclosure: the entry file starts with an overview and submodule navigation; complex subsystems, substeps, or domain rules move into sibling requirement files. Each child file follows the same explanatory shape: background, what it should provide, key rules, boundaries, and trade-offs.
+Requirements are organized as a leading main document plus focused subdocuments: `.cs/requirements/index.md` owns the background, goals, shared terminology, core rules, and subdocument index; complex subsystems, steps, problem types, or domain rules live in separate requirement files linked from that index.
 
+- **`cs-wiki`** — automatically run multi-round structural questions, delegate subagent investigations, and build `.cs/wiki/` docs plus requirements candidates; it does not edit requirements directly
 - **`cs-requirements`** — current need explanations, domain language, key rules, and trade-offs (background / capability / boundaries / why flexibility is needed). No code locations, no historical narrative
 
 ### How they mesh
@@ -132,6 +133,7 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><td><b>Test entry</b></td><td><code>cs-test</code></td><td>Optional gate: when test design is needed, write test goals, cases, and execution guidance for one issue</td></tr>
 <tr><td><b>Execution entry</b></td><td><code>cs-do</code></td><td>Implement from the issue design, verify, and write back the execution record</td></tr>
 <tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue, sink durable conclusions, and commit related code plus issue/.cs writebacks in git repos</td></tr>
+<tr><td><b>System understanding</b></td><td><code>cs-wiki</code></td><td>Run multi-round structural questions and build <code>.cs/wiki/</code> docs plus requirements candidates</td></tr>
 <tr><td rowspan="3"><b>Work items</b></td><td><code>cs-issue</code></td><td>One closeable change: bug / refactor / small feature / chore, tagged by type</td></tr>
 <tr><td><code>cs-epics</code></td><td>Big need: enter epics, settle architecture (module split + interface contracts), then break into dependency issues</td></tr>
 <tr><td><code>cs-audit</code></td><td>Proactive scan + reconciliation against requirements, producing candidate changes</td></tr>
@@ -168,17 +170,19 @@ CodeStable isn't a single linear pipeline — it's **work items + requirements +
    cs-test   ──▶ optional test design (goals / cases / levels / test-first)
    cs-do     ──▶ implement, verify, and write back the execution record
    cs-close  ──▶ close the issue, sink durable conclusions, and commit code + issue/.cs writebacks
+   cs-wiki ─▶ structural questions + subagent investigation → system wiki + requirements candidates
    cs-issue  ──▶ one closeable change (bug / refactor / small feature / chore)
    cs-epics  ──▶ big need: enter epics → settle architecture → break into issues
    cs-audit  ──▶ proactive scan + reconcile requirements → candidate issues
         │   coding via cs-do (stop the moment you drift)
         ▼   on close, write graduated trade-offs back ▼
 ═══════════════════════════════════════════════════════════════
- requirements · needs, constraints, trade-offs (.cs/requirements/)
+requirements · needs, constraints, trade-offs (.cs/requirements/)
 ───────────────────────────────────────────────────────────────
-   cs-requirements ──▶ overview + submodule explanations + domain language + trade-offs
+   cs-requirements ──▶ index main doc + subdocument explanations + domain language + trade-offs
                        (background / capability / key rules / boundaries)
                        north star: read it and you know the requirements & trade-offs
+   cs-wiki ──▶ .cs/wiki/ + requirements-drafts (candidates, not direct edits)
 ═══════════════════════════════════════════════════════════════
             ▼ any time something is worth recording ▼
  Support files · knowledge sink (compounding engineering)
@@ -204,7 +208,7 @@ your-project/
 ├── .cs/
 │   ├── facts.md              # Startup facts
 │   ├── talks/                # Discussion synthesis (cs-talk, lazy)
-│   │   └── YYYY/MM/DD/{slug}.md
+│   │   └── YYYY/MM/DD/{status}-{slug}.md
 │   │
 │   ├── issues/               # Small work items, sharded by creation date, named open-{slug}.md / closed-{slug}.md
 │   │   └── YYYY/MM/DD/{slug}.md
@@ -212,9 +216,15 @@ your-project/
 │   │   └── YYYY/MM/DD/{slug}.md
 │   │
 │   ├── requirements/         # Current needs, constraints, and trade-offs (cs-requirements)
-│   │   ├── REQUIREMENTS.md   # Entry point (lazy)
-│   │   ├── REQUIREMENTS-MAP.md # Multi-requirements topology entry (large projects only)
+│   │   ├── index.md          # Requirements main doc: background / goals / terms / subdocument index
 │   │   └── {slug}.md         # One area per file
+│   │
+│   ├── wiki/                 # System wiki and requirements candidates (cs-wiki)
+│   │   ├── index.md
+│   │   ├── map.md
+│   │   ├── questions.md
+│   │   ├── requirements-drafts.md
+│   │   └── topics/{slug}.md
 │   │
 │   ├── notes/                # Knowledge notes, plain markdown, full-text search (cs-note)
 │   │   └── YYYY/MM/DD/{slug}.md
@@ -227,8 +237,9 @@ your-project/
 **Key points:**
 
 - All local artifacts aggregate under `.cs/`, so "how did we handle that change last time" is three seconds away
-- `requirements/` explains current needs, constraints, domain language, and trade-offs in human language; the entry file gives the overview, while details are progressively disclosed through submodule files; history lives in closed issues
-- Talks, issues, epics, and notes default to `YYYY/MM/DD/{slug}.md` date shards, avoiding too many files in one directory; search recursively under each area
+- `requirements/` explains current needs, constraints, domain language, and trade-offs in human language; `index.md` leads the background, goals, and subdocument index, while details are progressively disclosed through submodule/problem-type files; history lives in closed issues
+- `wiki/` is an automatically built system-understanding wiki and requirements-candidate library; candidates must be reviewed before entering formal requirements
+- Talks, epics, and notes default to `YYYY/MM/DD/{slug}.md` date shards, while issues use `YYYY/MM/DD/{status}-{slug}.md`; search recursively under each area
 - `notes/` is the knowledge notes area — plain markdown, no frontmatter, full-text searchable. Daily "remember this" work goes through `cs-note`
 - `cs-maketools` turns human-guided unknown workflows into `notes/`, adds a `facts.md` reference, and only writes `tools/` when automation is stable
 - When one Markdown file exceeds 150 lines, split by progressive disclosure into same-directory resources instead of hard-compressing the entry file

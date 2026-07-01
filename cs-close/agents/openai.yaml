@@ -1,4 +1,4 @@
 interface:
   display_name: "CS Close"
-  short_description: "关闭 issue 并沉淀长期实体"
-  default_prompt: "Use $cs-close to close an issue and write back durable learnings."
+  short_description: "关闭 issue、沉淀实体并提交相关变更"
+  default_prompt: "Use $cs-close to close a verified issue, rename it to closed status, write back durable learnings, and commit related repo changes when applicable."

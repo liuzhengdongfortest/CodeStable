@@ -15,11 +15,31 @@ FACTS = """# facts.md
 - [做某个已跑通流程前，先读 .cs/notes/YYYY/MM/DD/{slug}.md]
 """
 
+REQUIREMENTS_INDEX = """# [项目或领域] requirements
+
+## 综述
+
+[这是 requirements 主文档。填写真实内容前，先用它统领背景、目标、术语和子文档索引。]
+
+## 目标
+
+[当前阶段最重要的目标。]
+
+## 子文档索引
+
+- [子领域/模块/题型]：`relative/path.md` - [它负责什么]
+
+## 词汇
+
+- [全局术语]：[稳定含义]
+"""
+
 DIRS = [
     ".cs/talks",
     ".cs/issues",
     ".cs/epics",
     ".cs/requirements",
+    ".cs/wiki/topics",
     ".cs/notes",
     ".cs/tools",
 ]
@@ -32,6 +52,7 @@ def init_codestable(project: Path, force: bool) -> int:
         (project / rel).mkdir(parents=True, exist_ok=True)
 
     facts = project / ".cs" / "facts.md"
+    requirements_index = project / ".cs" / "requirements" / "index.md"
     created: list[str] = []
     kept: list[str] = []
 
@@ -40,6 +61,12 @@ def init_codestable(project: Path, force: bool) -> int:
     else:
         facts.write_text(FACTS, encoding="utf-8")
         created.append(str(facts))
+
+    if requirements_index.exists() and not force:
+        kept.append(str(requirements_index))
+    else:
+        requirements_index.write_text(REQUIREMENTS_INDEX, encoding="utf-8")
+        created.append(str(requirements_index))
 
     print(f"Initialized CodeStable workspace at {project / '.cs'}")
     print(f"Created or updated files: {len(created)}")

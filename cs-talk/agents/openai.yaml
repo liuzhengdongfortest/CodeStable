@@ -1,0 +1,4 @@
+interface:
+  display_name: "CS Talk"
+  short_description: "澄清模糊想法并整理 talk"
+  default_prompt: "Use $cs-talk to investigate existing repo context, ask only for missing information, clarify the real need, and write the discussion to .cs/talks/YYYY/MM/DD/{slug}.md."
