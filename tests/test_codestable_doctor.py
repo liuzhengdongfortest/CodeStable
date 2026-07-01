@@ -6,7 +6,8 @@ import sys
 from pathlib import Path
 
 
-TOOLS_DIR = Path(__file__).resolve().parents[1] / "cs-onboard/tools"
+sys.dont_write_bytecode = True
+TOOLS_DIR = Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-onboard/tools"
 sys.path.insert(0, str(TOOLS_DIR))
 
 

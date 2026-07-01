@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 
-TOOLS_DIR = Path(__file__).resolve().parents[1] / "cs-onboard/tools"
+sys.dont_write_bytecode = True
+TOOLS_DIR = Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-onboard/tools"
 sys.path.insert(0, str(TOOLS_DIR))
 
 
@@ -249,14 +251,14 @@ def test_quarantine_refuses_untracked_secret_like_files(tmp_path: Path) -> None:
 
 def test_runtime_tool_paths_are_documented() -> None:
     root = Path(__file__).resolve().parents[1]
-    tools_doc = (root / "cs-onboard/reference/tools.md").read_text(encoding="utf-8")
-    tools_doc += "\n" + (root / "cs-onboard/reference/tools-context.md").read_text(encoding="utf-8")
+    tools_doc = (root / "plugins/codestable/skills/cs-onboard/reference/tools.md").read_text(encoding="utf-8")
+    tools_doc += "\n" + (root / "plugins/codestable/skills/cs-onboard/reference/tools-context.md").read_text(encoding="utf-8")
 
     assert "python3 .codestable/tools/codestable-doctor.py --root . --json" in tools_doc
     assert "python3 .codestable/tools/codestable-worktree-gate.py --root . --json start" in tools_doc
     assert "python3 .codestable/tools/codestable-finish-worktree.py --root ." in tools_doc
     assert "python3 .codestable/tools/codestable-worktree-inbox.py --root . --json" in tools_doc
-    hook_doc = (Path(__file__).resolve().parents[1] / "cs-onboard/reference/branch-guard-hooks.md").read_text(
+    hook_doc = (Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-onboard/reference/branch-guard-hooks.md").read_text(
         encoding="utf-8"
     )
     assert "codestable-ai-branch-guard.py" in hook_doc
@@ -272,6 +274,7 @@ def test_missing_unit_cli_returns_json_finding(tmp_path: Path) -> None:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
         check=False,
     )
 
@@ -300,6 +303,7 @@ def test_missing_codestable_unit_path_returns_json_finding(tmp_path: Path) -> No
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
         check=False,
     )
 

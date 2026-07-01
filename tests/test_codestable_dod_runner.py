@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 
-TOOLS_DIR = Path(__file__).resolve().parents[1] / "cs-onboard/tools"
+TOOLS_DIR = Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-onboard/tools"
 DOD_RUNNER = TOOLS_DIR / "codestable-dod-runner.py"
 
 

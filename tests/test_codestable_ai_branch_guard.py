@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 
-TOOLS_DIR = Path(__file__).resolve().parents[1] / "cs-onboard/tools"
+sys.dont_write_bytecode = True
+TOOLS_DIR = Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-onboard/tools"
 sys.path.insert(0, str(TOOLS_DIR))
 
 
@@ -194,6 +196,7 @@ def test_cli_blocks_hook_json_with_status_two(tmp_path: Path) -> None:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
         check=False,
     )
 
@@ -212,7 +215,7 @@ def test_installed_git_hook_allows_when_guard_script_is_missing(tmp_path: Path) 
 
 
 def test_codex_hook_definition_invokes_branch_guard() -> None:
-    hook_path = Path(__file__).resolve().parents[1] / "cs-onboard/hooks/hooks.codex.json"
+    hook_path = Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-onboard/hooks/hooks.codex.json"
     payload = json.loads(hook_path.read_text(encoding="utf-8"))
 
     hook_command = payload["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
@@ -229,7 +232,7 @@ def test_allows_worktree_edit_when_root_is_main(tmp_path: Path) -> None:
     worktree = repo / ".claude" / "worktrees" / "feat-demo"
     worktree.parent.mkdir(parents=True, exist_ok=True)
     run(repo, "worktree", "add", "-b", "feat/demo", worktree.as_posix())
-    payload = {"tool_name": "Write", "tool_input": {"file_path": worktree / "cs-onboard/tools/x.py"}}
+    payload = {"tool_name": "Write", "tool_input": {"file_path": worktree / "plugins/codestable/skills/cs-onboard/tools/x.py"}}
 
     # root is the MAIN checkout (on main), not the worktree
     result = guard.guard_payload(payload, repo, {"main", "master"})

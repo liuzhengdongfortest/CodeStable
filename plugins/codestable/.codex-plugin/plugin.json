@@ -1,0 +1,6 @@
+{
+  "name": "codestable",
+  "version": "0.1.0",
+  "description": "CodeStable AI coding workflow skills.",
+  "skills": "./skills/"
+}

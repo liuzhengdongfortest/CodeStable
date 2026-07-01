@@ -1,4 +1,5 @@
-.claude
+/.claude/
+/dist/
 __pycache__
 *.pyc
 .DS_Store

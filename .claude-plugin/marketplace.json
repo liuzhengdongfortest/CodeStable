@@ -1,0 +1,15 @@
+{
+  "name": "codestable",
+  "description": "CodeStable AI coding workflow skills.",
+  "owner": {
+    "name": "CodeStable"
+  },
+  "plugins": [
+    {
+      "name": "codestable",
+      "version": "0.1.0",
+      "description": "CodeStable AI coding workflow skills.",
+      "source": "./plugins/codestable"
+    }
+  ]
+}

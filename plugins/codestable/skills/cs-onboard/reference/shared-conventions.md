@@ -86,7 +86,7 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 
 ### 改目录结构
 
-改 `cs-onboard/reference/shared-conventions.md` 模板，新项目 onboard 时带上新版本；已有项目手动同步 `.codestable/reference/shared-conventions.md`。
+改 `plugins/codestable/skills/cs-onboard/reference/shared-conventions.md` 模板，新项目 onboard 时带上新版本；已有项目手动同步 `.codestable/reference/shared-conventions.md`。
 
 ---
 
