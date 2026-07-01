@@ -27,6 +27,8 @@ gate 不通过不动代码；override 先在 unit 目录写 `worktree-override.m
 
 ## 入场 3 条硬检查（不过就退完整流程）
 
+先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为必须不变，不可破约束是公开接口和现有测试，最小充分改动必须能对应到经典重构方法；无法从这些推出的"顺手优化"都不做。
+
 任一不过就退到 `cs-refactor`：
 
 1. **行为真的不变吗？** 用户描述夹带"顺便支持 X / 改成 Y"——这是行为改动不是 refactor，让用户拆出去走 feature / issue

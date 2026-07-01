@@ -61,7 +61,13 @@ round: 1
 - 未跟踪 / staged：{文件列表}
 - 风险热点：{跨模块 / 权限 / 数据 / 并发 / UI / API / none}
 
-## 3. Findings
+## 3. Adversarial Pass
+
+- 假设的生产 bug：{一句话描述最可能失败的方向}
+- 主动攻击过的反例：{design 不一致 / 边界值 / 错误路径 / 状态转换 / 并发时序 / 权限数据隔离 / 持久化回滚 / 测试假阳性}
+- 结果：{升级为 findings 的项 / 留给 residual risk 或 QA focus 的项 / none}
+
+## 4. Findings
 
 ### blocking
 
@@ -92,18 +98,18 @@ round: 1
 
 - {值得保留的做法}
 
-## 4. Test And QA Focus
+## 5. Test And QA Focus
 
 - QA 必须重点复核：{场景 / 命令 / 手工验证}
 - Evidence pack residual risks / gate warnings：{已解释 / 交给 QA 的项}
 - 建议新增或加强的测试：{unit / integration / e2e / function / none}
 - 不能靠 review 完全确认的点：{列表}
 
-## 5. Residual Risk
+## 6. Residual Risk
 
 - {风险 + QA / acceptance 如何处理；没有写 none}
 
-## 6. Verdict
+## 7. Verdict
 
 - Status: passed|changes-requested|blocked
 - Next: 按「进入来源」表的通过后去向（feature→`cs-feat-qa`，其余→各自验收/提交） | 来源实现技能 review-fix | 等独立 Task agent reviewer 完成 / 用户确认降级后重跑本审查 | 补齐输入后重跑本审查
