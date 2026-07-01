@@ -97,7 +97,7 @@ Bugs, refactors, small features, big needs — they're all "a change to make tha
 
 - **`cs-plan`** — bridge from `talks/`: small needs become issues directly; larger needs enter epics first and get split into issues
 - **`cs-complain`** — when behavior breaks expectations, record the complaint, build a feedback loop, diagnose, fix, verify, and write back the bug issue
-- **`cs-design`** — human-readable implementation design for one issue: design conclusion, code shape, boundaries, order, validation, and risks
+- **`cs-design`** — tutorial-style implementation design for one issue: functional split, request/data flow, boundaries, change route, and validation
 - **`cs-test`** — optional test design for one issue when the user or company requires test cases and execution guidance
 - **`cs-do`** — implement from the issue design, verify, and write back the execution record
 - **`cs-close`** — close an issue, write durable conclusions back to requirements, notes, facts, or tools, and commit related code plus issue/.cs writebacks in git repos
@@ -129,7 +129,7 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy or context is missing: inspect repo context first, then write the result into <code>talks/</code></td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, create/update a bug issue, build a feedback loop, diagnose, fix, verify, and write back</td></tr>
 <tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code>, decide whether to create a direct issue or enter an epic first, then draft the artifact</td></tr>
-<tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Write a human-readable implementation design for one issue: conclusion, code shape, boundaries, order, validation, and risks</td></tr>
+<tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Write a tutorial-style implementation design for one issue: functional split, request/data flow, boundaries, change route, and validation</td></tr>
 <tr><td><b>Test entry</b></td><td><code>cs-test</code></td><td>Optional gate: when test design is needed, write test goals, cases, and execution guidance for one issue</td></tr>
 <tr><td><b>Execution entry</b></td><td><code>cs-do</code></td><td>Implement from the issue design, verify, and write back the execution record</td></tr>
 <tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue, sink durable conclusions, and commit related code plus issue/.cs writebacks in git repos</td></tr>
@@ -167,7 +167,7 @@ CodeStable isn't a single linear pipeline — it's **work items + requirements +
 ───────────────────────────────────────────────────────────────
    cs-plan   ──▶ from talks: create a direct issue, or enter an epic then split issues
    cs-complain ─▶ when behavior breaks expectations, feedback loop → diagnosis → fix/verify → bug issue writeback
-   cs-design ──▶ design one issue's implementation (conclusion / code shape / boundaries / order / validation)
+   cs-design ──▶ design one issue's implementation (functional split / request-data flow / boundaries / change route / validation)
    cs-test   ──▶ optional test design (goals / cases / levels / test-first)
    cs-do     ──▶ implement, verify, and write back the execution record
    cs-close  ──▶ close the issue, sink durable conclusions, and commit code + issue/.cs writebacks
