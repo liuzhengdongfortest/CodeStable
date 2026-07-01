@@ -1,0 +1,4 @@
+interface:
+  display_name: "CS Docs"
+  short_description: "文档组织原则"
+  default_prompt: "Use $cs-how-docs to organize wiki, requirements, notes, README, or multi-file documentation as a readable knowledge space instead of flat content."

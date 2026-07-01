@@ -12,7 +12,7 @@ Tired of OpenSpec's flimsiness, Oh-My-OpenAgent's over-engineering, and Superpow
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/skills-16-6366F1?style=flat-square" alt="Skills"/>
+  <img src="https://img.shields.io/badge/skills-17-6366F1?style=flat-square" alt="Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -97,7 +97,7 @@ Bugs, refactors, small features, big needs — they're all "a change to make tha
 
 - **`cs-plan`** — bridge from `talks/`: small needs become issues directly; larger needs enter epics first and get split into issues
 - **`cs-complain`** — when behavior breaks expectations, record the complaint, build a feedback loop, diagnose, fix, verify, and write back the bug issue
-- **`cs-design`** — implementation design for a single issue: module ownership, interfaces/data/state, test surface, and execution order
+- **`cs-design`** — human-readable implementation design for one issue: design conclusion, code shape, boundaries, order, validation, and risks
 - **`cs-test`** — optional test design for one issue when the user or company requires test cases and execution guidance
 - **`cs-do`** — implement from the issue design, verify, and write back the execution record
 - **`cs-close`** — close an issue, write durable conclusions back to requirements, notes, facts, or tools, and commit related code plus issue/.cs writebacks in git repos
@@ -129,7 +129,7 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy or context is missing: inspect repo context first, then write the result into <code>talks/</code></td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, create/update a bug issue, build a feedback loop, diagnose, fix, verify, and write back</td></tr>
 <tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code>, decide whether to create a direct issue or enter an epic first, then draft the artifact</td></tr>
-<tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Design the implementation for one issue, writing back module ownership, interfaces/data/state, test surface, and execution order</td></tr>
+<tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Write a human-readable implementation design for one issue: conclusion, code shape, boundaries, order, validation, and risks</td></tr>
 <tr><td><b>Test entry</b></td><td><code>cs-test</code></td><td>Optional gate: when test design is needed, write test goals, cases, and execution guidance for one issue</td></tr>
 <tr><td><b>Execution entry</b></td><td><code>cs-do</code></td><td>Implement from the issue design, verify, and write back the execution record</td></tr>
 <tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue, sink durable conclusions, and commit related code plus issue/.cs writebacks in git repos</td></tr>
@@ -140,6 +140,7 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><td><b>Requirements</b></td><td><code>cs-requirements</code></td><td>Explain current needs, domain language, key rules, and trade-offs through an overview and submodule files</td></tr>
 <tr><td rowspan="2"><b>Support files</b></td><td><code>cs-note</code></td><td>Sink pitfalls, tricks, research, and command traps into <code>notes/</code>, or one-line startup facts into <code>facts.md</code></td></tr>
 <tr><td><code>cs-maketools</code></td><td>Let a human guide AI through an unknown workflow, then sink notes, a facts reference, and optional tools</td></tr>
+<tr><td><b>Principles</b></td><td><code>cs-how-docs</code></td><td>Organize wiki, requirements, notes, README, and doc sets as readable knowledge spaces instead of flat content</td></tr>
 <tr><td rowspan="2"><b>Outward docs</b></td><td><code>cs-doc-tutorial</code></td><td>Outward-facing dev / user guides (task-oriented: how to use X to do Y)</td></tr>
 <tr><td><code>cs-doc-api</code></td><td>API reference reverse-engineered from source (entry-by-entry, parts lookup)</td></tr>
 </table>
@@ -166,7 +167,7 @@ CodeStable isn't a single linear pipeline — it's **work items + requirements +
 ───────────────────────────────────────────────────────────────
    cs-plan   ──▶ from talks: create a direct issue, or enter an epic then split issues
    cs-complain ─▶ when behavior breaks expectations, feedback loop → diagnosis → fix/verify → bug issue writeback
-   cs-design ──▶ design one issue's implementation (modules / interfaces / data / tests)
+   cs-design ──▶ design one issue's implementation (conclusion / code shape / boundaries / order / validation)
    cs-test   ──▶ optional test design (goals / cases / levels / test-first)
    cs-do     ──▶ implement, verify, and write back the execution record
    cs-close  ──▶ close the issue, sink durable conclusions, and commit code + issue/.cs writebacks
@@ -250,7 +251,7 @@ your-project/
 >
 > Do not solve cross-skill system rules by making skills reference each other's files. Keep system rules inside the `cs` skill, or sink project-specific stable knowledge into `.cs/requirements/`, `.cs/notes/`, and `.cs/facts.md`.
 
-Each cs action skill first checks the `cs` skill: reuse it if it has already been read in the current conversation or execution context; otherwise read it once to load the entity and skill boundaries.
+Each cs action skill should reuse the current context first: if `cs`, `facts.md`, or the requirements index has already been read and shows no sign of change, do not mechanically reread it. Read again only when context is missing, likely stale, needed for exact citation/write-back, or a new local slice is required. Before writing, always confirm the current version of the target issue, `.cs` file, or code file.
 
 To change system rules, update the `cs` skill and its references/templates; project-specific stable needs and operating knowledge belong in the matching `.cs/` entities.
 
