@@ -159,6 +159,8 @@ def check_skill_layout(root: Path, findings: list[Finding]) -> None:
     for path in sorted(root.iterdir()):
         if CODESTABLE_SKILL_RE.match(path.name) and (path.is_dir() or path.is_symlink()):
             findings.append(Finding(path.name, "root cs* skill entry must be moved under plugins/codestable/skills"))
+        elif path.is_dir() and (path / "SKILL.md").is_file():
+            findings.append(Finding(path.name, "root standalone skill entry must be removed from this distribution branch"))
 
 
 def check_ignored_assets(root: Path, findings: list[Finding]) -> None:

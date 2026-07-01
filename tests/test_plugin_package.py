@@ -213,11 +213,22 @@ def test_root_cs_skill_residue_fails(tmp_path: Path) -> None:
     assert any("root cs* skill entry" in message for message in messages(findings))
 
 
+def test_root_standalone_skill_residue_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    root_skill = repo / "other-skill"
+    root_skill.mkdir()
+    (root_skill / "SKILL.md").write_text("---\nname: other-skill\n---\n", encoding="utf-8")
+
+    findings = checker.check_repo(repo)
+
+    assert any("root standalone skill entry" in message for message in messages(findings))
+
+
 def test_non_cs_skill_and_generated_artifacts_fail(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
-    extra_skill = repo / "plugins/codestable/skills/browser-bridge"
+    extra_skill = repo / "plugins/codestable/skills/other-skill"
     extra_skill.mkdir()
-    (extra_skill / "SKILL.md").write_text("---\nname: browser-bridge\n---\n", encoding="utf-8")
+    (extra_skill / "SKILL.md").write_text("---\nname: other-skill\n---\n", encoding="utf-8")
     cache_dir = repo / "plugins/codestable/__pycache__"
     cache_dir.mkdir()
     (cache_dir / "x.pyc").write_bytes(b"cache")

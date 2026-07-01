@@ -31,13 +31,13 @@ round: 1
 - [x] Codex / Claude catalog 指向插件实体：Codex marketplace name 为 `codestable` 且 source 为 `{"source":"local","path":"./plugins/codestable"}`；Claude marketplace name / owner / description 和 plugin author 通过 strict 校验，source 为 `./plugins/codestable`。
 - [x] `skills` CLI 能发现同一批 skills：隔离副本 `npx skills@latest add . --list` 输出包含 `cs`。
 - [x] manifest 版本一致：三条 version 路径均为 `0.1.0`。
-- [x] 校验命令能防止缺文件、错 schema、错版本和临时产物进入发布面：`tests/test_plugin_package.py` 11 passed。
+- [x] 校验命令能防止缺文件、错 schema、错版本和临时产物进入发布面：`tests/test_plugin_package.py` 13 passed。
 
 明确不做：
 
 - [x] 未迁移仓库到 `codestable/codestable`。
 - [x] 未发布公开 marketplace，只新增本仓库可提交安装资产。
-- [x] 未把非 `cs*` skill 打入 `plugins/codestable/skills/`；`browser-bridge` 仍只是仓库根独立 skill。
+- [x] 未把非 `cs*` skill 打入 `plugins/codestable/skills/`；根目录独立 `browser-bridge/` 已从本 PR 删除。
 - [x] 未保留根目录 `cs*` symlink、stub 或 redirect。
 - [x] README 主安装块不再展示未钉版本的旧 `npx skills add` 命令，也不再展示当前 Codex CLI 不支持的 `codex plugin install codestable`。
 - [x] README / README.en.md 已说明版本更新后的升级路径：Codex `marketplace upgrade` + `plugin add`、Claude `/plugin update codestable@codestable`、`skills` CLI `update`。
@@ -71,8 +71,8 @@ round: 1
   - Evidence: `jq` 字段核对。
 - [x] S6 每个 `cs*` skill 位于 `plugins/codestable/skills/`，根目录无 `cs*` skill。
   - Evidence: 根目录 `find` 无输出，`plugins/codestable/skills/cs/SKILL.md` 存在。
-- [x] S7 非 `cs*` skill 不进入插件实体；`skills --list` 列出 `browser-bridge` 不视为失败。
-  - Evidence: `plugins/codestable/skills/` 下无非 `cs*` 目录；QA 报告记录该边界。
+- [x] S7 非 `cs*` skill 不进入插件实体，且根目录不再保留独立 skill。
+  - Evidence: `plugins/codestable/skills/` 下无非 `cs*` 目录；`browser-bridge/` 已删除；校验器覆盖根目录 standalone skill 残留失败。
 - [x] S8 错误场景返回非零。
   - Evidence: `tests/test_plugin_package.py` 覆盖缺 VERSION、非法 changelog、manifest/source/version 错误、根目录残留、非 cs skill、缓存排除。
 
@@ -126,8 +126,8 @@ review / QA 复核：
 - Evidence sources：无单独 evidence pack / DoD results / gate results；使用 design DoD 命令和 QA 报告。
 - 聚合命令：
   - `python3 tools/check-plugin-package.py` -> exit 0
-  - `python3 -m pytest tests/test_plugin_package.py` -> exit 0，12 passed
-  - `python3 -m pytest tests/` -> exit 0，76 passed
+  - `python3 -m pytest tests/test_plugin_package.py` -> exit 0，13 passed
+  - `python3 -m pytest tests/` -> exit 0，77 passed
   - 隔离 `npx skills@latest add . --list` -> exit 0，输出包含 `cs`
   - 临时 `HOME` 下 `codex plugin marketplace add .` + `codex plugin add codestable@codestable` -> exit 0
   - `claude plugin validate --strict .claude-plugin/marketplace.json`、`claude plugin validate --strict plugins/codestable`、临时 `HOME` 下 Claude marketplace add / install / update -> exit 0

@@ -67,7 +67,7 @@ checks:
   - item: "非 cs skill、缓存文件和临时 dist 产物不进入 plugins/codestable/ 插件实体"
     source: 范围守护
     status: passed
-  - item: "README / README.en.md 用一句边界说明澄清仓库根其他 skill（如 browser-bridge）不属于 CodeStable 插件资产"
+  - item: "README / README.en.md 说明仓库根目录不再保留独立 skill；check-plugin-package 会阻止任意根目录 SKILL.md skill 残留"
     source: 范围守护
     status: passed
   - item: "缺 VERSION、缺当前 CHANGELOG 版本段、manifest 不合法、资产路径被 ignore 或根目录残留 cs* skill / symlink / stub / redirect 时校验失败"

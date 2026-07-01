@@ -48,7 +48,7 @@ npx skills@latest add liuzhengdongfortest/CodeStable
 npx skills@latest add liuzhengdongfortest/CodeStable --full-depth
 ```
 
-CodeStable 插件只打包 `plugins/codestable/skills/` 下的 `cs` / `cs-*` skills；仓库根目录中的其他 skill（如 `browser-bridge`）不属于 CodeStable 插件资产。
+CodeStable 插件只打包 `plugins/codestable/skills/` 下的 `cs` / `cs-*` skills；仓库根目录不再保留独立 skill 目录。
 
 ## 升级
 

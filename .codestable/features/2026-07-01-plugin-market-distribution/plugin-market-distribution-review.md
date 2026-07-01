@@ -78,7 +78,7 @@ none
 ## 5. Residual Risk
 
 - 平台真实兼容性仍需 QA / acceptance 通过实际试装或官方 schema 事实确认；本 review 只能确认仓库内字段契约和 `skills@latest --list` 兼容。
-- `skills@latest --list` 会同时列出根目录非 CodeStable skill `browser-bridge`；design 明确不要求列表只包含 `cs*`，README 已说明边界。
+- 根目录独立 skill 已在后续提交中删除；当前校验器应阻止任意根目录 `SKILL.md` skill 残留。
 
 ## 6. Verdict
 

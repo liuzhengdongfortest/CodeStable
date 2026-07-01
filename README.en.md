@@ -48,7 +48,7 @@ If your `skills` CLI does not discover the plugin entity through the marketplace
 npx skills@latest add liuzhengdongfortest/CodeStable --full-depth
 ```
 
-The CodeStable plugin only packages `cs` / `cs-*` skills under `plugins/codestable/skills/`; other root-level skills such as `browser-bridge` are not part of the CodeStable plugin assets.
+The CodeStable plugin only packages `cs` / `cs-*` skills under `plugins/codestable/skills/`; the repository root no longer keeps standalone skill directories.
 
 ## Upgrade
 

@@ -7,3 +7,4 @@
 - Added Codex and Claude marketplace manifests for local repository installation.
 - Added marketplace metadata required by Codex and Claude CLI validation.
 - Documented upgrade commands for Codex, Claude, and `skills` CLI users.
+- Removed the root-level `browser-bridge` standalone skill from this distribution branch.

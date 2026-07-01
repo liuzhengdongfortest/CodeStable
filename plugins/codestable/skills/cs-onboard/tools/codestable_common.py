@@ -59,7 +59,6 @@ UNIT_ROOTS = ("features", "issues", "refactors")
 IMPLEMENTATION_UNIT_ROOTS = frozenset(UNIT_ROOTS)
 SUBAGENT_REVIEWERS = {"subagent", "subagent+ocr"}
 KNOWN_SKILL_DIRS = {
-    "browser-bridge",
     "codestable-maintainer",
     "cs",
     "cs-audit",

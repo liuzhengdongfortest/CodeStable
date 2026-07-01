@@ -43,9 +43,9 @@ round: 1
 ## 3. Command Results
 
 - `python3 tools/check-plugin-package.py` -> exit 0：`Plugin package check passed.`
-- `python3 -m pytest tests/test_plugin_package.py` -> exit 0：12 passed。
-- `python3 -m pytest tests/` -> exit 0：76 passed。
-- `tmp=$(mktemp -d) && mkdir -p "$tmp/repo" && rsync -a --exclude '.git/' ./ "$tmp/repo/" && before=$(git status --short) && (cd "$tmp/repo" && npx skills@latest add . --list) && after=$(git status --short) && test "$before" = "$after"` -> exit 0：输出 `Found 30 skills`，包含 `cs`；也列出 `browser-bridge`，符合 design 明确允许的边界。
+- `python3 -m pytest tests/test_plugin_package.py` -> exit 0：13 passed。
+- `python3 -m pytest tests/` -> exit 0：77 passed。
+- `tmp=$(mktemp -d) && mkdir -p "$tmp/repo" && rsync -a --exclude '.git/' ./ "$tmp/repo/" && before=$(git status --short) && (cd "$tmp/repo" && npx skills@latest add . --list) && after=$(git status --short) && test "$before" = "$after"` -> exit 0：输出 `Found 29 skills`，包含 `cs`；根目录 `browser-bridge` 已删除，列表不再包含它。
 - 临时 `HOME` 下 `codex plugin marketplace add --json .` + `codex plugin add --json codestable@codestable` -> exit 0：marketplaceName 为 `codestable`，pluginId 为 `codestable@codestable`，version 为 `0.1.0`。
 - 临时 `HOME` 下 `claude plugin validate --strict .claude-plugin/marketplace.json`、`claude plugin validate --strict plugins/codestable`、`claude plugin marketplace add ./`、`claude plugin install codestable@codestable`、`claude plugin marketplace update codestable`、`claude plugin update codestable@codestable` -> exit 0：安装成功，更新返回 already at latest 0.1.0。
 - 临时 `HOME` 下 `npx skills@latest add . --skill cs -g -y` -> exit 0：`cs` copied；`npx skills@latest update -g -y` -> exit 0：本地 path 来源无 tracked lock，提示无 global skills tracked。
@@ -60,9 +60,9 @@ round: 1
 - [x] QA-001 插件资产校验：pass
   - Evidence: `check-plugin-package.py` exit 0。
 - [x] QA-002 校验器正反向用例：pass
-  - Evidence: `tests/test_plugin_package.py` 12 passed，覆盖缺 VERSION、缺 changelog 版本段、manifest 不合法、根目录残留、非 cs skill、缓存排除、version mismatch、catalog/source 错误和 README 命令。
+  - Evidence: `tests/test_plugin_package.py` 13 passed，覆盖缺 VERSION、缺 changelog 版本段、manifest 不合法、根目录残留、根目录 standalone skill、非 cs skill、缓存排除、version mismatch、catalog/source 错误和 README 命令。
 - [x] QA-003 迁移后既有工具回归：pass
-  - Evidence: `python3 -m pytest tests/` 76 passed。
+  - Evidence: `python3 -m pytest tests/` 77 passed。
 - [x] QA-004 `skills@latest` 兼容发现：pass
   - Evidence: 隔离副本运行 `npx skills@latest add . --list` exit 0，输出包含 `cs`，原工作树状态前后一致。
 - [x] QA-005 checklist YAML：pass
@@ -100,7 +100,7 @@ none
 
 - 未执行远端 GitHub marketplace add / upgrade；当前分支尚未发布。本轮 QA 已验证 Codex 本地 marketplace 试装、Claude strict schema / 本地安装更新和 `skills@latest` 真实发现路径。
 - Codex 本地 path marketplace 执行 `codex plugin marketplace upgrade codestable` 会返回非 Git marketplace 错误；README 的 Codex upgrade 命令只适用于 Git marketplace 来源。`skills` CLI 本地 path 安装也没有上游 lock，GitHub 来源升级需发布后复核。
-- `skills@latest --list` 会同时列出根目录非 CodeStable skill `browser-bridge`；design 明确不要求列表只包含 `cs*`，README 已说明它不属于 CodeStable 插件资产。
+- 根目录独立 skill 已删除；若后续出现带 `SKILL.md` 的根目录 skill，`check-plugin-package` 会失败。
 
 ## 6. Cleanliness
 
