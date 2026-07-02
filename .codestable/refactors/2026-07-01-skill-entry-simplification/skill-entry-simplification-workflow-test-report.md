@@ -1,9 +1,9 @@
 ---
 doc_type: refactor-test-report
 refactor: 2026-07-01-skill-entry-simplification
-status: passed
+status: partial
 tested: 2026-07-02
-summary: Isolated workflow state-machine scenario tests for the skill entry simplification refactor.
+summary: Partial isolated state-machine tests; not a full Paseo-agent workflow verification.
 ---
 
 # Skill Entry Simplification Workflow Test Report
@@ -34,6 +34,8 @@ summary: Isolated workflow state-machine scenario tests for the skill entry simp
 测试不依赖当前仓库真实 `.codestable` 状态，不启动真实长程 AI agent，也不在 toy app 中实际完成代码开发；它用仓库事实 evaluator 模拟 agent 按 skill 状态表做的下一步选择。这样能稳定复现 gate、状态恢复和 driver 派发决策。
 
 真实 toy repo 开发 dogfood 见同目录 `skill-entry-simplification-dogfood-report.md`。
+
+注意：本报告不是最终完整验证。它没有逐个用独立 Paseo agent 调用被改动 skill，也没有证明每个 skill 能独立完成工程任务。
 
 ## 3. 场景矩阵
 

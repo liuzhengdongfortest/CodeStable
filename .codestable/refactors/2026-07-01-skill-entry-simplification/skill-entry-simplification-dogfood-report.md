@@ -1,16 +1,18 @@
 ---
 doc_type: refactor-dogfood-report
 refactor: 2026-07-01-skill-entry-simplification
-status: passed
+status: partial
 tested: 2026-07-02
-summary: Real isolated toy repo dogfood for the skill entry simplification refactor.
+summary: Partial manual toy repo dogfood; superseded by Paseo-agent verification.
 ---
 
 # Skill Entry Simplification Dogfood Report
 
 ## 1. 测试目标
 
-这份报告补充真实隔离开发仓库 dogfood，弥补状态机场景测试没有实际改代码的问题。
+这份报告补充手工 toy repo dogfood，弥补状态机场景测试没有实际改代码的问题。
+
+注意：本报告仍不是最终完整验证。它由主 agent 手工推进，未用独立 Paseo agent 逐个验证改动 skill；最终结论以后续 Paseo-agent 验证报告为准。
 
 目标：用当前分支改动后的 CodeStable skill 文档，实际推进一个小型 Python toy repo 的 feature、issue、refactor、docs、epic 和 code-review 工作流，并模拟 `cs-feat` / `cs-epic` 的人工确认点继续执行。
 
