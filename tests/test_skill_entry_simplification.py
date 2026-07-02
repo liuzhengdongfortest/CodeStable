@@ -34,6 +34,7 @@ MAIN_REFERENCE_PATHS = [
     "cs-feat/references/qa/protocol.md",
     "cs-feat/references/acceptance/protocol.md",
     "cs-feat/references/fastforward/protocol.md",
+    "cs-feat/references/goal/protocol.md",
     "cs-issue/references/report/protocol.md",
     "cs-issue/references/analyze/protocol.md",
     "cs-issue/references/fix/protocol.md",
@@ -150,7 +151,7 @@ MAIN_ENTRY_SKILLS = [
 
 MAIN_ENTRY_ARGUMENT_HINTS = {
     "cs": "[request]",
-    "cs-feat": "[--stage design|design-review|impl|qa|accept] [--mode fastforward] <feature>",
+    "cs-feat": "[--stage design|design-review|impl|qa|accept|goal-package] [--mode fastforward] <feature>",
     "cs-issue": "[--stage report|analyze|fix] <issue>",
     "cs-refactor": "[--stage scan|design|apply] [--mode standard|fastforward] <target>",
     "cs-docs": "[--mode tutorial|api] <topic>",
@@ -200,6 +201,26 @@ def test_skill_catalog_documents_no_argument_default() -> None:
 
     assert "不传参数时按仓库事实和用户原话恢复或路由" in zh_text
     assert "no-argument calls recover or route" in en_text
+
+
+def test_feat_and_epic_document_goal_driver_dispatch() -> None:
+    feat = (SKILLS / "cs-feat/SKILL.md").read_text(encoding="utf-8")
+    epic = (SKILLS / "cs-epic/SKILL.md").read_text(encoding="utf-8")
+    router = (SKILLS / "cs/SKILL.md").read_text(encoding="utf-8")
+    conventions = (SKILLS / "cs-onboard/references/execution-conventions.md").read_text(encoding="utf-8")
+    feat_goal = (SKILLS / "cs-feat/references/goal/protocol.md").read_text(encoding="utf-8")
+    epic_goal = (SKILLS / "cs-epic/references/goal/protocol.md").read_text(encoding="utf-8")
+
+    assert "--stage goal-package" in feat
+    assert "references/goal/protocol.md" in feat
+    assert "goal 包、impl" in router
+    assert "可见 driver 长程执行" in router
+    assert "Goal driver" in conventions
+    assert "可见 Task agent" in conventions
+    assert "派发失败" in feat_goal
+    assert "派发失败" in epic_goal
+    assert "fenced `/goal`" in feat_goal
+    assert "fenced `/goal`" in epic_goal
 
 
 def test_compatibility_entries_do_not_declare_argument_hint() -> None:

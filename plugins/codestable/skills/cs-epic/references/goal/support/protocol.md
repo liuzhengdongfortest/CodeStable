@@ -23,7 +23,7 @@
 
 ## 3. Goal 模式接管
 
-用户粘贴 `/goal` 代表授权 goal 会话连续执行各 feature 的 impl / review / QA / accept。普通流程中逐 feature 停等用户确认的 checkpoint，在 goal 模式下改为写入报告、状态和审计记录。
+用户粘贴 `/goal`，或主流程按 Goal driver 派发规则启动可见 Task agent，代表授权 goal 会话连续执行各 feature 的 impl / review / QA / accept。普通流程中逐 feature 停等用户确认的 checkpoint，在 goal 模式下改为写入报告、状态和审计记录。
 
 仍必须 handoff 的情况：
 

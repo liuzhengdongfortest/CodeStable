@@ -1,7 +1,7 @@
 ---
 name: cs-feat
-description: Feature 主入口。触发：新功能/加 X/实现 XX；端到端推进 design、review、impl、QA、accept。
-argument-hint: "[--stage design|design-review|impl|qa|accept] [--mode fastforward] <feature>"
+description: Feature 主入口。触发：新功能/加 X/实现 XX；端到端推进 design、review、goal 包、impl、QA、accept。
+argument-hint: "[--stage design|design-review|impl|qa|accept|goal-package] [--mode fastforward] <feature>"
 ---
 
 # cs-feat
@@ -10,7 +10,7 @@ argument-hint: "[--stage design|design-review|impl|qa|accept] [--mode fastforwar
 
 开始任何判断或动作前，先执行 CodeStable preflight：读 `.codestable/attention.md`；缺失先 `cs-onboard`；不读外部 AI 入口替代（详见 `.codestable/reference/execution-conventions.md`）。
 
-`cs-feat` 是 feature 的唯一推荐入口。用户只需要持续调用本技能；本技能根据仓库事实恢复当前阶段，并在必要 checkpoint 停下来等用户确认。
+`cs-feat` 是 feature 的唯一推荐入口。用户只需要持续调用本技能；本技能根据仓库事实恢复当前阶段，并在 design gate 停下来等用户确认。用户确认 design 后，默认生成单 feature goal 包并尝试通过可见 Task agent goal driver 长程执行；派发失败则打印 `/goal` 指令让用户粘贴执行。
 
 旧阶段技能长期保留为兼容入口：`cs-feat-design`、`cs-feat-design-review`、`cs-feat-impl`、`cs-feat-qa`、`cs-feat-accept`、`cs-feat-ff`。它们只传入 `requested_stage` 或 `requested_mode`，不维护独立规则。
 
@@ -29,6 +29,7 @@ argument-hint: "[--stage design|design-review|impl|qa|accept] [--mode fastforwar
 | `--stage impl` | `requested_stage: implementation` |
 | `--stage qa` | `requested_stage: qa` |
 | `--stage accept` | `requested_stage: acceptance` |
+| `--stage goal-package` | `requested_stage: goal-package` |
 | `--mode fastforward` | `requested_mode: fastforward` |
 
 旧裸 token（如 `qa`、`ff`）只作为历史提示词兼容识别；新文档和新调用一律用 `--stage` / `--mode`。
@@ -48,6 +49,9 @@ argument-hint: "[--stage design|design-review|impl|qa|accept] [--mode fastforwar
 ├── {slug}-design.md
 ├── {slug}-design-review.md
 ├── {slug}-checklist.yaml
+├── goal-plan.md             # 单 feature 长程执行包
+├── goal-state.yaml
+├── goal-protocol.md
 ├── {slug}-review.md
 ├── {slug}-qa.md
 ├── {slug}-acceptance.md
@@ -70,7 +74,9 @@ argument-hint: "[--stage design|design-review|impl|qa|accept] [--mode fastforwar
 | design 为 draft 且无 passed design-review | 读取 `references/design-review/protocol.md` |
 | design-review changes-requested / blocked | 回 design 修订，再重跑 design-review |
 | design-review passed 但 design 未 approved | 停下让用户整体 review；确认后标 `approved` |
-| design approved 且代码未完成 | 读取 `references/implementation/protocol.md` |
+| design approved 且 goal 包未生成 | 读取 `references/goal/protocol.md` |
+| goal 包已生成且代码未完成 | 按 Goal driver 派发；派发失败则输出可粘贴 `/goal` 指令 |
+| 用户明确请求单阶段实现，或 goal driver handoff 后需要人工续跑 | 读取 `references/implementation/protocol.md` |
 | 代码完成但无 `{slug}-review.md` | 进入公开横切 gate `cs-code-review` |
 | review 有 unresolved blocking | 回 implementation 的 review-fix |
 | review passed 但无 `{slug}-qa.md` | 读取 `references/qa/protocol.md` |
@@ -88,6 +94,7 @@ argument-hint: "[--stage design|design-review|impl|qa|accept] [--mode fastforwar
 
 - design：`references/design/protocol.md`，必要时 `references/design/reference.md`、`references/design/support/intent-template.md`、`references/design/support/codebase-design.md`
 - design-review：`references/design-review/protocol.md`
+- goal-package：`references/goal/protocol.md`
 - implementation：`references/implementation/protocol.md`，必要时 `references/implementation/support/reference.md`、`references/implementation/support/tdd.md`
 - code review：公开横切技能 `cs-code-review`
 - QA：`references/qa/protocol.md`
@@ -103,11 +110,10 @@ argument-hint: "[--stage design|design-review|impl|qa|accept] [--mode fastforwar
 必须停下等用户明确确认的点：
 
 1. design-review passed 后的 design 整体确认。
-2. implementation 完成后的 code review 结果处理。
-3. QA failed / blocked 后的修复方向。
-4. acceptance 最终结论与长期文档回写风险。
+2. goal driver 不可见、派发失败或返回 `CS_FEATURE_GOAL_HANDOFF` 时，把 `/goal` 指令或 handoff 原因交给用户。
+3. 长程执行中需要改变 approved design、feature 范围或公开契约时，停下让用户确认。
 
-本技能是连续编排入口，不是无确认自动到底。
+implementation / code review / QA / acceptance 的普通阻塞优先由 goal driver 按协议循环修复；不要在每个阶段默认打断用户。
 
 ---
 

@@ -10,10 +10,10 @@ Main entries accept optional stage / mode flags (for example `/cs-feat --stage q
 | Onboarding | `cs-onboard` | Install CodeStable into a new or previously informal repository |
 | Requirements and domain | `cs-req` | Capture capability intent documents |
 | Requirements and domain | `cs-domain` | Maintain domain terms, ADRs, and context topology |
-| Epic | `cs-epic` | Large-demand entry: planning, review, child feature design, goal package |
+| Epic | `cs-epic` | Large-demand entry: planning, review, child feature design, goal package, and visible driver dispatch |
 | Goal | `cs-goal` | Autonomous iteration from a defined start state to accepted end state |
 | Brainstorm | `cs-brainstorm` | Triage unclear ideas into feature, epic, or brainstorm notes |
-| Feature flow | `cs-feat` | End-to-end feature entry: design, review, impl, code review, QA, accept |
+| Feature flow | `cs-feat` | End-to-end feature entry: design, review, goal package, impl, code review, QA, accept |
 | Issue flow | `cs-issue` | End-to-end issue entry: report, analyze, fix, review |
 | Refactor flow | `cs-refactor` | Behavior-preserving refactor entry with standard and fastforward modes |
 | Cross-cutting review | `cs-code-review` | Read-only implementation review gate |

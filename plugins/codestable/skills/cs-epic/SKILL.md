@@ -10,7 +10,7 @@ argument-hint: "[--stage planning|review|goal-package] <epic>"
 
 开始任何判断或动作前，先执行 CodeStable preflight：读 `.codestable/attention.md`；缺失先 `cs-onboard`；不读外部 AI 入口替代（详见 `.codestable/reference/execution-conventions.md`）。
 
-`cs-epic` 是大需求端到端入口。用户文档统一叫 epic；为兼容历史产物，第一版内部目录、frontmatter 和工具仍使用 `roadmap`。
+`cs-epic` 是大需求端到端入口。用户文档统一叫 epic；为兼容历史产物，第一版内部目录、frontmatter 和工具仍使用 `roadmap`。用户确认 roadmap 和所有子 feature design 后，默认生成 goal 包并尝试通过可见 Task agent goal driver 长程执行；派发失败则打印 `/goal` 指令让用户粘贴执行。
 
 旧技能 `cs-roadmap`、`cs-roadmap-review`、`cs-roadmap-impl-goal` 长期保留为兼容入口，只传入 `requested_stage`。
 
@@ -57,9 +57,9 @@ argument-hint: "[--stage planning|review|goal-package] <epic>"
 | roadmap 已确认，子 feature design 未完成 | 逐项进入 `cs-feat` design/design-review |
 | 子 feature design-review passed 但未整体确认 | 停下让用户确认所有 design |
 | 所有 design approved，goal 包未生成 | 读取 `references/goal/protocol.md` |
-| goal 包已生成 | 输出可粘贴 `/goal` 指令并停止 |
+| goal 包已生成 | 按 Goal driver 派发；派发失败则输出可粘贴 `/goal` 指令并停止 |
 
-`cs-epic` 不自动执行 slash command。`/goal` 只能由用户触发。
+`cs-epic` 不在主线程直接执行长程 goal；只能通过可见 Task agent goal driver 派发。没有可见 driver 或派发失败时，回退为用户手动粘贴 `/goal`。
 
 ---
 
@@ -68,6 +68,7 @@ argument-hint: "[--stage planning|review|goal-package] <epic>"
 - planning：`references/planning/protocol.md`，必要时 `references/planning/reference.md`、`references/planning/support/codebase-design.md`
 - review：`references/review/protocol.md`
 - goal-package：`references/goal/protocol.md`，并复制 `references/goal/support/protocol*.md` 和 `references/goal/support/goal-command-template.md`
+- goal driver：`.codestable/reference/execution-conventions.md` 的 Goal driver 派发规则
 - child feature：通过 `cs-feat` 主入口推进，不直接调用旧阶段技能
 
 ---
@@ -76,7 +77,7 @@ argument-hint: "[--stage planning|review|goal-package] <epic>"
 
 1. roadmap/epic planning review passed 后，用户确认规划。
 2. 所有子 feature design-review passed 后，用户统一确认 design。
-3. goal 包生成后，只输出 `/goal` 指令，不自动执行。
+3. goal driver 不可见、派发失败或返回 `CS_ROADMAP_GOAL_HANDOFF` 时，把 `/goal` 指令或 handoff 原因交给用户。
 
 ---
 

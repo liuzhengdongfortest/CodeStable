@@ -6,7 +6,7 @@
 
 1. 先按 `cs-epic` planning 阶段规范澄清需求并创建 / 更新一份 roadmap，运行 `cs-epic` review 阶段并处理到通过。
 2. 用户确认 roadmap 后，为 roadmap items 里的每个子 feature 进入 `cs-feat` design 阶段，生成 design + checklist，运行 `cs-feat` design-review 阶段并处理到通过。
-3. 用户确认所有 feature design 后，输出一条可直接粘贴的 `/goal` 指令。
+3. 用户确认所有 feature design 后，输出一条可直接粘贴的 `/goal` 指令，并优先尝试用可见 Task agent goal driver 派发。
 4. `/goal` 会话按顺序循环执行每个 feature：`cs-feat` implementation 阶段 → `cs-code-review` → 必要时 review-fix → `cs-feat` QA 阶段 → 必要时 qa-fix 后重跑 review/QA → `cs-feat` acceptance 阶段 → 更新状态 → 下一个 feature。
 5. 全部 feature 验收后，做整个 roadmap 的最终审计；只有审计通过才打印完成标记。
 
@@ -184,17 +184,21 @@ features:
 
 ---
 
-## 输出给用户的 goal 指令
+## 输出和派发 goal 指令
 
-确认通过后，读取 `support/goal-command-template.md`，替换 `{slug}`，打印一条 fenced `/goal`，然后停止。
+确认通过后，读取 `support/goal-command-template.md`，替换 `{slug}`，准备一条 fenced `/goal`。
 
-只输出指令，不替用户执行；slash command 只能由用户粘贴触发。
+然后按 `.codestable/reference/execution-conventions.md` 的 Goal driver 派发规则执行：
+
+- 有可见 Paseo subagent 或可见 native Task/Agent 时，启动 driver，并把 agent id / run id / 查看方式告诉用户。
+- driver 不可见、不可追踪、缺授权或派发失败时，不启动后台任务，只打印 fenced `/goal`，让用户粘贴到新的 agent 会话执行。
+- 主 agent 不能仅凭“已派发”宣布 roadmap 完成；完成必须由 goal 产物和 transcript 标记证明。
 
 ---
 
 ## 完成判据
 
-本阶段完成于：用户拿到可直接粘贴的 `/goal` 指令。
+本阶段完成于：goal 包已落盘，且已派发可见 Goal driver 或已把可直接粘贴的 `/goal` 指令交给用户。
 
 真正的 roadmap 完成由 goal 会话负责，必须满足：
 
