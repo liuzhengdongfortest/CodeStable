@@ -23,10 +23,10 @@ brainstorm 是"讨论层"统一入口。
 
 | case | 规模 | 用户状态 | 产物 |
 |---|---|---|---|
-| **case 1：已经够清楚** | 不限 | 一句话能说清做什么 / 为谁 / 怎么算成功 / 不做什么 | 不落盘，直接 `cs-feat-design` |
-| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | `.codestable/features/{feature}/{slug}-brainstorm.md` → `cs-feat-design` |
-| **case 3：大需求，拆解 ready** | 多 feature | 心里已有大致模块划分，想直接做拆解和接口契约 | 不落盘，移交 `cs-roadmap` |
-| **case 4：大需求，想 grill** | 多 feature | 还不想拆——想先 grill、发散、产生想法存着 | `.codestable/brainstorms/{slug}/brainstorm.md` → 之后 `cs-roadmap` 读到 |
+| **case 1：已经够清楚** | 不限 | 一句话能说清做什么 / 为谁 / 怎么算成功 / 不做什么 | 不落盘，直接进 `cs-feat` design 阶段 |
+| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | `.codestable/features/{feature}/{slug}-brainstorm.md` → `cs-feat` design 阶段 |
+| **case 3：大需求，拆解 ready** | 多 feature | 心里已有大致模块划分，想直接做拆解和接口契约 | 不落盘，移交 `cs-epic` |
+| **case 4：大需求，想 grill** | 多 feature | 还不想拆——想先 grill、发散、产生想法存着 | `.codestable/brainstorms/{slug}/brainstorm.md` → 之后 `cs-epic` 读到 |
 
 判错 case 不是灾难——**允许升降级**。case 2 聊着发现范围越聊越大切 case 3/4，case 3 聊着发现需要先 grill 切 case 4，case 4 grill 完可以直接拆切 case 3，当场切换出口。
 
@@ -114,7 +114,7 @@ brainstorm 是"讨论层"统一入口。
 
 1. **是事实问题不是偏好问题**——某 API 实际行为 / 库是否真支持 / 性能特征是否成立，不是"哪种风格更好"
 2. **结果会改变方向**——验出来不管成败，讨论都能收敛
-3. **成本可控**——你判断 5-30 分钟内能搭出能跑的东西。超过这个量该走 `cs-feat-ff` 直接做或拆成正式 feature
+3. **成本可控**——你判断 5-30 分钟内能搭出能跑的东西。超过这个量该走 `cs-feat` fastforward mode 直接做或拆成正式 feature
 
 提议格式：**"这块靠想不准，我做个最小 demo 验一下 {要验的事}，5-10 分钟，OK 吗？"** 用户秒过 / 拒绝即可。
 
@@ -151,11 +151,11 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 **信号**：一句话能说出做什么 / 为谁 / 怎么算成功 / 不做什么；聊两句核心行为 / 成功标准都对上。
 
 **处理**：
-1. 告诉用户"这块你已经想清楚了：{AI 一句话复述}。建议直接 `cs-feat-design`——brainstorm 对你没增量"
+1. 告诉用户"这块你已经想清楚了：{AI 一句话复述}。建议直接进 `cs-feat` design 阶段——brainstorm 对你没增量"
 2. **看聊过程有没有非琐碎技术决策**——讨论了具体库选型 / Schema / 接口形态 / 跨模块约定，落一份精简 brainstorm（只填"已敲定的设计点"那节）让 design 直接读到不必重讨；纯方向确认没聊技术细节就裸退不落盘
 3. 停下来等用户触发 design
 
-**退出**："直接触发 `cs-feat-design` 从零写 design"（不落盘）；轻量落盘则"下一步 `cs-feat-design` 会读到 `{路径}` 不必重述"
+**退出**："直接触发 `cs-feat` 从零写 design"（不落盘）；轻量落盘则"下一步 `cs-feat` design 阶段会读到 `{路径}` 不必重述"
 
 ---
 
@@ -180,20 +180,20 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 
 文档模板见同目录 `reference.md` 的"feature brainstorm 模板"。frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conventions.md` 第 1 节。
 
-**退出**：如果只是轻确认，主动问"这块够清楚了可以进 design 吗？"；如果需要解释方案 / 代价 / 默认后果，先在 feature 目录写 `approval-report.md` 再让 owner 确认。确认后落盘。如果愿景（用户故事 / 痛点 / 边界）已经聊透了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，design 会读到这份 req 做对齐。告诉用户"下一步 `cs-feat-design` 会读到 `{路径}`"
+**退出**：如果只是轻确认，主动问"这块够清楚了可以进 design 吗？"；如果需要解释方案 / 代价 / 默认后果，先在 feature 目录写 `approval-report.md` 再让 owner 确认。确认后落盘。如果愿景（用户故事 / 痛点 / 边界）已经聊透了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，design 会读到这份 req 做对齐。告诉用户"下一步 `cs-feat` design 阶段会读到 `{路径}`"
 
 ---
 
-### case 3：大需求 → roadmap 直接拆
+### case 3：大需求 → epic 直接拆
 
 **信号**：多 feature 规模，用户心里已有大致模块划分，能说出拆法，想直接做拆解和接口契约。
 
 **处理**：
-1. 告诉用户"听起来是多个 feature 的集合，单 feature 装不下。`cs-roadmap` 会做拆解和依赖梳理，我把讨论交给它"
-2. 把已聊的信息汇总让 roadmap 接手不用重来：真问题 / 大致范围 / 已提到的可能子模块（一句话各一）；**聊到的跨模块接口形态、共享协议、技术选型一并列出**——这些是 roadmap "架构层详设"节的种子
-3. **不落盘**——`roadmap new` 自己建目录和主文档
+1. 告诉用户"听起来是多个 feature 的集合，单 feature 装不下。`cs-epic` 会做拆解和依赖梳理，我把讨论交给它"
+2. 把已聊的信息汇总让 epic planning 接手不用重来：真问题 / 大致范围 / 已提到的可能子模块（一句话各一）；**聊到的跨模块接口形态、共享协议、技术选型一并列出**——这些是内部 roadmap 主文档"架构层详设"节的种子
+3. **不落盘**——`cs-epic` planning 自己建目录和主文档
 
-**退出**："移交给 `cs-roadmap`"（附聊到的要点汇总），不落盘
+**退出**："移交给 `cs-epic` planning 阶段"（附聊到的要点汇总），不落盘
 
 ---
 
@@ -201,16 +201,16 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 
 **信号**：多 feature 规模，但用户说不清模块边界、想先发散探索——"帮我问问清楚"、"先把想法理一理存着"、"方向还乱，聊开了再说"。
 
-这是创意空间，不是设计文档。目标是产生可留存的想法、方向和洞察，供后续 roadmap 消费。
+这是创意空间，不是设计文档。目标是产生可留存的想法、方向和洞察，供后续 epic planning 消费。
 
 **怎么聊**：启动 grill 档（见上节"对话节奏 > grill 档"），同时自由发散——聊方案、聊类比、聊技术可能性、聊限制。对话比 case 2 更开放，不急着收敛。
 
 **升降级**：
-- grill 完感觉够清楚了想直接拆 → case 3，落 brainstorm.md 后移交 roadmap
+- grill 完感觉够清楚了想直接拆 → case 3，落 brainstorm.md 后移交 `cs-epic`
 - 聊着发现其实一个 feature 能装下 → case 2
 - 聊着发现已经全清楚 → case 1
 
-**落盘**：用户说"先这样"/"差不多了"/"存一下"，或 AI 判断 grill 已到 3-5 轮上限，主动说"这块我先帮你落到 brainstorms 里，之后 roadmap 会读到"。
+**落盘**：用户说"先这样"/"差不多了"/"存一下"，或 AI 判断 grill 已到 3-5 轮上限，主动说"这块我先帮你落到 brainstorms 里，之后 `cs-epic` 会读到"。
 
 路径：`.codestable/brainstorms/{slug}/`
 
@@ -227,9 +227,9 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 - 比 case 2 模板更自由——不要求"选定方向"，允许保留多个倾向
 - 不需要"考虑过的方向"那种结构化对比——那是 design 前的事，这里只是创意记录
 
-**和 roadmap 的衔接**：`cs-roadmap` 启动时会搜 `.codestable/brainstorms/` 看有没有相关 brainstorm。如果有，roadmap 把 brainstorm 当输入材料读，不重复分诊直接拆。
+**和 epic 的衔接**：`cs-epic` planning 阶段启动时会搜 `.codestable/brainstorms/` 看有没有相关 brainstorm。如果有，内部 roadmap 主文档把 brainstorm 当输入材料读，不重复分诊直接拆。
 
-**退出**：落盘后告诉用户"想法存到 `{路径}` 了，准备好了就触发 `cs-roadmap`，它会读到这份脑暴记录"。如果 grill 过程中愿景（用户故事 / 痛点 / 边界）已经比较清楚了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，后续 roadmap 拆解和 design 都有稳定对齐基准
+**退出**：落盘后告诉用户"想法存到 `{路径}` 了，准备好了就触发 `cs-epic`，它会读到这份脑暴记录"。如果 grill 过程中愿景（用户故事 / 痛点 / 边界）已经比较清楚了，提示用户可以先 `cs-req draft` 把愿景落成 requirement，后续 epic 拆解和 design 都有稳定对齐基准
 
 ---
 

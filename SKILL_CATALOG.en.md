@@ -1,33 +1,36 @@
 # CodeStable Skill Catalog
 
+Main entries accept optional stage / mode arguments (for example `/cs-feat qa`, `/cs-refactor ff`, `/cs-docs api auth-endpoints`). Arguments are only intent hints; repository facts always win.
+
+## Recommended Main Entries
+
 | Group | Skill | Purpose |
 |---|---|---|
-| Root entry | `cs` | Unified entry that introduces the system and routes open-ended intents to the right `cs-*` skill |
-| Onboard | `cs-onboard` | Bring CodeStable into a new repo or one with scattered docs |
-| Requirement and domain | `cs-req` | Curate and accumulate raw requirement docs |
-| Requirement and domain | `cs-domain` | Maintain the domain model: `.codestable/requirements/CONTEXT.md` glossary + `adrs/` decision records + single/multi-context topology |
-| Roadmap | `cs-roadmap` | Plan big work up front: high-level design, interface contracts, sub-feature breakdown |
-| Roadmap | `cs-roadmap-review` | Independent planning review gate before human roadmap approval |
-| Roadmap | `cs-roadmap-impl-goal` | Turn an approved roadmap into a runnable goal that executes impl / review / QA / accept per feature |
-| Goal-driven | `cs-goal` | Goal-driven autonomous iteration: given a start point and desired end state, iterate until accepted; artifacts land in `.codestable/goals/` |
-| Discussion entry | `cs-brainstorm` | Triage fuzzy ideas: direct design, feature brainstorm, or roadmap |
-| Feature flow | `cs-feat` | Sub-flow entry for new features |
-| Feature flow | `cs-feat-design` | Draft `{slug}-design.md` as the single input for what follows |
-| Feature flow | `cs-feat-design-review` | Independent feature design review gate before human approval |
-| Feature flow | `cs-feat-impl` | Code in the order the design lays out |
-| Feature flow | `cs-code-review` | Read-only code review gate after implementation |
-| Feature flow | `cs-feat-qa` | QA verification gate after code review; optional independent runner |
-| Feature flow | `cs-feat-accept` | Verify implementation and close the loop; optional read-only auditor |
-| Feature flow | `cs-feat-ff` | Ultra-light lane: no design, no phases, direct implementation |
-| Issue flow | `cs-issue` | Sub-flow entry for issue fixing |
-| Issue flow | `cs-issue-report` | Turn a problem into a reproducible, traceable report |
-| Issue flow | `cs-issue-analyze` | Find root cause, assess risk, propose options |
-| Issue flow | `cs-issue-fix` | Targeted fix, verification, and fix-note |
-| Refactor flow | `cs-refactor` | Beta main refactor flow |
-| Refactor flow | `cs-refactor-ff` | Beta light refactor lane |
-| Knowledge sink | `cs-keep` | Sink freshly found pitfalls, tricks, decisions, and research into `.codestable/compound/` as plain markdown, retrieved via grep |
-| Knowledge sink | `cs-note` | Append one-line startup notes to `.codestable/attention.md` |
-| Explore and docs | `cs-audit` | Audit code for bug, security, performance, maintainability, and architecture risks |
-| Explore and docs | `cs-doc-tutorial` | Write outward-facing developer guides |
-| Explore and docs | `cs-doc-api` | Generate reference docs for public library surfaces |
-| Explore and docs | `cs-docs-neat` | Reconcile `.codestable/`, README/docs, `CLAUDE.md` / `AGENTS.md`, and agent memory at phase close |
+| Root | `cs` | Lightweight triage to the right main entry |
+| Onboarding | `cs-onboard` | Install CodeStable into a new or previously informal repository |
+| Requirements and domain | `cs-req` | Capture capability intent documents |
+| Requirements and domain | `cs-domain` | Maintain domain terms, ADRs, and context topology |
+| Epic | `cs-epic` | Large-demand entry: planning, review, child feature design, goal package |
+| Goal | `cs-goal` | Autonomous iteration from a defined start state to accepted end state |
+| Brainstorm | `cs-brainstorm` | Triage unclear ideas into feature, epic, or brainstorm notes |
+| Feature flow | `cs-feat` | End-to-end feature entry: design, review, impl, code review, QA, accept |
+| Issue flow | `cs-issue` | End-to-end issue entry: report, analyze, fix, review |
+| Refactor flow | `cs-refactor` | Behavior-preserving refactor entry with standard and fastforward modes |
+| Cross-cutting review | `cs-code-review` | Read-only implementation review gate |
+| Audit | `cs-audit` | Scan for bugs, security, performance, maintainability, and architecture drift |
+| Knowledge | `cs-keep` | Capture lessons, tricks, decisions, and research in `.codestable/compound/` |
+| Knowledge | `cs-note` | Append short startup-critical notes to `.codestable/attention.md` |
+| External docs | `cs-docs` | Write or update developer guides, user guides, and API references |
+| Docs hygiene | `cs-docs-neat` | Sync `.codestable/`, README/docs, agent entry files, and memory |
+
+## Long-Term Compatibility Entries
+
+These skill names remain usable, but they only enter the corresponding main workflow and do not maintain independent rules.
+
+| Compatibility group | Skills | Enters |
+|---|---|---|
+| Feature | `cs-feat-design`, `cs-feat-design-review`, `cs-feat-impl`, `cs-feat-qa`, `cs-feat-accept`, `cs-feat-ff` | Matching `cs-feat` stage or mode |
+| Issue | `cs-issue-report`, `cs-issue-analyze`, `cs-issue-fix` | Matching `cs-issue` stage |
+| Refactor | `cs-refactor-ff` | `cs-refactor` fastforward mode |
+| Docs | `cs-doc-tutorial`, `cs-doc-api` | `cs-docs` tutorial / api mode |
+| Epic | `cs-roadmap`, `cs-roadmap-review`, `cs-roadmap-impl-goal` | `cs-epic` planning / review / goal-package stage |

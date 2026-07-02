@@ -163,6 +163,23 @@ def check_skill_layout(root: Path, findings: list[Finding]) -> None:
             findings.append(Finding(path.name, "root standalone skill entry must be removed from this distribution branch"))
 
 
+def check_reference_directory_spellings(root: Path, findings: list[Finding]) -> None:
+    skills_dir = root / "plugins/codestable/skills"
+    if not skills_dir.is_dir():
+        return
+
+    directories = [skills_dir, *[path for path in sorted(skills_dir.rglob("*")) if path.is_dir()]]
+    for directory in directories:
+        if (directory / "reference").is_dir() and (directory / "references").is_dir():
+            findings.append(Finding(rel(directory, root), "must not contain both reference/ and references/"))
+        if directory.name == "reference":
+            findings.append(Finding(rel(directory, root), "skill package directory must use references/, not reference/"))
+        if directory.name == "references":
+            parts = directory.relative_to(skills_dir).parts
+            if len(parts) != 2 or parts[1] != "references":
+                findings.append(Finding(rel(directory, root), "nested references/ directories are not allowed; use support/"))
+
+
 def check_ignored_assets(root: Path, findings: list[Finding]) -> None:
     assets = [
         root / ".agents/plugins/marketplace.json",
@@ -176,6 +193,17 @@ def check_ignored_assets(root: Path, findings: list[Finding]) -> None:
             findings.append(Finding(rel(path, root), "install asset is missing"))
         elif is_git_ignored(root, path):
             findings.append(Finding(rel(path, root), "install asset is ignored by .gitignore"))
+
+
+def check_codestable_not_ignored(root: Path, findings: list[Finding]) -> None:
+    result = subprocess.run(
+        ["git", "check-ignore", "--no-index", "-q", "--", ".codestable/attention.md"],
+        cwd=root,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if result.returncode == 0:
+        findings.append(Finding(".gitignore", ".codestable must not be ignored"))
 
 
 def check_generated_exclusions(root: Path, findings: list[Finding]) -> None:
@@ -230,7 +258,9 @@ def check_repo(root: Path) -> list[Finding]:
     check_manifest_versions(root, version, findings)
     check_catalog_contracts(root, findings)
     check_skill_layout(root, findings)
+    check_reference_directory_spellings(root, findings)
     check_ignored_assets(root, findings)
+    check_codestable_not_ignored(root, findings)
     check_generated_exclusions(root, findings)
     check_readme_commands(root, findings)
     return findings

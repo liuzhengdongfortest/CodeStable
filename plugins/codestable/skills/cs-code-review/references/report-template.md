@@ -112,7 +112,7 @@ round: 1
 ## 7. Verdict
 
 - Status: passed|changes-requested|blocked
-- Next: 按「进入来源」表的通过后去向（feature→`cs-feat-qa`，其余→各自验收/提交） | 来源实现技能 review-fix | 等独立 Task agent reviewer 完成 / 用户确认降级后重跑本审查 | 补齐输入后重跑本审查
+- Next: 按「进入来源」表的通过后去向（feature→`cs-feat` QA 阶段，其余→各自验收/提交） | 来源实现技能 review-fix | 等独立 Task agent reviewer 完成 / 用户确认降级后重跑本审查 | 补齐输入后重跑本审查
 ```
 
 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。

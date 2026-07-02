@@ -1,135 +1,23 @@
 ---
 name: cs-refactor-ff
-description: 快速重构通道。触发：小重构/简单优化局部函数组件，且可测试自证。
+description: Refactor fastforward 兼容入口。旧调用保留；执行时转入 cs-refactor 主流程的 fastforward 模式。
 ---
 
 # cs-refactor-ff
 
-## 启动必读
+本技能是 `cs-refactor` 的长期兼容入口，不维护独立流程规则。
 
-开始任何判断或动作前，先执行 CodeStable preflight：读 `.codestable/attention.md`；缺失先 `cs-onboard`；不读外部 AI 入口替代（详见 `.codestable/reference/execution-conventions.md`）。
+入口意图：`requested_mode: fastforward`
 
-用户说"优化一下这个函数"而改动明显很小（单函数变长、组件里抽个 composable、一段重复代码合并）时走完整三阶段太重。fastforward 让 AI 像平时一样直接改但守住底线——行为等价、引用经典方法、跑测试自证。
+## 执行规则
 
-很轻：没有 scan 清单、没有 design doc、没有 checklist，改完一句话汇报就行。
+1. 按已安装 skill 名称加载 `cs-refactor` 作为权威主协议，不把兄弟目录相对路径当作主路径。
+2. 在当前 run 按 `cs-refactor` 主协议继续执行，并带上入口意图 `requested_mode: fastforward`。
+3. 不要要求用户重新调用 `cs-refactor`。
+4. 如果当前运行时无法加载主入口协议，停止并报告兼容入口不可继续。
 
-## 执行 gate（worktree + commit）
+## 维护规则
 
-改前运行 start gate，`{slug}` 为 refactor 目录名：
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/refactors/YYYY-MM-DD-{slug}
-```
-
-gate 不通过不动代码；override 先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。自证通过、提交前运行 commit gate（同命令 `commit`）；不通过先处理 findings。gate 安装与 branch-guard hook 见 `.codestable/reference/branch-guard-hooks.md`。
-
----
-
-## 入场 3 条硬检查（不过就退完整流程）
-
-先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为必须不变，不可破约束是公开接口和现有测试，最小充分改动必须能对应到经典重构方法；无法从这些推出的"顺手优化"都不做。
-
-任一不过就退到 `cs-refactor`：
-
-1. **行为真的不变吗？** 用户描述夹带"顺便支持 X / 改成 Y"——这是行为改动不是 refactor，让用户拆出去走 feature / issue
-2. **范围真的小吗？** 超过 1 个文件 / 单文件超过 100 行改动 / 预计改动点超过 3 处——退完整流程
-3. **有测试能自证吗？** 目标代码有覆盖（单测 / 集成测 / 类型检查能抓到）——没测试就退完整流程，或先做一个 characterization test 再回来
-
-完整 scan 阶段是 7 条入场检查，这里压成最关键 3 条——剩下 4 条（跨模块 / 全口味 / 生成代码 / 扫不完）在"范围真的小吗"里已被隐含排除。
-
----
-
-## 用经典方法不发挥
-
-fastforward 不读完整方法库，但要守住"**每一处改动都能对应到一个经典重构方法**"。AI 心里想不出"我这步是 Extract Function / Memoization / Guard Clauses / ..." 里的哪一个 → 这次不是简单重构退完整流程查方法库。
-
-常用方法（覆盖 fastforward 80% 场景）：
-
-- **Extract Function**：> 5 行、内聚、能命名的片段 → 抽出独立函数
-- **Extract Variable**：复杂表达式 → 命名变量或 query
-- **Guard Clauses**：开头多层嵌套 if 检查 → 提前 return 拉平
-- **Decompose Conditional**：复杂 if 条件 → 命名为布尔函数
-- **Extract Composable / hook**：组件里封闭的状态 + 副作用 → 独立 composable / hook
-- **Memoization**：重复计算 → computed / useMemo
-- **Cancellation**：副作用缺 cleanup → 加 onUnmounted / useEffect return
-
-想做的动作不在这几种里、不是开箱即用的经典方法（涉及 Parallel Change / Strangler Fig / 分层纠偏）→ 退完整流程。
-
----
-
-## 流程
-
-### 1. 一次对齐
-
-一句话回用户：**"我打算做 {方法名}，动 {具体文件/函数}，改动点 {N} 处，预计影响 {范围}。确认就开干。"**
-
-确认就下一步。用户说"还有个 X 要改"——评估 X 是否破坏入场 3 条，破坏了就退完整流程。
-
-### 2. 改
-
-按经典方法步骤改。不产出 design doc / checklist，代码直接落盘。
-
-### 3. 自证
-
-- 完成后先进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不进 commit，scoped-commit 发起权归 `cs-code-review`
-- 跑测试（单元 / 集成 / 类型检查 / lint）
-- grep 检查旧引用是否清理干净（做了 Extract / Inline 这类）
-- 改了前端状态逻辑跑类型检查 + 已有测试；**不做 UI 目视验证**——要 UI 目视就不该走 fastforward
-
-### 4. 一句话汇报
-
-```
-✓ 已完成。方法：{方法名}。改动：{文件路径:行号范围}。验证：{跑了什么测试 / 通过情况}。
-```
-
-有偏离 / apply 过程中发现想再改点别的 → **停下问用户不发挥**。
-
----
-
-## 文件产出
-
-默认**不建 `.codestable/refactors/` 目录**——fastforward 的价值就在不留存档。
-
-例外：用户明确"这次要留个记录" → 建 `.codestable/refactors/{YYYY-MM-DD}-{slug}/{slug}-refactor-note.md`，内容就是上面那句汇报 + 一段"做了什么 / 为什么"。不写 design / checklist。
-
----
-
-## 什么时候跳出 fastforward
-
-改到一半出现以下任一，**停下告诉用户"比预期复杂，建议切回完整流程"**：
-
-- 改动点从 3 个涨到 5+
-- 发现要动的文件不止 1 个
-- 冒出一个不在常用方法清单里的动作
-- 发现没有测试能覆盖
-- 用户追加"顺便改一下 X"带入行为改动
-- 改完 AI 自证失败且不是简单修正能搞定
-
-切回：触发 `cs-refactor` 从 scan 开始。已改的部分要么提交保留、要么 `git restore` 回到干净状态再扫。
-
----
-
-## 不做什么
-
-- **不写 scan / design / checklist** —— 写了就违背 fastforward 存在的理由
-- **不跨多文件改** —— 跨文件就不是"小重构"
-- **不做需要 HUMAN 目视的改动** —— 前端渲染 / 交互 / 性能感知要人看的走完整流程
-- **不碰公开接口** —— 改公开接口要走 Parallel Change，不是 fastforward 能做的
-
----
-
-## 容易踩的坑
-
-- **把"小"判断得太宽**：用户说"小重构"但实际动 3 个文件——AI 要老实说"这不算小"
-- **跳过入场 3 条检查就开干**：这个技能的意义就在这 3 条
-- **自证偷懒**：只跑类型检查不跑单元测试，或完全不 grep 旧引用
-- **改中发挥**：看到邻居代码也"顺手改改"——fastforward 范围在确认那一刻就锁死
-- **行为改动伪装成重构**：加新参数、改返回值格式——这是行为改动伪装不了
-
----
-
-## 相关
-
-- `cs-refactor/SKILL.md` — 完整 refactor 流程
-- `cs-refactor/reference/methods.md` — 完整方法库
-- `.codestable/reference/system-overview.md` — CodeStable 体系总览
+- 不在本文件复制阶段流程、模板或 gate 规则。
+- 规则变更只更新 `cs-refactor` 及其 `references/`。
+- 本入口只用于保持旧调用、旧提示词和历史习惯可用。

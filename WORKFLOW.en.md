@@ -2,33 +2,45 @@
 
 ## Workflow Layers
 
-CodeStable skills are layered and event-driven:
+CodeStable is layered and event-driven. Daily use should start from main entries, not stage skill names:
 
 ```text
 cs
 └── cs-onboard
     ├── cs-req / cs-domain
-    ├── cs-roadmap
-    │   ├── cs-roadmap-review
-    │   └── cs-roadmap-impl-goal
+    ├── cs-epic
+    │   └── internally uses the roadmap storage model and goal package
     ├── cs-goal
-    ├── cs-feat-design -> cs-feat-design-review -> cs-feat-impl -> cs-code-review -> cs-feat-qa -> cs-feat-accept
-    ├── cs-issue-report -> cs-issue-analyze -> cs-issue-fix -> cs-code-review
-    ├── cs-refactor / cs-refactor-ff -> cs-code-review
+    ├── cs-brainstorm
+    ├── cs-feat -> cs-code-review
+    ├── cs-issue -> cs-code-review
+    ├── cs-refactor -> cs-code-review
+    ├── cs-docs
     └── cs-keep / cs-note / cs-docs-neat
 ```
 
-Vertical means layers, not strict time order. Long-lived archives are refreshed repeatedly; the roadmap layer is entered for large needs, and `cs-goal` is the goal-driven autonomous iteration entry that, given a start point and desired end state, iterates until accepted. Execution is event-driven: new capability goes to feature flow, bugs go to issue flow, and code rot goes to refactor flow; `cs-code-review` is the cross-cutting code review gate that all of feature / issue / refactor pass through to produce `{slug}-review.md`. The cross-cut layer is the knowledge flywheel: any flow sinks reusable experience into compound via `cs-keep`.
-`cs-docs-neat` is the phase-close cleanup skill: it reconciles `.codestable/`, README/docs, `CLAUDE.md` / `AGENTS.md`, and agent memory without adding a new archive document type.
+The vertical layout is layering, not strict time order. Long-lived records are refreshed repeatedly; `cs-epic` is only for large demands and still writes `.codestable/roadmap/` in the first version; `cs-goal` is the autonomous goal workflow.
+
+The event entries are `cs-feat` for new capability, `cs-issue` for bugs, `cs-refactor` for behavior-preserving cleanup, and `cs-docs` for outward documentation. `cs-code-review` remains the cross-cutting implementation review gate.
+
+The knowledge loop remains cross-cutting: any workflow can use `cs-keep`; milestone cleanup uses `cs-docs-neat` to sync `.codestable/`, README/docs, agent entry files, and memory.
+
+Old stage skills remain long-term compatibility entries:
+
+- Feature: `cs-feat-design` / `cs-feat-design-review` / `cs-feat-impl` / `cs-feat-qa` / `cs-feat-accept` / `cs-feat-ff`
+- Issue: `cs-issue-report` / `cs-issue-analyze` / `cs-issue-fix`
+- Refactor: `cs-refactor-ff`
+- Docs: `cs-doc-tutorial` / `cs-doc-api`
+- Epic: `cs-roadmap` / `cs-roadmap-review` / `cs-roadmap-impl-goal`
 
 ## Runtime Structure
 
-After `/cs-onboard`, the project root gets `.codestable/`:
+After `/cs-onboard`, the project root contains `.codestable/`:
 
 ```text
 .codestable/
-├── requirements/        # requirement docs + domain model: CONTEXT.md glossary + adrs/ ADRs
-├── roadmap/
+├── requirements/        # requirements + domain model
+├── roadmap/             # internal storage model for epic
 ├── goals/
 ├── features/
 ├── issues/
@@ -42,8 +54,8 @@ After `/cs-onboard`, the project root gets `.codestable/`:
 
 Key constraints:
 
-- `requirements/` is a long-lived archive of current state: it holds requirement/capability docs as well as the cs-domain domain model — the `CONTEXT.md` glossary and `adrs/` decision records (split into `CONTEXT-MAP.md` plus per-context subdirectories under multi-context).
-- `roadmap/` is the planning layer for large needs; `goals/` holds cs-goal start / iteration / acceptance artifacts.
-- `features/`, `issues/`, and `refactors/` use `YYYY-MM-DD-{slug}/` to group one workflow run; `audits/` and `brainstorms/` likewise hold audit and brainstorm artifacts.
-- `compound/` is the single knowledge sink; `cs-keep` writes pitfalls / tricks / decisions / research there as plain markdown files retrieved via grep.
-- `reference/` is released by `cs-onboard`; cross-skill shared docs must go through project-local `.codestable/reference/`, not direct references to another skill package.
+- `requirements/` stores long-lived current-state facts and the domain model.
+- `roadmap/` remains the internal planning layer used by `cs-epic`; user-facing docs call it epic, but historical paths/doc_type are not migrated yet.
+- `features/`, `issues/`, and `refactors/` use `YYYY-MM-DD-{slug}/` directories.
+- `compound/` is the only knowledge compounding directory, written by `cs-keep`.
+- `reference/` is released by `cs-onboard`; shared workflow conventions are read from project-local `.codestable/reference/`.

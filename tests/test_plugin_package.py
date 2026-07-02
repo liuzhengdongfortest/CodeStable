@@ -42,8 +42,7 @@ def make_repo(tmp_path: Path) -> Path:
         "/dist/\n"
         "__pycache__\n"
         "*.pyc\n"
-        ".DS_Store\n"
-        ".codestable/\n",
+        ".DS_Store\n",
         encoding="utf-8",
     )
     write_json(
@@ -224,6 +223,37 @@ def test_root_standalone_skill_residue_fails(tmp_path: Path) -> None:
     assert any("root standalone skill entry" in message for message in messages(findings))
 
 
+def test_skill_reference_spelling_conflict_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    skill_dir = repo / "plugins/codestable/skills/cs-feat"
+    (skill_dir / "reference").mkdir()
+    (skill_dir / "references").mkdir()
+
+    findings = checker.check_repo(repo)
+
+    assert any("must not contain both reference/ and references/" in message for message in messages(findings))
+
+
+def test_skill_reference_directory_spelling_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    skill_dir = repo / "plugins/codestable/skills/cs-feat"
+    (skill_dir / "reference").mkdir()
+
+    findings = checker.check_repo(repo)
+
+    assert any("must use references/, not reference/" in message for message in messages(findings))
+
+
+def test_nested_references_directory_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    nested = repo / "plugins/codestable/skills/cs-feat/references/design/references"
+    nested.mkdir(parents=True)
+
+    findings = checker.check_repo(repo)
+
+    assert any("nested references/ directories are not allowed" in message for message in messages(findings))
+
+
 def test_non_cs_skill_and_generated_artifacts_fail(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     extra_skill = repo / "plugins/codestable/skills/other-skill"
@@ -250,6 +280,15 @@ def test_ignored_install_asset_fails(tmp_path: Path) -> None:
     findings = checker.check_repo(repo)
 
     assert any("install asset is ignored" in message for message in messages(findings))
+
+
+def test_ignored_codestable_fails(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    (repo / ".gitignore").write_text(".codestable/\n", encoding="utf-8")
+
+    findings = checker.check_repo(repo)
+
+    assert ".codestable must not be ignored" in messages(findings)
 
 
 def test_readme_commands_stay_current(tmp_path: Path) -> None:
