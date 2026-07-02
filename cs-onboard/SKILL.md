@@ -36,6 +36,7 @@ python cs-onboard/scripts/init_codestable.py --project .
 脚本会创建 `.cs/facts.md`、`.cs/requirements/index.md` 和这些目录：
 
 - `.cs/talks/`
+- `.cs/specs/`
 - `.cs/issues/`
 - `.cs/epics/`
 - `.cs/requirements/`
@@ -47,7 +48,7 @@ python cs-onboard/scripts/init_codestable.py --project .
 
 ## 收尾汇报
 
-告诉用户创建或补齐了哪些目录和文件、哪些已存在所以保留、下一步该用哪个技能：想法模糊用 `cs-talk`，已有讨论用 `cs-plan`，要记知识用 `cs-note`，内部流程未知用 `cs-maketools`。
+告诉用户创建或补齐了哪些目录和文件、哪些已存在所以保留、下一步该用哪个技能：想法模糊用 `cs-talk`，上游规格不清用 `cs-spec`，已有讨论或 plan-brief 用 `cs-plan`，要记知识用 `cs-note`，内部流程未知用 `cs-maketools`。
 
 ## 应用场景
 

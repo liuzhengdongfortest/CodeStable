@@ -1,0 +1,4 @@
+interface:
+  display_name: "CS Spec"
+  short_description: "渐进澄清上游规格并分批 plan"
+  default_prompt: "Use $cs-spec to iteratively align upstream specs, code context, unknown systems, blockers, and spec changes into a .cs/specs workspace, then mark which scope is ready for planning."

@@ -62,4 +62,4 @@ cs-talk 在场，是为了把真问题挖出来、加速真实诉求浮出水面
 
 有个想法还没想清楚、方向还在摇摆、心里知道要做什么但交代不完整、想先聊聊再动手时使用。
 
-cs-talk 不直接创建 epics 或 issues，不替代 requirements，不处理已明确的 bug，不自己写代码。
+cs-talk 不直接创建 epics 或 issues，不替代 requirements，不处理已明确的 bug，不自己写代码。上游规格/PRD/SE 文档目标大体稳定但信息传递不完整时，用 `cs-spec`。

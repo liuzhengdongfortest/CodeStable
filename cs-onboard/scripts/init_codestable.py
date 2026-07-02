@@ -36,6 +36,7 @@ REQUIREMENTS_INDEX = """# [项目或领域] requirements
 
 DIRS = [
     ".cs/talks",
+    ".cs/specs",
     ".cs/issues",
     ".cs/epics",
     ".cs/requirements",
