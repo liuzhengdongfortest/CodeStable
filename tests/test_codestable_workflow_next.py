@@ -1,0 +1,178 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+TOOLS_DIR = Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-onboard/tools"
+sys.path.insert(0, str(TOOLS_DIR))
+
+
+def load_tool():
+    spec = importlib.util.spec_from_file_location("codestable_workflow_next", TOOLS_DIR / "codestable-workflow-next.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+workflow_next = load_tool()
+
+
+def write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def init_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / ".codestable").mkdir()
+    return repo
+
+
+def write_roadmap(repo: Path, status: str = "active") -> Path:
+    roadmap = repo / ".codestable/roadmap/billing-system"
+    write(
+        roadmap / "billing-system-roadmap.md",
+        f"---\ndoc_type: roadmap\nslug: billing-system\nstatus: {status}\n---\n# Roadmap\n",
+    )
+    write(roadmap / "billing-system-roadmap-review.md", "---\ndoc_type: roadmap-review\nstatus: passed\n---\n# Review\n")
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\n"
+        "items:\n"
+        "  - slug: api-seed\n"
+        "    status: planned\n"
+        "    feature: null\n"
+        "  - slug: ui-seed\n"
+        "    status: planned\n"
+        "    feature: null\n",
+    )
+    return roadmap
+
+
+def write_feature(repo: Path, slug: str, *, design_status: str = "draft", review_status: str = "passed") -> Path:
+    feature = repo / ".codestable/features" / f"2026-07-02-{slug}"
+    write(
+        feature / f"{slug}-design.md",
+        f"---\ndoc_type: feature-design\nfeature: 2026-07-02-{slug}\n"
+        f"roadmap: billing-system\nroadmap_item: {slug}\nstatus: {design_status}\n---\n# Design\n",
+    )
+    write(feature / f"{slug}-checklist.yaml", "steps:\n  - id: step-1\n    status: pending\n")
+    write(
+        feature / f"{slug}-design-review.md",
+        f"---\ndoc_type: feature-design-review\nstatus: {review_status}\n---\n# Review\n",
+    )
+    return feature
+
+
+def test_epic_continues_when_only_first_child_design_review_passed(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed")
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["ok"] is True
+    assert result["status"] == "continue"
+    assert result["next_action"] == "cs-feat design/design-review"
+    assert result["must_continue"] is True
+    assert result["final_answer_allowed"] is False
+    assert result["evidence"]["next_item"]["item"] == "ui-seed"
+
+
+def test_epic_user_gate_only_after_all_child_design_reviews_passed(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed")
+    write_feature(repo, "ui-seed")
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "all-feature-designs-confirmation"
+    assert result["must_continue"] is False
+    assert result["final_answer_allowed"] is True
+    assert {item["item"] for item in result["evidence"]["unapproved_items"]} == {"api-seed", "ui-seed"}
+
+
+def test_epic_goal_package_after_batch_approval(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved")
+    write_feature(repo, "ui-seed", design_status="approved")
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "goal_package"
+    assert result["next_action"] == "cs-epic goal-package"
+    assert result["must_continue"] is True
+    assert result["final_answer_allowed"] is False
+
+
+def test_feature_epic_child_batch_returns_to_epic_loop(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(repo, "api-seed")
+
+    result = workflow_next.feature_next(feature, epic_child_batch=True)
+
+    assert result["status"] == "continue"
+    assert result["next_action"] == "return-to-cs-epic-batch-loop"
+    assert result["must_continue"] is True
+    assert result["final_answer_allowed"] is False
+    assert result["evidence"]["roadmap_item"] == "api-seed"
+
+
+def test_feature_single_mode_stops_at_design_confirmation(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(repo, "api-seed")
+
+    result = workflow_next.feature_next(feature, epic_child_batch=False)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "feature-design-confirmation"
+    assert result["must_continue"] is False
+    assert result["final_answer_allowed"] is True
+
+
+def test_cli_accepts_json_before_or_after_subcommand(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed")
+
+    for command in (
+        [
+            sys.executable,
+            (TOOLS_DIR / "codestable-workflow-next.py").as_posix(),
+            "--json",
+            "epic",
+            "--roadmap",
+            roadmap.as_posix(),
+        ],
+        [
+            sys.executable,
+            (TOOLS_DIR / "codestable-workflow-next.py").as_posix(),
+            "epic",
+            "--roadmap",
+            roadmap.as_posix(),
+            "--json",
+        ],
+    ):
+        completed = subprocess.run(
+            command,
+            cwd=repo,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env={"PYTHONDONTWRITEBYTECODE": "1"},
+        )
+
+        result = json.loads(completed.stdout)
+        assert result["status"] == "continue"
+        assert result["final_answer_allowed"] is False

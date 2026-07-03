@@ -15,6 +15,8 @@
 该上下文下，本阶段只负责产出 draft design、checklist、design-review 和 items.yaml 回写；
 不执行单 feature 用户整体 review，不把 design 改成 `approved`。所有子 feature 由
 `cs-epic` 统一交给用户确认。
+退出前必须运行 `codestable-workflow-next.py feature --epic-child-batch`，用 hook 输出确认
+本轮只能交回 `cs-epic`，不能停在单个 child design 确认。
 
 **设计原则**：design 不是实现前的散文说明，而是后续实现和验收的可执行契约。它必须把"做好"翻译成可观察证据，把 steps 切成独立可验证单元，把风险和依赖前置暴露，并在交给用户前做一次自我批判，修掉含糊标准、混合步骤和薄弱依赖。
 
@@ -236,7 +238,7 @@ AI 默认翻车的姿势是**不思考就往眼前最顺手的文件里加**。
 
 普通单 feature：用户整体 review 通过，并且：
 
-`epic_child_batch: true`：design-review 已 passed、design 仍为 draft、items.yaml 已回写，返回 `cs-epic` 继续批量流程；不要单独停等用户。
+`epic_child_batch: true`：design-review 已 passed、design 仍为 draft、items.yaml 已回写，且 `codestable-workflow-next.py feature --epic-child-batch` 输出 `final_answer_allowed: false`，返回 `cs-epic` 继续批量流程；不要单独停等用户。
 
 - [ ] frontmatter 完整（`doc_type` / `feature` / `summary` / `tags`），requirement 字段已对齐；普通单 feature 为 `status=approved`，`epic_child_batch: true` 为 `status=draft`
 - [ ] design 正文已按 `.codestable/attention.md` 的报告语言落盘（默认中文；frontmatter / yaml 字段保持机读格式）

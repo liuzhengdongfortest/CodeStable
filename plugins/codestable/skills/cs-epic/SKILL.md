@@ -68,6 +68,9 @@ argument-hint: "[--stage planning|review|goal-package] <epic>"
 
 roadmap 已确认后，子 feature design 阶段是一个连续 batch loop，不是单次子任务：
 
+- 每轮开始、每个 child design-review 后、以及准备 final answer 前，先运行
+  `python3 .codestable/tools/codestable-workflow-next.py epic --roadmap .codestable/roadmap/{slug} --json`。
+- hook 输出 `must_continue: true` 或 `final_answer_allowed: false` 时，必须按 `next_action` 继续；不得结束本轮。
 - 每轮先扫描 `{slug}-items.yaml`，找出下一个 `planned` / `in-progress` 且缺 design、checklist 或 `passed` design-review 的 item。
 - 完成某一个 child 的 design + design-review `passed` 只是内部进度；不得 final answer、不得要求用户确认该 child、不得进入实现。
 - 只有 items.yaml 里所有未 dropped child 都已有 design + checklist + `passed` design-review，才允许触发“所有 design 统一确认”的人工 checkpoint。
@@ -100,6 +103,7 @@ design-review 后统一处理。
 ## 退出条件
 
 - child design batch loop 只在全部 child design-review passed、遇到 blocking / pending / 授权问题、或用户明确要求停止时才可结束。
+- 若 `codestable-workflow-next.py` 返回 `final_answer_allowed: false`，当前 run 不能退出。
 - 规划、审查、子 feature design 和 goal 包状态能从仓库事实恢复。
 - 历史 `roadmap` 命名只作为内部兼容说明出现；用户主路径称为 epic。
 - 需要同步文档或记忆时提示 `cs-docs-neat`。

@@ -585,6 +585,7 @@ def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_pat
         "cs-epic",
         "SKILL.md",
         "Child design batch loop",
+        "codestable-workflow-next.py epic",
         "完成某一个 child 的 design + design-review `passed` 只是内部进度",
         "不得 final answer",
         "本轮必须继续调用 `cs-feat`",
@@ -594,6 +595,7 @@ def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_pat
         "references/goal/protocol.md",
         "单个 child 完成不是本阶段退出条件",
         "不能用 final answer",
+        "codestable-workflow-next.py epic",
         "继续 batch loop",
     )
 

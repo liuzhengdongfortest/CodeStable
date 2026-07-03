@@ -109,6 +109,8 @@ CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1 python3 .codestable/tools/validate-imple
 `cs-onboard` 会把技能包里的 `gates/` 和 gate 脚本释放到项目 `.codestable/`，并清理 `__pycache__` / `*.pyc`。这些 gate 不是全局 PreToolUse 拦截器，而是由 `cs-epic` / `cs-feat` 等主入口在阶段边界显式调用。
 
 ```bash
+python3 .codestable/tools/codestable-workflow-next.py epic --roadmap .codestable/roadmap/{slug} --json
+python3 .codestable/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --epic-child-batch --json
 python3 .codestable/tools/validate-yaml.py --file .codestable/gates/roadmap-goal-gates.yaml --yaml-only
 python3 .codestable/tools/codestable-dod-contract-gate.py --design .codestable/features/YYYY-MM-DD-{slug}/{slug}-design.md
 python3 .codestable/tools/codestable-dod-runner.py --checklist .codestable/features/YYYY-MM-DD-{slug}/{slug}-checklist.yaml
@@ -118,6 +120,7 @@ python3 .codestable/tools/codestable-goal-consistency-gate.py --roadmap .codesta
 
 `roadmap-goal-gates.yaml` 是阶段配置入口；`codestable-scope-gate.py`、`codestable-dod-runner.py` 和 `codestable-evidence-pack.py` 是 implementation.before_review 的最小 runtime。`status: protocol-only` 的 gate 只表示协议占位，由 review / QA / acceptance / audit 技能读取证据后执行，不代表已有独立脚本。
 `codestable-goal-consistency-gate.py` 是 roadmap_audit.before_complete 的 runtime，检查 goal-state、items、每个 feature 的 review/QA/acceptance/evidence/gate/DoD 产物和 checklist 状态，防止 goal-state 早于证据推进。
+`codestable-workflow-next.py` 是只读下一步解析器，输出 `next_action`、`must_continue` 和 `final_answer_allowed`；`cs-epic` / `cs-feat` 在 child design batch 边界必须按它的 JSON 继续或停 gate。
 
 ---
 
