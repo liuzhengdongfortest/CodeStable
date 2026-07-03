@@ -36,6 +36,7 @@ description: CodeStable 接入。触发：初始化/迁移/搭骨架，自动判
 ├── issues/                     issue 聚合根
 ├── refactors/                  重构聚合根（beta）
 ├── audits/                     审计聚合根
+├── feedback/                   CodeStable skill 使用反馈和上报证据
 ├── brainstorms/                脑暴 / interview 持久记录聚合根
 ├── compound/                   沉淀类统一目录（cs-keep 写自由 markdown，grep 检索）
 ├── gates/                      workflow gate 配置（onboard 释放）
@@ -84,7 +85,7 @@ description: CodeStable 接入。触发：初始化/迁移/搭骨架，自动判
 
 按下面顺序执行，**不等用户逐步确认**——骨架是整体一次性的：
 
-- `.codestable/{requirements,roadmap,goals,features,issues,refactors,audits,brainstorms,compound}/.gitkeep`
+- `.codestable/{requirements,roadmap,goals,features,issues,refactors,audits,feedback,brainstorms,compound}/.gitkeep`
 - `.codestable/.gitignore`（从当前 `cs-onboard` skill 目录的 `codestable.gitignore` 复制，忽略运行期缓存）
 - `.codestable/attention.md`（最小骨架模板见同目录 `reference.md`）
 - `.codestable/gates/`（用 `cp -rf` / `Copy-Item -Recurse -Force` 整目录拷贝当前 `cs-onboard` skill 目录的 `gates/`）

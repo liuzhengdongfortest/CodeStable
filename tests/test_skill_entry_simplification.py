@@ -145,6 +145,7 @@ MAIN_ENTRY_SKILLS = [
     "cs-refactor",
     "cs-docs",
     "cs-epic",
+    "cs-feedback",
     "cs-code-review",
     "cs-docs-neat",
 ]
@@ -156,6 +157,7 @@ MAIN_ENTRY_ARGUMENT_HINTS = {
     "cs-refactor": "[--stage scan|design|apply] [--mode standard|fastforward] <target>",
     "cs-docs": "[--mode tutorial|api] <topic>",
     "cs-epic": "[--stage planning|review|goal-package] <epic>",
+    "cs-feedback": "[--since-days N] [--session current|<id-or-path>] [--github] <feedback>",
     "cs-code-review": "[--range <git-range>] [scope]",
     "cs-docs-neat": "[scope]",
 }
@@ -299,6 +301,7 @@ PREFLIGHT_CANONICAL_SKILLS = [
     "cs-refactor",
     "cs-docs",
     "cs-epic",
+    "cs-feedback",
     "cs-code-review",
     "cs-docs-neat",
     "cs-audit",
@@ -462,5 +465,29 @@ def test_new_main_entries_are_registered() -> None:
 
     assert "cs-docs" in common.KNOWN_SKILL_DIRS
     assert "cs-epic" in common.KNOWN_SKILL_DIRS
+    assert "cs-feedback" in common.KNOWN_SKILL_DIRS
     for skill in COMPATIBILITY_ENTRIES:
         assert skill in common.KNOWN_SKILL_DIRS
+
+
+def test_feedback_skill_is_registered_and_uses_progressive_disclosure() -> None:
+    feedback = (SKILLS / "cs-feedback/SKILL.md").read_text(encoding="utf-8")
+    collector = SKILLS / "cs-feedback/scripts/collect_feedback_context.py"
+    reporter = SKILLS / "cs-feedback/scripts/report_feedback_issue.py"
+    template = SKILLS / "cs-feedback/references/report-template.md"
+    router = (SKILLS / "cs/SKILL.md").read_text(encoding="utf-8")
+    catalog = (ROOT / "SKILL_CATALOG.md").read_text(encoding="utf-8")
+    catalog_en = (ROOT / "SKILL_CATALOG.en.md").read_text(encoding="utf-8")
+    overview = (SKILLS / "cs-onboard/references/system-overview.md").read_text(encoding="utf-8")
+
+    assert "CodeStable 使用反馈闭环" in feedback
+    assert "--session current" in feedback
+    assert "best-effort" in feedback
+    assert "ambiguity.candidates" in feedback
+    assert collector.is_file()
+    assert reporter.is_file()
+    assert template.is_file()
+    assert "CodeStable skill 跑偏" in router
+    assert "cs-feedback" in catalog
+    assert "cs-feedback" in catalog_en
+    assert ".codestable/feedback/" in overview or "cs-feedback" in overview

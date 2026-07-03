@@ -12,7 +12,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/cs--skills-31-6366F1?style=flat-square" alt="CodeStable Skills"/>
+  <img src="https://img.shields.io/badge/cs--skills-32-6366F1?style=flat-square" alt="CodeStable Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -193,6 +193,7 @@ CodeStable 顺着软件编码的真实流程来设计，把开发活动建模成
 | 重构流程 | `cs-refactor` | 行为等价重构，含标准模式和 fastforward mode |
 | 横切审查 | `cs-code-review` | 实现完成后、commit 前的只读代码审查 gate |
 | 审计 | `cs-audit` | 主动扫描 bug、安全、性能、可维护性和架构偏离 |
+| 反馈 | `cs-feedback` | 收集 CodeStable skill 使用问题，自动采集本机历史并准备 GitHub issue |
 | 知识沉淀 | `cs-keep` / `cs-note` | 沉淀 compound 知识或短项目注意事项 |
 | 对外文档 | `cs-docs` | 写开发者指南、用户指南、API 参考 |
 | 文档收尾 | `cs-docs-neat` | 同步 `.codestable/`、README/docs、agent 入口和记忆 |
@@ -226,6 +227,7 @@ cs
     ├── cs-issue    -> cs-code-review
     ├── cs-refactor -> cs-code-review
     ├── cs-docs
+    ├── cs-feedback
     └── cs-keep / cs-note / cs-docs-neat
 ```
 
@@ -235,6 +237,7 @@ cs
 - `cs-feat` / `cs-issue` / `cs-refactor` 是连续编排入口，按仓库事实恢复阶段。`cs-issue` / `cs-refactor` 在 review、blocking 或用户确认 checkpoint 停下；`cs-feat` 只在 design gate 停下，用户确认后经可见 goal driver 长程完成 impl、review、QA、accept。
 - `cs-epic` 负责大需求规划和 goal 执行包，用户确认后派发可见 goal driver 长程执行；第一版内部仍使用 `.codestable/roadmap/`，不批量迁移历史产物。
 - `cs-code-review` 是横切 gate；`cs-docs-neat` 是阶段收尾整理器；`cs-docs` 只写对外指南和 API 参考。
+- `cs-feedback` 收集使用 CodeStable skills 时的失败和绕路，自动采集本机 Codex/Claude 历史并准备上报 issue。
 - 旧阶段技能是长期兼容入口，历史用户可以继续调用，但新文档和新提示词应使用主入口。
 
 完整示意图另见 [WORKFLOW.md](./WORKFLOW.md)。

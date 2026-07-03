@@ -58,6 +58,11 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 │       ├── {slug}-refactor-design.md
 │       ├── {slug}-checklist.yaml
 │       └── {slug}-apply-notes.md
+├── feedback/              CodeStable skill 使用反馈和上报证据
+│   └── YYYY-MM-DD-{slug}/
+│       ├── {slug}-report.md
+│       ├── evidence.json
+│       └── github-issue.md
 ├── compound/              沉淀类文档统一目录（cs-keep 产出）
 │   └── YYYY-MM-DD-{slug}.md
 │                          纯 markdown，无 frontmatter，grep 检索
@@ -73,6 +78,7 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 - 需求文档：`requirements/{slug}.md`（能力愿景，不带日期前缀，扁平不分组）；中心索引 `requirements/VISION.md`
 - roadmap：`roadmap/{slug}/`（不带日期前缀，平铺不嵌套）
 - feature / issue / refactor 目录：带日期前缀 `YYYY-MM-DD-{slug}`
+- feedback 目录：带日期前缀 `YYYY-MM-DD-{slug}`，保存 feedback report、脱敏 evidence 和 GitHub issue body
 - 沉淀类：`compound/YYYY-MM-DD-{slug}.md`，日期用**归档当天**，纯 markdown 无 frontmatter（cs-keep 产出）
 - 领域术语：`requirements/CONTEXT.md`（单 context）或 `requirements/{ctx}/CONTEXT.md`（多 context）；cs-domain lazy 创建
 - 架构决策：`requirements/adrs/NNN-{slug}.md`（系统级）或 `requirements/{ctx}/adrs/NNN-{slug}.md`（子 context）；3 位编号，cs-domain 产出
@@ -99,6 +105,8 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 **issue spec**：report / analysis / fix-note 共用 `doc_type` / `issue` / `status` / `tags`。`severity` / `root_cause_type` / `path` 由对应阶段按需补。
 
 **归档类（compound）**：由 `cs-keep` 统一产出，写到 `.codestable/compound/YYYY-MM-DD-{slug}.md`。纯 markdown，**无 frontmatter**。三段足够：背景 / 结论 / 证据。检索靠 grep。
+
+**反馈类（feedback）**：由 `cs-feedback` 统一产出，写到 `.codestable/feedback/YYYY-MM-DD-{slug}/`。`{slug}-report.md` 用 `doc_type: codestable-feedback`；`evidence.json` 只放脱敏后的本机历史片段和上下文窗口；`github-issue.md` 是可公开上报前让用户确认的 issue body。
 
 **外部读者文档**（`cs-docs` tutorial / api mode）：frontmatter 由对应模式定义。无特殊说明：`draft` = 待 review，`current` = 当前有效，`outdated` = 代码已变更待同步。
 

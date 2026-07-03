@@ -70,6 +70,7 @@ KNOWN_SKILL_DIRS = {
     "cs-docs-neat",
     "cs-domain",
     "cs-epic",
+    "cs-feedback",
     "cs-feat",
     "cs-feat-accept",
     "cs-feat-design",

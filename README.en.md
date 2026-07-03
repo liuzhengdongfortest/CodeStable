@@ -12,7 +12,7 @@ Tired of OpenSpec's flimsiness, Oh-My-OpenAgent's over-engineering, and Superpow
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/cs--skills-31-6366F1?style=flat-square" alt="CodeStable Skills"/>
+  <img src="https://img.shields.io/badge/cs--skills-32-6366F1?style=flat-square" alt="CodeStable Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -191,6 +191,7 @@ CodeStable models real coding work as a set of **entities** and **flows**.
 | Refactor | `cs-refactor` | Behavior-preserving refactor workflow |
 | Review | `cs-code-review` | Cross-cutting read-only implementation review gate |
 | Audit | `cs-audit` | Scan for bugs, security, performance, maintainability, and architecture drift |
+| Feedback | `cs-feedback` | Capture CodeStable skill usage problems, collect local history, and prepare a GitHub issue |
 | Knowledge | `cs-keep` / `cs-note` | Capture durable knowledge or short startup-critical notes |
 | External docs | `cs-docs` | Developer guides, user guides, and API references |
 | Docs hygiene | `cs-docs-neat` | Sync `.codestable/`, README/docs, agent entries, and memory |
@@ -224,6 +225,7 @@ cs
     ├── cs-issue    -> cs-code-review
     ├── cs-refactor -> cs-code-review
     ├── cs-docs
+    ├── cs-feedback
     └── cs-keep / cs-note / cs-docs-neat
 ```
 
@@ -233,6 +235,7 @@ How to read it:
 - `cs-feat`, `cs-issue`, and `cs-refactor` resume from repository facts. `cs-issue` and `cs-refactor` stop at review, blocking, or user-confirmation checkpoints; `cs-feat` stops only at the design gate, then runs impl, review, QA, and accept long-range via a visible goal driver.
 - `cs-epic` prepares planning and goal packages, then dispatches a visible goal driver; v1 still writes `.codestable/roadmap/`.
 - `cs-code-review` is the cross-cutting gate; `cs-docs-neat` handles hygiene; `cs-docs` writes outward docs.
+- `cs-feedback` captures failures and detours while using CodeStable skills, collects local Codex/Claude history, and prepares an issue.
 - Old stage skills are long-term compatibility entries for historical users.
 
 See [WORKFLOW.en.md](./WORKFLOW.en.md) for the compact diagram.

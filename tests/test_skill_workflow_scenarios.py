@@ -32,6 +32,7 @@ AFFECTED_SKILLS = {
     "cs-doc-api",
     "cs-docs-neat",
     "cs-epic",
+    "cs-feedback",
     "cs-roadmap",
     "cs-roadmap-review",
     "cs-roadmap-impl-goal",
@@ -65,6 +66,7 @@ SCENARIO_COVERAGE = {
     "issue": {"cs-issue", "cs-issue-report", "cs-issue-analyze", "cs-issue-fix", "cs-code-review"},
     "refactor": {"cs-refactor", "cs-refactor-ff", "cs-code-review"},
     "docs": {"cs-docs", "cs-doc-tutorial", "cs-doc-api", "cs-docs-neat"},
+    "feedback": {"cs-feedback"},
     "goal-driver": {"cs-onboard", "cs-feat", "cs-epic"},
 }
 
@@ -440,6 +442,8 @@ def route_request(has_codestable: bool, request: str) -> str:
         return "cs-refactor"
     if "api doc" in request or "guide" in request:
         return "cs-docs"
+    if "feedback" in request or "skill failed" in request or "rule unclear" in request:
+        return "cs-feedback"
     if "epic" in request or "roadmap" in request or "system" in request:
         return "cs-epic"
     if "remember" in request:
@@ -464,6 +468,7 @@ def test_router_scenarios_route_to_main_entries_only(tmp_path: Path) -> None:
     assert route_request((repo / ".codestable").exists(), "fix login bug") == "cs-issue"
     assert route_request(True, "refactor this module") == "cs-refactor"
     assert route_request(True, "write api docs") == "cs-docs"
+    assert route_request(True, "feedback: cs skill failed because the rule unclear") == "cs-feedback"
     assert route_request(True, "plan the billing roadmap") == "cs-epic"
     assert route_request(True, "this idea is unclear, brainstorm first") == "cs-brainstorm"
     assert route_request(True, "update requirement boundary") == "cs-req"
