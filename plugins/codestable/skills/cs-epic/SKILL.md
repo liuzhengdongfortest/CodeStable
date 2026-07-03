@@ -64,6 +64,17 @@ argument-hint: "[--stage planning|review|goal-package] <epic>"
 
 ---
 
+### Child design batch loop
+
+roadmap 已确认后，子 feature design 阶段是一个连续 batch loop，不是单次子任务：
+
+- 每轮先扫描 `{slug}-items.yaml`，找出下一个 `planned` / `in-progress` 且缺 design、checklist 或 `passed` design-review 的 item。
+- 完成某一个 child 的 design + design-review `passed` 只是内部进度；不得 final answer、不得要求用户确认该 child、不得进入实现。
+- 只有 items.yaml 里所有未 dropped child 都已有 design + checklist + `passed` design-review，才允许触发“所有 design 统一确认”的人工 checkpoint。
+- 若下一条 child 可继续推进，本轮必须继续调用 `cs-feat`，而不是用“下一步继续处理下一个 child”作为结束汇报。
+
+---
+
 ## Reference 加载
 
 - planning：`references/planning/protocol.md`，必要时 `references/planning/reference.md`、`references/planning/support/codebase-design.md`
@@ -88,6 +99,7 @@ design-review 后统一处理。
 
 ## 退出条件
 
+- child design batch loop 只在全部 child design-review passed、遇到 blocking / pending / 授权问题、或用户明确要求停止时才可结束。
 - 规划、审查、子 feature design 和 goal 包状态能从仓库事实恢复。
 - 历史 `roadmap` 命名只作为内部兼容说明出现；用户主路径称为 epic。
 - 需要同步文档或记忆时提示 `cs-docs-neat`。

@@ -272,6 +272,11 @@ def write_roadmap_review(repo: Path, slug: str, status: str = "passed") -> None:
     write(directory / f"{slug}-roadmap-review.md", f"---\ndoc_type: roadmap-review\nstatus: {status}\n---\n# Review\n")
 
 
+def roadmap_item_slugs(repo: Path, slug: str) -> list[str]:
+    items = roadmap_dir(repo, slug) / f"{slug}-items.yaml"
+    return re.findall(r"(?m)^\s*-\s+slug:\s+([A-Za-z0-9_-]+)\s*$", items.read_text(encoding="utf-8"))
+
+
 def write_epic_goal_state(repo: Path, slug: str, status: str, driver: str = "none") -> None:
     directory = roadmap_dir(repo, slug)
     driver_id = "paseo-roadmap-123" if driver != "none" else ""
@@ -299,6 +304,11 @@ def epic_next(repo: Path, slug: str) -> Action:
 
     child_designs = sorted((repo / ".codestable/features").glob("*/**/*-design.md"))
     roadmap_child_designs = [path for path in child_designs if frontmatter(path).get("roadmap") == slug]
+    child_items = {
+        frontmatter(path).get("roadmap_item") or path.name.removesuffix("-design.md") for path in roadmap_child_designs
+    }
+    if any(item_slug not in child_items for item_slug in roadmap_item_slugs(repo, slug)):
+        return Action("load-skill", "cs-feat design/design-review")
     if not roadmap_child_designs:
         return Action("load-skill", "cs-feat design/design-review")
     child_review_statuses = []
@@ -568,6 +578,34 @@ def test_epic_long_range_scenario_simulates_both_human_confirmations(tmp_path: P
     assert epic_next(repo, slug) == Action("dispatch-goal-driver", "epic")
     write_epic_goal_state(repo, slug, "running", driver="paseo")
     assert epic_next(repo, slug) == Action("report-visible-driver", "paseo-roadmap-123")
+
+
+def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_path: Path) -> None:
+    assert_doc_contains(
+        "cs-epic",
+        "SKILL.md",
+        "Child design batch loop",
+        "完成某一个 child 的 design + design-review `passed` 只是内部进度",
+        "不得 final answer",
+        "本轮必须继续调用 `cs-feat`",
+    )
+    assert_doc_contains(
+        "cs-epic",
+        "references/goal/protocol.md",
+        "单个 child 完成不是本阶段退出条件",
+        "不能用 final answer",
+        "继续 batch loop",
+    )
+
+    repo = init_isolated_repo(tmp_path)
+    slug = "billing-system"
+    write_roadmap(repo, slug, status="active")
+    write_roadmap_review(repo, slug, status="passed")
+
+    write_feature_design(repo, "api-seed", status="draft", roadmap=slug)
+    write_feature_design_review(repo, "api-seed", status="passed")
+
+    assert epic_next(repo, slug) == Action("load-skill", "cs-feat design/design-review")
 
 
 def test_goal_driver_selection_requires_visibility_and_nested_reviewer() -> None:

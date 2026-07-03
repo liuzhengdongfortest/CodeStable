@@ -311,11 +311,19 @@ def test_epic_defers_child_design_approval_to_batch_checkpoint() -> None:
     assert "epic_child_batch: true" in epic_skill
     assert "仍有子 feature 未完成 design-review" in epic_skill
     assert "不要在第一个或任一单独子 feature design-review passed 后停下来" in epic_skill
+    assert "Child design batch loop" in epic_skill
+    assert "完成某一个 child 的 design + design-review `passed` 只是内部进度" in epic_skill
+    assert "不得 final answer" in epic_skill
+    assert "本轮必须继续调用 `cs-feat`" in epic_skill
+    assert "child design batch loop 只在全部 child design-review passed" in epic_skill
     assert "不执行单 feature 的人工整体 review checkpoint" in feat_skill
     assert "不在这里停，回到 `cs-epic` 继续下一个子 feature" in feat_skill
+    assert "不得用 final answer 要用户确认单个 child" in feat_skill
     assert "`epic_child_batch: true` 时不要停用户" in feat_design
-    assert "继续处理下一个 planned 子 feature" in epic_goal
+    assert "继续处理下一个 planned / in-progress 子 feature" in epic_goal
     assert "不要停下来要求用户确认该单个 design" in epic_goal
+    assert "单个 child 完成不是本阶段退出条件" in epic_goal
+    assert "不能用 final answer" in epic_goal
 
 
 CANONICAL_PREFLIGHT = (
