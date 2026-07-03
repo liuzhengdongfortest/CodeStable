@@ -42,9 +42,33 @@ def init_repo(tmp_path: Path) -> Path:
     run(repo, "config", "user.email", "test@example.com")
     run(repo, "config", "user.name", "Test User")
     (repo / "README.md").write_text("base\n", encoding="utf-8")
-    run(repo, "add", "README.md")
+    install_runtime(repo)
+    run(repo, "add", ".")
     run(repo, "commit", "-m", "init")
     return repo
+
+
+def install_runtime(repo: Path) -> None:
+    for path in [
+        ".codestable/attention.md",
+        ".codestable/reference/execution-conventions.md",
+        ".codestable/reference/shared-conventions.md",
+        ".codestable/reference/tools.md",
+        ".codestable/tools/validate-yaml.py",
+        ".codestable/tools/search-yaml.py",
+        ".codestable/tools/codestable-workflow-next.py",
+        ".codestable/tools/codestable-worktree-gate.py",
+        ".codestable/tools/validate-implementation-review.py",
+        ".codestable/gates/roadmap-goal-gates.yaml",
+        ".codestable/tools/codestable-scope-gate.py",
+        ".codestable/tools/codestable-dod-contract-gate.py",
+        ".codestable/tools/codestable-dod-runner.py",
+        ".codestable/tools/codestable-evidence-pack.py",
+        ".codestable/tools/codestable-goal-consistency-gate.py",
+    ]:
+        target = repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("runtime\n", encoding="utf-8")
 
 
 def make_feature_unit(repo: Path) -> Path:
@@ -63,6 +87,33 @@ def test_idle_repo_reports_idle_without_mutation(tmp_path: Path) -> None:
     assert report["status"] == "idle"
     assert report["findings"] == []
     assert before == after == ""
+
+
+def test_missing_runtime_assets_are_blocked_with_refresh_hint(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    (repo / ".codestable/tools/codestable-workflow-next.py").unlink()
+
+    report = doctor.diagnose(repo)
+
+    assert report["status"] == "blocked"
+    runtime = report["tooling"]["runtime"]
+    assert runtime["status"] == "runtime-incomplete"
+    assert runtime["capabilities"]["workflow-next"]["missing"] == [".codestable/tools/codestable-workflow-next.py"]
+    assert "cs-onboard --mode refresh-runtime" in runtime["hint"]
+    assert "CodeStable runtime assets are incomplete" in report["findings"][0]["message"]
+
+
+def test_missing_attention_reports_onboard_incomplete_not_refresh(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    (repo / ".codestable/attention.md").unlink()
+
+    report = doctor.diagnose(repo)
+
+    runtime = report["tooling"]["runtime"]
+    assert runtime["status"] == "onboard-incomplete"
+    assert "cs-onboard`" in runtime["hint"]
+    assert "refresh-runtime does not create attention.md" in runtime["hint"]
+    assert "CodeStable onboarding is incomplete" in report["findings"][0]["message"]
 
 
 def test_docs_only_dirty_state_is_planning_safe(tmp_path: Path) -> None:
@@ -133,7 +184,7 @@ def test_clean_main_with_post_baseline_implementation_commit_is_blocked(tmp_path
     )
     payload = worktree_gate.start_gate(repo, ".codestable/features/2026-06-03-demo")
     assert payload["ok"]
-    assert run(repo, "status", "--porcelain").stdout == "?? .codestable/\n"
+    assert run(repo, "status", "--porcelain").stdout == "?? .codestable/features/\n"
 
     run(repo, "add", ".codestable")
     run(repo, "commit", "-m", "add unit")

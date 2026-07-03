@@ -11,7 +11,10 @@ worktree、review、finish 和 handoff 规则。
 1. 读取 `.codestable/attention.md`。
 2. 缺 `.codestable/attention.md` 时视为骨架不完整，提示补齐或运行 `cs-onboard`。
 3. 不回退读取 `AGENTS.md` / `CLAUDE.md` / `.cursorrules` 等外部 AI 入口文件。
-4. 正文报告语言按 `.codestable/attention.md` 的报告语言策略执行；默认中文，若草稿用了英文，落盘前先改写为项目语言。frontmatter / yaml 字段不翻译。
+4. 进入需要项目 runtime 的阶段前，检查该阶段声明的 runtime capability；可用
+   `python3 .codestable/tools/codestable-doctor.py --root . --json` 查看
+   `tooling.runtime.capabilities`。
+5. 正文报告语言按 `.codestable/attention.md` 的报告语言策略执行；默认中文，若草稿用了英文，落盘前先改写为项目语言。frontmatter / yaml 字段不翻译。
 
 `cs-note` 是唯一例外：`.codestable/` 存在但 `attention.md` 缺失时，它可以创建最小分节骨架后写入。
 
@@ -22,10 +25,15 @@ worktree、review、finish 和 handoff 规则。
 `cs-onboard --mode refresh-runtime` 刷新这些资产；该模式不重新迁移文档、不移动用户文件、
 不改 `attention.md` 的实质内容。
 
-子技能在阶段边界发现必需 runtime 缺失（例如 `codestable-workflow-next.py` 不存在）
-时，不要把 gate 当作通过，不要回退到技能包路径继续执行，也不要隐式调用 `cs-onboard`。
-当前阶段应停止为 runtime-incomplete，提示用户运行 `cs-onboard --mode refresh-runtime`，
-刷新后从仓库事实恢复原流程。
+runtime capability 缺失时，不要把 gate 当作通过，不要回退到技能包路径继续执行，不要隐式调用 `cs-onboard`。当前阶段应停止为 `runtime-incomplete`，提示用户运行
+`cs-onboard --mode refresh-runtime`，刷新后从仓库事实恢复原流程。
+
+常用 capability：
+
+- `base`：attention、共享 reference、`validate-yaml.py`、`search-yaml.py`。
+- `workflow-next`：`codestable-workflow-next.py`，用于 `cs-epic` / `cs-feat` child design batch 边界。
+- `worktree-gate`：worktree start / commit 和 implementation review gate。
+- `goal-gates`：scope / DoD / evidence / goal consistency gate。
 
 ## 主协调检出与执行 worktree
 

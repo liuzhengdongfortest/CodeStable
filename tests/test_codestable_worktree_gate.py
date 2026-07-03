@@ -47,9 +47,33 @@ def init_repo(tmp_path: Path) -> Path:
     run(repo, "config", "user.email", "test@example.com")
     run(repo, "config", "user.name", "Test User")
     (repo / "README.md").write_text("base\n", encoding="utf-8")
-    run(repo, "add", "README.md")
+    install_runtime(repo)
+    run(repo, "add", ".")
     run(repo, "commit", "-m", "init")
     return repo
+
+
+def install_runtime(repo: Path) -> None:
+    for path in [
+        ".codestable/attention.md",
+        ".codestable/reference/execution-conventions.md",
+        ".codestable/reference/shared-conventions.md",
+        ".codestable/reference/tools.md",
+        ".codestable/tools/validate-yaml.py",
+        ".codestable/tools/search-yaml.py",
+        ".codestable/tools/codestable-workflow-next.py",
+        ".codestable/tools/codestable-worktree-gate.py",
+        ".codestable/tools/validate-implementation-review.py",
+        ".codestable/gates/roadmap-goal-gates.yaml",
+        ".codestable/tools/codestable-scope-gate.py",
+        ".codestable/tools/codestable-dod-contract-gate.py",
+        ".codestable/tools/codestable-dod-runner.py",
+        ".codestable/tools/codestable-evidence-pack.py",
+        ".codestable/tools/codestable-goal-consistency-gate.py",
+    ]:
+        target = repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("runtime\n", encoding="utf-8")
 
 
 def make_feature_unit(repo: Path) -> Path:

@@ -136,6 +136,8 @@ python3 .codestable/tools/codestable-doctor.py --root . --json
 JSON 关键字段：
 
 - `status`：`idle` / `planning-safe` / `dirty` / `implementation-active` / `attention-needed` / `blocked`
+- `tooling.runtime`：`.codestable` runtime 静态体检；`status=runtime-incomplete` 时运行 `cs-onboard --mode refresh-runtime`
+- `tooling.runtime.capabilities`：`base` / `workflow-next` / `worktree-gate` / `goal-gates` 的必需文件和缺失列表
 - `checkout`：当前分支、默认分支、是否 linked worktree
 - `dirty_buckets`：按 `code` / `tests` / `docs` / `migrations` / `data` / `logs` / `codestable` / `unknown` 分组的 dirty paths
 - `implementation_changes`：会触发 worktree 约束的实现文件

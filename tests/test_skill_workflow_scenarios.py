@@ -617,12 +617,16 @@ def test_missing_workflow_next_hook_stops_for_explicit_runtime_refresh() -> None
         "--mode refresh-runtime",
         "可重复执行",
         "不重新审计 / 迁移文档",
+        "只想刷新 runtime、不审计或迁移文档时，显式传 `--mode refresh-runtime`",
         "不移动用户文件",
     )
     assert_doc_contains(
         "cs-onboard",
         "references/execution-conventions.md",
         "Runtime 资产恢复",
+        "runtime capability",
+        "tooling.runtime.capabilities",
+        "`workflow-next`",
         "不要隐式调用 `cs-onboard`",
         "runtime-incomplete",
         "cs-onboard --mode refresh-runtime",
@@ -630,22 +634,20 @@ def test_missing_workflow_next_hook_stops_for_explicit_runtime_refresh() -> None
     assert_doc_contains(
         "cs-feat",
         "SKILL.md",
-        "缺少 `.codestable/tools/codestable-workflow-next.py`",
-        "停止为 `runtime-incomplete`",
-        "不要自动刷新 runtime",
+        "workflow-next` runtime capability",
+        "Runtime 资产恢复",
     )
     assert_doc_contains(
         "cs-epic",
         "SKILL.md",
-        "缺少 `.codestable/tools/codestable-workflow-next.py`",
-        "停止为 `runtime-incomplete`",
-        "不要自动刷新 runtime",
+        "workflow-next` runtime capability",
+        "Runtime 资产恢复",
     )
     assert_doc_contains(
         "cs-epic",
         "references/goal/protocol.md",
-        "cs-onboard --mode refresh-runtime",
-        "不要自动刷新 runtime",
+        "workflow-next` runtime capability",
+        "Runtime 资产恢复",
         "刷新后从仓库事实恢复 batch loop",
     )
 

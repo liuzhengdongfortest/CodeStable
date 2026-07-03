@@ -16,7 +16,7 @@ argument-hint: "[--mode refresh-runtime]"
 
 参数为空或未被替换（仍是字面 `$ARGUMENTS`）时，自动扫描仓库并选择空仓库 / 迁移路径。`--mode refresh-runtime` 表示已接入项目只刷新技能包维护的 runtime 资产。
 
-无参数默认行为：`.codestable/` 不存在走空仓库路径；存在但旧文档或骨架不完整走迁移路径；存在且只是 `.codestable/tools/`、`.codestable/gates/`、`.codestable/reference/`、`.codestable/hooks/` 缺失或过旧时，走 runtime refresh。
+无参数默认行为：`.codestable/` 不存在走空仓库路径；存在则走迁移路径补齐骨架并刷新 runtime 资产。只想刷新 runtime、不审计或迁移文档时，显式传 `--mode refresh-runtime`。
 
 ---
 
@@ -73,7 +73,7 @@ argument-hint: "[--mode refresh-runtime]"
 
 **先检查一次现状**：
 
-1. **检查 `.codestable/`**：不存在 → 空仓库候选；存在但不完整 → 迁移（部分补齐）；已接入但 runtime 资产缺失 / 过旧 → runtime refresh
+1. **检查 `.codestable/`**：不存在 → 空仓库候选；存在 → 迁移（部分补齐并刷新 runtime 资产）；用户显式传 `--mode refresh-runtime` → 只刷新 runtime
 2. **旧 CodeStable兼容** CodeStable 经过多次改名，从 easysdd 到 codestable 再到 .codestable，如果遇到旧版的codestable目录，提示用户：
 
    > 检测到旧版codestable。建议直接 `git mv easysdd .codestable`，结构 / frontmatter 完全兼容，rename 后即用。要我执行吗？

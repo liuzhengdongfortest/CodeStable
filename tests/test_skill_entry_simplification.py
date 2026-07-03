@@ -221,21 +221,25 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
 
     assert "--mode refresh-runtime" in onboard
     assert "可重复执行" in onboard
+    assert "只想刷新 runtime、不审计或迁移文档时，显式传 `--mode refresh-runtime`" in onboard
     assert "不重新审计 / 迁移文档" in onboard
     assert "不移动用户文件" in onboard
     assert "不改 `attention.md` 的实质内容" in onboard
     assert "`.codestable/{gates,tools,reference,hooks}`" in onboard
 
     assert "Runtime 资产恢复" in conventions
+    assert "runtime capability" in conventions
+    assert "tooling.runtime.capabilities" in conventions
+    assert "`workflow-next`" in conventions
     assert "不要隐式调用 `cs-onboard`" in conventions
     assert "runtime-incomplete" in conventions
     assert "cs-onboard --mode refresh-runtime" in conventions
     assert "不要从技能包深层路径绕过项目副本" in tools_doc
+    assert "tooling.runtime.capabilities" in tools_doc
 
     for text in [feat, feat_design, epic, epic_goal]:
-        assert "runtime-incomplete" in text
-        assert "cs-onboard --mode refresh-runtime" in text
-        assert "不要自动刷新" in text
+        assert "workflow-next` runtime capability" in text
+        assert "Runtime 资产恢复" in text
 
 
 def test_feat_and_epic_document_goal_driver_dispatch() -> None:
