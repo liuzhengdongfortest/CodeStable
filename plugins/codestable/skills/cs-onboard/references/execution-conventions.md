@@ -15,6 +15,18 @@ worktree、review、finish 和 handoff 规则。
 
 `cs-note` 是唯一例外：`.codestable/` 存在但 `attention.md` 缺失时，它可以创建最小分节骨架后写入。
 
+## Runtime 资产恢复
+
+`.codestable/tools/`、`.codestable/gates/`、`.codestable/reference/` 和 `.codestable/hooks/`
+是 `cs-onboard` 从技能包释放的 runtime 资产。已接入项目可以重复运行
+`cs-onboard --mode refresh-runtime` 刷新这些资产；该模式不重新迁移文档、不移动用户文件、
+不改 `attention.md` 的实质内容。
+
+子技能在阶段边界发现必需 runtime 缺失（例如 `codestable-workflow-next.py` 不存在）
+时，不要把 gate 当作通过，不要回退到技能包路径继续执行，也不要隐式调用 `cs-onboard`。
+当前阶段应停止为 runtime-incomplete，提示用户运行 `cs-onboard --mode refresh-runtime`，
+刷新后从仓库事实恢复原流程。
+
 ## 主协调检出与执行 worktree
 
 CodeStable 把讨论 / 规划和代码编辑分开：

@@ -143,6 +143,7 @@ def test_compatibility_entries_delegate_to_main_protocols() -> None:
 
 MAIN_ENTRY_SKILLS = [
     "cs",
+    "cs-onboard",
     "cs-feat",
     "cs-issue",
     "cs-refactor",
@@ -155,6 +156,7 @@ MAIN_ENTRY_SKILLS = [
 
 MAIN_ENTRY_ARGUMENT_HINTS = {
     "cs": "[request]",
+    "cs-onboard": "[--mode refresh-runtime]",
     "cs-feat": "[--stage design|design-review|impl|qa|accept|goal-package] [--mode fastforward] <feature>",
     "cs-issue": "[--stage report|analyze|fix] <issue>",
     "cs-refactor": "[--stage scan|design|apply] [--mode standard|fastforward] <target>",
@@ -206,6 +208,34 @@ def test_skill_catalog_documents_no_argument_default() -> None:
 
     assert "不传参数时按仓库事实和用户原话恢复或路由" in zh_text
     assert "no-argument calls recover or route" in en_text
+
+
+def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
+    onboard = (SKILLS / "cs-onboard/SKILL.md").read_text(encoding="utf-8")
+    conventions = (SKILLS / "cs-onboard/references/execution-conventions.md").read_text(encoding="utf-8")
+    tools_doc = (SKILLS / "cs-onboard/references/tools.md").read_text(encoding="utf-8")
+    feat = (SKILLS / "cs-feat/SKILL.md").read_text(encoding="utf-8")
+    feat_design = (SKILLS / "cs-feat/references/design/protocol.md").read_text(encoding="utf-8")
+    epic = (SKILLS / "cs-epic/SKILL.md").read_text(encoding="utf-8")
+    epic_goal = (SKILLS / "cs-epic/references/goal/protocol.md").read_text(encoding="utf-8")
+
+    assert "--mode refresh-runtime" in onboard
+    assert "可重复执行" in onboard
+    assert "不重新审计 / 迁移文档" in onboard
+    assert "不移动用户文件" in onboard
+    assert "不改 `attention.md` 的实质内容" in onboard
+    assert "`.codestable/{gates,tools,reference,hooks}`" in onboard
+
+    assert "Runtime 资产恢复" in conventions
+    assert "不要隐式调用 `cs-onboard`" in conventions
+    assert "runtime-incomplete" in conventions
+    assert "cs-onboard --mode refresh-runtime" in conventions
+    assert "不要从技能包深层路径绕过项目副本" in tools_doc
+
+    for text in [feat, feat_design, epic, epic_goal]:
+        assert "runtime-incomplete" in text
+        assert "cs-onboard --mode refresh-runtime" in text
+        assert "不要自动刷新" in text
 
 
 def test_feat_and_epic_document_goal_driver_dispatch() -> None:
