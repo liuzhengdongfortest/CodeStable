@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0
+
+- Simplified CodeStable skill entrypoints around main workflow skills and compatibility wrappers.
+- Added `cs-feat`, `cs-epic`, and `cs-docs` main entries with explicit `--stage` / `--mode` argument semantics.
+- Added long-running goal driver semantics for feature and epic flows, including `/goal` fallback instructions.
+- Added workflow scenario coverage and Paseo-agent verification evidence for changed skill workflows.
+- Documented partial status for earlier state-machine and manual dogfood reports.
+
 ## 0.1.0
 
 - Added the committed CodeStable plugin distribution structure under `plugins/codestable/`.
