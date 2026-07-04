@@ -610,7 +610,7 @@ def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_pat
     assert epic_next(repo, slug) == Action("load-skill", "cs-feat design/design-review")
 
 
-def test_missing_workflow_next_hook_uses_runtime_manifest_preflight() -> None:
+def test_workflow_runtime_details_are_centralized_in_preflight() -> None:
     assert_doc_contains(
         "cs-onboard",
         "SKILL.md",
@@ -637,18 +637,18 @@ def test_missing_workflow_next_hook_uses_runtime_manifest_preflight() -> None:
     assert_doc_contains(
         "cs-feat",
         "SKILL.md",
-        "CodeStable preflight 已确认的 `workflow-next` runtime capability",
+        "codestable-workflow-next.py feature",
     )
     assert_doc_contains(
         "cs-epic",
         "SKILL.md",
-        "CodeStable preflight 已确认的 `workflow-next` runtime capability",
+        "codestable-workflow-next.py epic",
     )
     assert_doc_contains(
         "cs-epic",
         "references/goal/protocol.md",
-        "CodeStable preflight 已确认的 `workflow-next` runtime capability",
-        "若 preflight 刚完成同步，从仓库事实恢复 batch loop",
+        "codestable-workflow-next.py epic",
+        "若 preflight 刚完成 runtime 同步，从仓库事实恢复 batch loop",
     )
 
 

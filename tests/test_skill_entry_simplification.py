@@ -244,7 +244,7 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     assert "tooling.runtime.capabilities" in tools_doc
 
     for text in [feat, feat_design, epic, epic_goal]:
-        assert "CodeStable preflight 已确认的 `workflow-next` runtime capability" in text
+        assert "runtime capability" not in text
         assert "Runtime 资产恢复" not in text
 
 
