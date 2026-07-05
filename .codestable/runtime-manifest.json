@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "plugin": "codestable",
+  "plugin_version": "1.0.0",
+  "runtime_version": "1.0.0",
+  "managed_paths": [
+    ".codestable/tools",
+    ".codestable/gates",
+    ".codestable/reference",
+    ".codestable/hooks",
+    ".codestable/.gitignore",
+    ".codestable/runtime-manifest.json"
+  ],
+  "updated_by": "codestable-runtime-sync"
+}
