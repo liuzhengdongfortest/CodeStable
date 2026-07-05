@@ -131,7 +131,6 @@ def init_isolated_repo(tmp_path: Path) -> Path:
     write(repo / ".codestable/attention.md", "# Attention\n\n- Report language: zh.\n")
     write(repo / ".codestable/reference/execution-conventions.md", skill_text("cs-onboard", "references/execution-conventions.md"))
     write(repo / ".codestable/reference/agent-conventions.md", skill_text("cs-onboard", "references/agent-conventions.md"))
-    write(repo / ".codestable/reference/worktree-conventions.md", skill_text("cs-onboard", "references/worktree-conventions.md"))
     write(repo / "src/app.py", "def hello():\n    return 'hello'\n")
     git(repo, "add", ".")
     git(repo, "commit", "-m", "baseline")
@@ -638,7 +637,6 @@ def test_workflow_runtime_details_are_centralized_in_preflight() -> None:
         "managed-paths-dirty",
         "不自动覆盖",
         ".codestable/reference/agent-conventions.md",
-        ".codestable/reference/worktree-conventions.md",
     )
     assert_doc_contains(
         "cs-feat",

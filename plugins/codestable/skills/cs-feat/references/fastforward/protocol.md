@@ -33,25 +33,11 @@ Glob `.codestable/` 发现可用目录和文档，按需取用：
 
 ---
 
-## 执行 gate（worktree + commit）
+## 执行前检查与完成 gate
 
-fastforward 直接改项目源码且是快速通道末端，两道 gate 仍要走。slug 未定时先按动作敲定（见下文"自动生成 slug"），unit 路径用 `.codestable/features/YYYY-MM-DD-{slug}`。
+fastforward 直接按当前检出环境改项目源码；CodeStable 不决定分支或检出策略。动手前先确认当前 dirty scope，只把和本次小功能相关的改动纳入结果。
 
-动手前运行 start gate：
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/features/YYYY-MM-DD-{slug}
-```
-
-gate 不通过就不要开始改代码；用户批准 override 时先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。
-
-ff-note 落盘、收尾提交前运行 commit gate：
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json commit --unit .codestable/features/YYYY-MM-DD-{slug}
-```
-
-gate 不通过就先处理 findings，不把"验证已过"当成完成。gate 工具的安装与 branch-guard hook 说明见 `.codestable/reference/branch-guard-hooks.md`。
+ff-note 落盘、收尾提交前进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
 
 ---
 

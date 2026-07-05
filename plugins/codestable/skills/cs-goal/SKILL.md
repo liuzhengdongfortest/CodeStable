@@ -29,9 +29,7 @@ iteration 中创建或引用对应 feature / issue / refactor 产物。
 3. 读取本技能的 `reference.md`。
 4. 如果存在，读取 `.codestable/reference/goal-conventions.md`。
 5. 如果存在，读取 `.codestable/reference/approval-conventions.md`。
-6. 代码编辑、commit、finish 或 merge 前，如果存在，读取
-   `.codestable/reference/worktree-conventions.md`；Task agent review / 验收前读取
-   `.codestable/reference/agent-conventions.md`。
+6. Task agent review / 验收前读取 `.codestable/reference/agent-conventions.md`。
 7. 检查 `.codestable/goals/` 中是否已有匹配的 active goal。
 8. 当 goal 指向已有领域时，搜索 `.codestable/compound/` 和相关 feature / issue /
    refactor 文档。
@@ -141,7 +139,7 @@ unresolved assumptions 和 next action。保持简洁，只在 goal 边界或状
 当 `state: active` 时循环：
 
 1. 从 `state.yaml` 选择最小有用的下一次尝试。
-2. 按既有 CodeStable 约束实现；适用时包括 worktree、review、spec-governance 和
+2. 按既有 CodeStable 约束实现；适用时包括 review、spec-governance 和
    commit 规则。
 3. 用 fresh 命令或证据验证。
 4. 修改 `state.yaml.current_iteration` 前，根据 `state.yaml.current_iteration` 和已有

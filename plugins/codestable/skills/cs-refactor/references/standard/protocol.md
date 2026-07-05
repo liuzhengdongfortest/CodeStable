@@ -10,15 +10,11 @@ scan（扫优化点清单）→ design（和用户定做哪几条 + 顺序）→
 
 **架构 deepening 模式**：用户说"架构优化 / 模块太浅 / seam 不对 / 可测试性差 / AI 难导航"时，仍走本协议三阶段，不生成 HTML。scan 用 `codebase-design` 词汇找 deepening opportunities；这是内嵌词汇引用，不切换到独立 `codebase-design` skill。候选项写进标准 `{slug}-scan.md`，用户勾选后再进 design/checklist/apply。
 
-## 执行 gate（worktree + commit）
+## 执行前检查与完成 gate
 
-检出通常在 scan 起手已按"改动前 worktree 探测与选择"确定：已在 worktree 或已有 `worktree-override.md` 则直接复用；未探测过先补一次（见 `.codestable/reference/worktree-conventions.md`）。进入 apply 前运行 start gate，`{slug}` 为 refactor 目录名：
+CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入 apply 前先确认 design/checklist、行为等价验证方式和当前 dirty scope，避免把无关改动混入本 refactor。
 
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/refactors/YYYY-MM-DD-{slug}
-```
-
-gate 不通过不开始改代码；override 时先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。apply 完成、收尾 commit 前运行 commit gate（同命令 `commit`）；不通过先处理 findings。gate 安装与 branch-guard hook 见 `.codestable/reference/branch-guard-hooks.md`。
+apply 完成、收尾提交前必须进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
 
 ---
 
@@ -61,8 +57,6 @@ gate 不通过不开始改代码；override 时先在 unit 目录写 `worktree-o
 ---
 
 ## 阶段 1：scan
-
-即将写 `{slug}-scan.md`（第一份持久产物）前，按 `.codestable/reference/worktree-conventions.md` 的"改动前 worktree 探测与选择"确认检出。
 
 ### 先跑前置检查（7 条），命中就停
 

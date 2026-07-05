@@ -124,6 +124,31 @@ def test_skill_markdown_files_stay_under_line_limit() -> None:
     assert oversized == []
 
 
+def test_codestable_skill_markdown_has_no_default_worktree_contract_residue() -> None:
+    forbidden = [
+        "worktree",
+        "work tree",
+        "worktree-conventions",
+        "worktree-gate",
+        "branch-guard",
+        "branch-guard-hooks",
+        "codestable-ai-branch-guard",
+        "codestable-finish-worktree",
+        "codestable-worktree-inbox",
+        "validate-implementation-review",
+        "linked execution",
+        "linked worktree",
+    ]
+    findings: list[tuple[str, str]] = []
+    for path in SKILLS.rglob("*.md"):
+        text = path.read_text(encoding="utf-8").lower()
+        for term in forbidden:
+            if term in text:
+                findings.append((path.relative_to(ROOT).as_posix(), term))
+
+    assert findings == []
+
+
 def test_compatibility_entries_delegate_to_main_protocols() -> None:
     for skill, (main, key, value) in COMPATIBILITY_ENTRIES.items():
         path = SKILLS / skill / "SKILL.md"
@@ -225,7 +250,7 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     assert "不重新审计 / 迁移文档" in onboard
     assert "不移动用户文件" in onboard
     assert "不改 `attention.md` 的实质内容" in onboard
-    for managed_path in [".codestable/gates/", ".codestable/tools/", ".codestable/reference/", ".codestable/hooks/"]:
+    for managed_path in [".codestable/gates/", ".codestable/tools/", ".codestable/reference/"]:
         assert managed_path in onboard
     assert ".codestable/runtime-manifest.json" in onboard
     assert "codestable-runtime-sync.py" in onboard
@@ -241,10 +266,15 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     assert "managed-paths-dirty" in conventions
     assert "不自动覆盖" in conventions
     assert ".codestable/reference/agent-conventions.md" in conventions
-    assert ".codestable/reference/worktree-conventions.md" in conventions
+    assert ".codestable/reference/worktree-conventions.md" not in conventions
+    assert "worktree-gate" not in conventions
     assert "不要从技能包深层路径绕过项目副本" in tools_doc
     assert "version-mismatch" in tools_doc
     assert "tooling.runtime.capabilities" in tools_doc
+
+    default_runtime_text = "\n".join([onboard, conventions, tools_doc, feat, feat_design, epic, epic_goal])
+    assert "codestable-worktree-gate.py" not in default_runtime_text
+    assert "branch-guard-hooks.md" not in default_runtime_text
 
     for text in [feat, feat_design, epic, epic_goal]:
         assert "runtime capability" not in text

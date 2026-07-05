@@ -79,32 +79,11 @@ python3 .codestable/tools/validate-yaml.py --file {文件路径}.md --require do
 python3 .codestable/tools/validate-yaml.py --dir .codestable/features --require doc_type --require status
 ```
 
-目录模式默认只校验 `.md` frontmatter；要批量校验纯 YAML 目录必须显式加 `--yaml-only`。不要对混有 checklist/items/goal-state 的目录直接加 `--require doc_type --require status`；纯 YAML 没有 Markdown frontmatter 字段，会造成假失败。若目录里有 `worktree-override.md` 这类无 frontmatter 的人工说明，改用单文件校验或只校验生命周期文档所在子集。
+目录模式默认只校验 `.md` frontmatter；要批量校验纯 YAML 目录必须显式加 `--yaml-only`。不要对混有 checklist/items/goal-state 的目录直接加 `--require doc_type --require status`；纯 YAML 没有 Markdown frontmatter 字段，会造成假失败。
 
 ---
 
-## 3. validate-implementation-review.py
-
-实现完成门禁。用于 Stop hook 或手动检查：有实现代码变更时应在 linked worktree 内执行；已完成的 feature / issue / refactor 要有 `{slug}-review.md`，且默认必须声明 Task agent reviewer。
-
-```bash
-python3 .codestable/tools/validate-implementation-review.py --root . --json
-```
-
-若用户明确要求直接在主 checkout 改代码，可临时显式 override：
-
-```bash
-CODESTABLE_ALLOW_MAIN_CHECKOUT_IMPLEMENTATION=1 python3 .codestable/tools/validate-implementation-review.py --root .
-
-# 只有平台确实没有 Task agent 能力时，才允许 self-review fallback
-CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1 python3 .codestable/tools/validate-implementation-review.py --root .
-```
-
-配到 Codex / Claude Stop hook 时，可调用 `.codestable/tools/codestable-implementation-gate.sh`。
-
----
-
-## 4. Roadmap Goal Gates
+## 3. Roadmap Goal Gates
 
 `cs-onboard` 会把技能包里的 `gates/` 和 gate 脚本释放到项目 `.codestable/`，并清理 `__pycache__` / `*.pyc`。这些 gate 不是全局 PreToolUse 拦截器，而是由 `cs-epic` / `cs-feat` 等主入口在阶段边界显式调用。
 
@@ -125,7 +104,7 @@ python3 .codestable/tools/codestable-goal-consistency-gate.py --roadmap .codesta
 
 ---
 
-## 5. codestable-doctor.py
+## 4. codestable-doctor.py
 
 CodeStable 生命周期状态检查工具。只读，不修改文件。用于开始工作、恢复上下文、最终汇报前判断当前仓库是否还有阻塞项。
 
@@ -137,75 +116,24 @@ JSON 关键字段：
 
 - `status`：`idle` / `planning-safe` / `dirty` / `implementation-active` / `attention-needed` / `blocked`
 - `tooling.runtime`：`.codestable` runtime 静态体检；`runtime-incomplete` / `version-mismatch` 时运行 runtime sync
-- `tooling.runtime.capabilities`：`base` / `workflow-next` / `worktree-gate` / `goal-gates` 的必需文件和缺失列表
-- `checkout`：当前分支、默认分支、是否 linked worktree
+- `tooling.runtime.capabilities`：`base` / `workflow-next` / `goal-gates` 的必需文件和缺失列表
+- `checkout`：当前分支、默认分支
 - `dirty_buckets`：按 `code` / `tests` / `docs` / `migrations` / `data` / `logs` / `codestable` / `unknown` 分组的 dirty paths
-- `implementation_changes`：会触发 worktree 约束的实现文件
+- `implementation_changes`：当前 dirty tree 中的实现文件
 - `backlog`：`needs-human-review`、`Follow-up`、accepted/deferred P2、`attention.md` candidates 等待处理项；canonical lifecycle 文件里 `status: canceled/cancelled/abandoned` 的 feature / issue / refactor 单元会被当作历史记录跳过
-- `post_baseline_blocks`：工作树干净但默认分支在 gate baseline 之后出现实现变更的阻塞项
 - `findings`：按严重度列出的阻塞或待处理问题
 - `next_action`：下一步建议
 
 典型用法：
 
 ```bash
-# 汇报前确认没有遗漏的人审 / follow-up / worktree 阻塞
+# 汇报前确认没有遗漏的人审 / follow-up / runtime 阻塞
 python3 .codestable/tools/codestable-doctor.py --root . --json
 ```
 
 ---
 
-## 6. codestable-worktree-gate.py
-
-CodeStable worktree 生命周期门禁。用于实现开始前、提交前、以及误在协调检出开工后的恢复规划。
-
-### start
-
-实现开始前运行。检出由"改动前 worktree 探测与选择"（见 `worktree-conventions.md`）先定：feature / issue / refactor 这类实现单元要么在 linked execution worktree 中开始，要么用户选择不切、单元目录下有写明 reason、scope、approval 的 `worktree-override.md`——gate 校验的正是这两者之一。dogfood / 一次性隔离仓库也走 override，reason 用 `dogfood-ephemeral-repo`。
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/features/YYYY-MM-DD-slug
-```
-
-通过后 gate 会把 baseline 写入 Git 私有路径，不污染工作树。
-
-### commit
-
-提交或最终汇报前运行。它会阻止：
-
-- 默认分支上 staged implementation changes；
-- 工作树干净但默认分支在 start baseline 后已经出现 implementation commits；
-- 完成的 implementation unit 缺少 Task agent implementation review。
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json commit --unit .codestable/features/YYYY-MM-DD-slug
-```
-
-如果 staged 文件横跨 code / docs / data / logs / migrations 等多个 bucket，命令会给出 P2 warning；它不会替你 stage、unstage 或 commit。
-
-### quarantine
-
-误在主协调检出开始实现时，用 quarantine 先生成恢复计划。默认 dry-run，不创建分支、不创建 worktree、不移动文件、不改 index。
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json quarantine --unit .codestable/features/YYYY-MM-DD-slug
-```
-
-只有同时满足以下条件才允许创建 quarantine worktree：
-
-- 显式传 `--apply`
-- 单元目录存在带 reason / scope / approval 的 `worktree-override.md`
-- 没有未跟踪的 `.env`、token、secret 等敏感文件
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json quarantine --unit .codestable/features/YYYY-MM-DD-slug --apply
-```
-
-Phase 1 只创建安全 execution worktree，不自动搬 dirty 文件；文件迁移仍由 owner 显式处理。
-
----
-
-## 7. build-review-packet.py
+## 5. build-review-packet.py
 
 独立 Task agent review 的输入包生成器。它把本次 unit 文档、diff stat、聚焦 diff、验证结果和风险提示整理成一份可发给 reviewer 的 Markdown，并自动隐藏 `.env` / token / secret 类路径和值。`--stage` 用来区分 review 目的，默认 `implementation` 兼容旧调用。
 
@@ -234,14 +162,12 @@ python3 .codestable/tools/build-review-packet.py --root . --unit .codestable/fea
 
 ---
 
-## 8. Context / Finish / Commit Tools
+## 6. Context / Commit Tools
 
 For these tools, see `.codestable/reference/tools-context.md`:
 
 - `build-context-packet.py`
 - `check-context-sufficiency.py`
-- `codestable-finish-worktree.py`
-- `codestable-worktree-inbox.py`
 - `plan-commits.py`
 - `codestable-backlog.py`
 

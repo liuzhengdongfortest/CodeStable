@@ -15,9 +15,31 @@ MANAGED_PATHS = [
     ".codestable/tools",
     ".codestable/gates",
     ".codestable/reference",
-    ".codestable/hooks",
     ".codestable/.gitignore",
     MANIFEST_PATH,
+]
+OBSOLETE_RUNTIME_PATHS = [
+    ".codestable/hooks/hooks.codex.json",
+    ".codestable/reference/worktree-conventions.md",
+    ".codestable/reference/branch-guard-hooks.md",
+    ".codestable/tools/codestable-worktree-gate.py",
+    ".codestable/tools/codestable-finish-worktree.py",
+    ".codestable/tools/codestable-worktree-inbox.py",
+    ".codestable/tools/codestable-ai-branch-guard.py",
+    ".codestable/tools/codestable-implementation-gate.sh",
+    ".codestable/tools/codestable-main-publish.py",
+    ".codestable/tools/validate-implementation-review.py",
+]
+RUNTIME_IGNORE_PATTERNS = [
+    "worktree-conventions.md",
+    "branch-guard-hooks.md",
+    "codestable-worktree-gate.py",
+    "codestable-finish-worktree.py",
+    "codestable-worktree-inbox.py",
+    "codestable-ai-branch-guard.py",
+    "codestable-implementation-gate.sh",
+    "codestable-main-publish.py",
+    "validate-implementation-review.py",
 ]
 RUNTIME_CAPABILITIES: dict[str, list[str]] = {
     "base": [
@@ -25,7 +47,6 @@ RUNTIME_CAPABILITIES: dict[str, list[str]] = {
         ".codestable/reference/execution-conventions.md",
         ".codestable/reference/shared-conventions.md",
         ".codestable/reference/agent-conventions.md",
-        ".codestable/reference/worktree-conventions.md",
         ".codestable/reference/tools.md",
         ".codestable/tools/validate-yaml.py",
         ".codestable/tools/search-yaml.py",
@@ -33,10 +54,6 @@ RUNTIME_CAPABILITIES: dict[str, list[str]] = {
     ],
     "workflow-next": [
         ".codestable/tools/codestable-workflow-next.py",
-    ],
-    "worktree-gate": [
-        ".codestable/tools/codestable-worktree-gate.py",
-        ".codestable/tools/validate-implementation-review.py",
     ],
     "goal-gates": [
         ".codestable/gates/roadmap-goal-gates.yaml",
@@ -86,8 +103,9 @@ def read_manifest(root: Path) -> dict[str, Any] | None:
 def git_dirty_managed_paths(root: Path) -> list[str]:
     if subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         return []
+    checked_paths = list(dict.fromkeys([*MANAGED_PATHS, *OBSOLETE_RUNTIME_PATHS]))
     result = subprocess.run(
-        ["git", "status", "--porcelain", "--", *MANAGED_PATHS],
+        ["git", "status", "--porcelain", "--", *checked_paths],
         cwd=root,
         text=True,
         stdout=subprocess.PIPE,
@@ -174,11 +192,20 @@ def sync_runtime(root: Path, source_skill_dir: Path, plugin_version: str | None 
             "hint": "Commit, stash, or explicitly allow overwriting managed runtime assets before sync.",
         }
 
+    for obsolete in OBSOLETE_RUNTIME_PATHS:
+        target = root / obsolete
+        if target.is_dir():
+            shutil.rmtree(target)
+        elif target.exists():
+            target.unlink()
+    hooks_dir = root / ".codestable/hooks"
+    if hooks_dir.is_dir() and not any(hooks_dir.iterdir()):
+        hooks_dir.rmdir()
+
     copies = [
         ("gates", ".codestable/gates"),
         ("tools", ".codestable/tools"),
         ("references", ".codestable/reference"),
-        ("hooks", ".codestable/hooks"),
     ]
     for source_rel, target_rel in copies:
         source = source_skill_dir / source_rel
@@ -188,7 +215,7 @@ def sync_runtime(root: Path, source_skill_dir: Path, plugin_version: str | None 
                 source,
                 target,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", *RUNTIME_IGNORE_PATTERNS),
             )
     gitignore = source_skill_dir / "codestable.gitignore"
     if gitignore.is_file():

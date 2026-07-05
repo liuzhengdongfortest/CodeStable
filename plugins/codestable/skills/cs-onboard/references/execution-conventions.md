@@ -40,15 +40,14 @@ python3 <cs-onboard skill 目录>/tools/codestable-runtime-sync.py --root . --so
 `managed-paths-dirty`、`not-onboarded` 或 `onboard-incomplete` 停用户；managed paths 有未提交
 改动时不自动覆盖。
 
-常用 runtime capability：`base`、`workflow-next`、`worktree-gate`、`goal-gates`。可用
+常用 runtime capability：`base`、`workflow-next`、`goal-gates`。可用
 `python3 .codestable/tools/codestable-doctor.py --root . --json` 查看项目副本的
 `tooling.runtime.capabilities`；`workflow-next` 对应 `codestable-workflow-next.py`。
 
 ## 按需规则索引
 
 - 目录、frontmatter、checklist、roadmap ↔ feature：`.codestable/reference/shared-conventions.md`
-- 代码编辑、执行 worktree、commit、finish、context packet：
-  `.codestable/reference/worktree-conventions.md`
+- context packet、commit planning 和 backlog 工具：`.codestable/reference/tools-context.md`
 - Task agent 选择、Task agent 生命周期、Goal driver 派发：
   `.codestable/reference/agent-conventions.md`
 - owner approval 报告：`.codestable/reference/approval-conventions.md`

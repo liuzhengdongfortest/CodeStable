@@ -170,8 +170,6 @@ CodeStable models real coding work as a set of **entities** and **flows**.
 
 `cs-code-review` is the cross-cutting quality gate at the tail of execution flows, before commit. At a phase or milestone boundary, use `cs-docs-neat` to reconcile `.codestable/`, README/docs, `CLAUDE.md` / `AGENTS.md`, and agent memory so docs do not drift from code.
 
-> Strong branch protection: `cs-onboard` can optionally release the `codestable-ai-branch-guard` hook, which blocks AI from implementing directly on `main`/`master` and forces a worktree. See the "branch protection hook" section in `cs-onboard`.
-
 ---
 
 ## Skill catalog

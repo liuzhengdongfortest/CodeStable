@@ -10,25 +10,11 @@
 
 ---
 
-## 执行 gate（worktree + commit）
+## 执行前检查与完成 gate
 
-检出通常在 design 起手已按"改动前 worktree 探测与选择"确定：已在 worktree 或已有 `worktree-override.md` 则直接复用；若本轮是快速通道 / 中途续跑等未探测过的路径，先补一次探测（见 `.codestable/reference/worktree-conventions.md`）。进入实现前运行 start gate，路径用项目运行时 `.codestable/tools/...`：
+CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入实现前先确认 design、checklist、基线验证和当前 dirty scope，避免把无关改动混入本 feature。
 
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/features/YYYY-MM-DD-{slug}
-```
-
-gate 不通过就不要开始改代码；用户批准 override 时先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。
-
-dogfood / 临时隔离仓库例外：只有当用户任务明确要求在一次性隔离 repo 里真实执行 workflow，且该 repo 不是交付目标主仓库时，允许不创建 linked worktree；仍必须在 unit 目录写 `worktree-override.md`，记录 `reason=dogfood-ephemeral-repo`、用户授权原文、影响范围和后续清理策略。不能把这个例外用于普通 feature 实现。
-
-实现完成、输出汇报前运行 commit gate：
-
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json commit --unit .codestable/features/YYYY-MM-DD-{slug}
-```
-
-gate 不通过就先处理 findings，不把"测试已过"当成完成。gate 工具的安装与 branch-guard hook 说明见 `.codestable/reference/branch-guard-hooks.md`。
+实现完成、输出汇报前必须进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行，不由 feature implementation 协议隐式创建分支或切换检出。
 
 ---
 

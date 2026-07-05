@@ -22,7 +22,6 @@ def load_tool(module_name: str, filename: str):
 
 
 doctor = load_tool("codestable_doctor", "codestable-doctor.py")
-worktree_gate = load_tool("codestable_worktree_gate", "codestable-worktree-gate.py")
 runtime_tool = load_tool("codestable_runtime", "codestable_runtime.py")
 
 
@@ -56,14 +55,11 @@ def install_runtime(repo: Path) -> None:
         ".codestable/reference/execution-conventions.md",
         ".codestable/reference/shared-conventions.md",
         ".codestable/reference/agent-conventions.md",
-        ".codestable/reference/worktree-conventions.md",
         ".codestable/reference/tools.md",
         ".codestable/runtime-manifest.json",
         ".codestable/tools/validate-yaml.py",
         ".codestable/tools/search-yaml.py",
         ".codestable/tools/codestable-workflow-next.py",
-        ".codestable/tools/codestable-worktree-gate.py",
-        ".codestable/tools/validate-implementation-review.py",
         ".codestable/gates/roadmap-goal-gates.yaml",
         ".codestable/tools/codestable-scope-gate.py",
         ".codestable/tools/codestable-dod-contract-gate.py",
@@ -81,7 +77,7 @@ def install_runtime(repo: Path) -> None:
                         "plugin": "codestable",
                         "plugin_version": "1.0.0",
                         "runtime_version": "1.0.0",
-                        "managed_paths": [".codestable/tools", ".codestable/gates", ".codestable/reference", ".codestable/hooks"],
+                        "managed_paths": [".codestable/tools", ".codestable/gates", ".codestable/reference"],
                     }
                 )
                 + "\n",
@@ -152,15 +148,29 @@ def test_runtime_version_mismatch_is_blocked_with_sync_hint(tmp_path: Path) -> N
     assert "runtime sync" in runtime["hint"]
 
 
-def test_runtime_sync_refreshes_managed_assets_and_manifest(tmp_path: Path) -> None:
+def test_runtime_sync_refreshes_managed_assets_manifest_and_removes_worktree_assets(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
+    for obsolete in [
+        ".codestable/reference/worktree-conventions.md",
+        ".codestable/reference/branch-guard-hooks.md",
+        ".codestable/tools/codestable-worktree-gate.py",
+        ".codestable/tools/validate-implementation-review.py",
+        ".codestable/hooks/hooks.codex.json",
+    ]:
+        target = repo / obsolete
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("old\n", encoding="utf-8")
+    (repo / ".codestable/hooks/custom.json").write_text("keep\n", encoding="utf-8")
+    run(repo, "add", ".codestable")
+    run(repo, "commit", "-m", "add obsolete runtime")
     source = tmp_path / "source-skill"
-    for directory in ["gates", "tools", "references", "hooks"]:
+    for directory in ["gates", "tools", "references"]:
         (source / directory).mkdir(parents=True)
     (source / "gates/roadmap-goal-gates.yaml").write_text("version: 2\n", encoding="utf-8")
     (source / "tools/codestable-workflow-next.py").write_text("new workflow\n", encoding="utf-8")
+    (source / "tools/codestable-worktree-gate.py").write_text("should not copy\n", encoding="utf-8")
     (source / "references/tools.md").write_text("new tools\n", encoding="utf-8")
-    (source / "hooks/hooks.codex.json").write_text("{}\n", encoding="utf-8")
+    (source / "references/worktree-conventions.md").write_text("should not copy\n", encoding="utf-8")
     (source / "codestable.gitignore").write_text("__pycache__/\n", encoding="utf-8")
     (source / ".codex-plugin").mkdir()
     (source / ".codex-plugin/plugin.json").write_text('{"version": "1.1.0"}\n', encoding="utf-8")
@@ -169,6 +179,10 @@ def test_runtime_sync_refreshes_managed_assets_and_manifest(tmp_path: Path) -> N
 
     assert result["ok"]
     assert (repo / ".codestable/tools/codestable-workflow-next.py").read_text(encoding="utf-8") == "new workflow\n"
+    assert not (repo / ".codestable/tools/codestable-worktree-gate.py").exists()
+    assert not (repo / ".codestable/reference/worktree-conventions.md").exists()
+    assert not (repo / ".codestable/hooks/hooks.codex.json").exists()
+    assert (repo / ".codestable/hooks/custom.json").read_text(encoding="utf-8") == "keep\n"
     manifest = json.loads((repo / ".codestable/runtime-manifest.json").read_text(encoding="utf-8"))
     assert manifest["plugin_version"] == "1.1.0"
     assert ".codestable/tools" in manifest["managed_paths"]
@@ -200,16 +214,16 @@ def test_docs_only_dirty_state_is_planning_safe(tmp_path: Path) -> None:
     assert report["implementation_changes"] == []
 
 
-def test_dirty_implementation_on_main_is_blocked(tmp_path: Path) -> None:
+def test_dirty_implementation_is_reported_without_worktree_block(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     (repo / "src").mkdir()
     (repo / "src/app.py").write_text("print('x')\n", encoding="utf-8")
 
     report = doctor.diagnose(repo)
 
-    assert report["status"] == "blocked"
+    assert report["status"] == "implementation-active"
     assert report["implementation_changes"] == ["src/app.py"]
-    assert "outside a linked execution worktree" in report["findings"][0]["message"]
+    assert report["findings"] == []
 
 
 def test_completed_unit_without_review_is_blocked(tmp_path: Path) -> None:
@@ -245,28 +259,3 @@ def test_backlog_terms_are_reported_with_line_numbers(tmp_path: Path) -> None:
     kinds = {item["kind"] for item in report["backlog"]}
     assert {"attention-candidate", "needs-human-review", "human-review", "follow-up", "accepted-p2"} <= kinds
     assert all(item["line"] >= 1 for item in report["backlog"])
-
-
-def test_clean_main_with_post_baseline_implementation_commit_is_blocked(tmp_path: Path) -> None:
-    repo = init_repo(tmp_path)
-    unit = make_feature_unit(repo)
-    (unit / "worktree-override.md").write_text(
-        "reason: test\nscope: demo\napproval: approved\n",
-        encoding="utf-8",
-    )
-    payload = worktree_gate.start_gate(repo, ".codestable/features/2026-06-03-demo")
-    assert payload["ok"]
-    assert run(repo, "status", "--porcelain").stdout == "?? .codestable/features/\n"
-
-    run(repo, "add", ".codestable")
-    run(repo, "commit", "-m", "add unit")
-    (repo / "src").mkdir()
-    (repo / "src/app.py").write_text("print('x')\n", encoding="utf-8")
-    run(repo, "add", "src/app.py")
-    run(repo, "commit", "-m", "implement on main")
-    assert run(repo, "status", "--porcelain").stdout == ""
-
-    report = doctor.diagnose(repo)
-
-    assert report["status"] == "blocked"
-    assert report["post_baseline_blocks"][0]["implementation_changes"] == ["src/app.py"]

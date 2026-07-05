@@ -1,7 +1,7 @@
-# CodeStable Context 与 Finish 工具
+# CodeStable Context 与 Commit 工具
 
 本文件会由 `cs-onboard` 复制到 `.codestable/reference/tools-context.md`。它补充
-`tools.md` 中的 context、finish、inbox、commit 和 backlog 工具说明。
+`tools.md` 中的 context、commit 和 backlog 工具说明。
 
 ## 1. build-context-packet.py
 
@@ -55,47 +55,7 @@ python3 .codestable/tools/check-context-sufficiency.py --file /tmp/codestable-hu
 派发 human reviewer / Task agent reviewer 前，或把 context packet 作为 approval report
 证据分享前使用。
 
-## 3. codestable-finish-worktree.py
-
-merge 前运行执行 worktree 的 finish gate。它生成 learning report、context sufficiency
-check、merge readiness JSON 和本地 inbox item。它不会 merge、rebase、commit、删除
-worktree，也不会替代 merge approval。
-
-```bash
-python3 .codestable/tools/codestable-finish-worktree.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --json \
-  --validation "uv run pytest -> passed" \
-  --validation "CLI smoke -> passed"
-```
-
-生成文件：
-
-- `{slug}-learning-report.md`
-- `{slug}-learning-context-check.json`
-- `{slug}-merge-readiness.json`
-- `$(git rev-parse --git-common-dir)/codestable/worktree-inbox/{branch}.json`
-
-关键规则：
-
-- 只在 linked execution worktree 中运行。
-- 除可刷新 finish-gate 产物外，保持 worktree 干净。
-- 必须有 implementation review evidence。
-- learning report 的 `covered_head` 之后 branch HEAD 变化时必须重跑。
-- 缺 validation、缺 review 或存在 blocking backlog 时失败。
-
-## 4. codestable-worktree-inbox.py
-
-读取 Git common-dir 中跨 branch / worktree 的 merge 提醒。
-
-```bash
-python3 .codestable/tools/codestable-worktree-inbox.py --root . --json
-python3 .codestable/tools/codestable-worktree-inbox.py --root . --snooze codex_slug --until 2026-06-12T00:00:00Z --json
-python3 .codestable/tools/codestable-worktree-inbox.py --root . --abandon codex_slug --reason "owner canceled" --json
-```
-
-状态：`ready-to-merge`、`stale-report`、`merged`、`blocked`、`abandoned`。
-snoozed item 仍可见，但在到期或变 stale 前不会提示 merge。
-
-## 5. plan-commits.py
+## 3. plan-commits.py
 
 只读 commit planner。它按逻辑 bucket 对 dirty paths 分组，并标记 migration doc-sync、
 runbook doc-sync、tracked ignored files、large files 和 live writers。它不会 stage 或 commit。
@@ -107,7 +67,7 @@ python3 .codestable/tools/plan-commits.py --root . --json
 常见 buckets：`code`、`tests`、`docs`、`migrations`、`database_docs`、`data`、
 `logs`、`codestable`、`installed_skill`、`unknown`。
 
-## 6. codestable-backlog.py
+## 4. codestable-backlog.py
 
 最终汇报前扫描 `.codestable/` 中的人审与 follow-up backlog。
 

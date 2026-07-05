@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -56,7 +55,6 @@ IMPLEMENTATION_SUFFIXES = (
 )
 
 UNIT_ROOTS = ("features", "issues", "refactors")
-IMPLEMENTATION_UNIT_ROOTS = frozenset(UNIT_ROOTS)
 SUBAGENT_REVIEWERS = {"subagent", "subagent+ocr"}
 KNOWN_SKILL_DIRS = {
     "codestable-maintainer",
@@ -177,13 +175,6 @@ def ref_exists(root: Path, ref: str) -> bool:
     return run_git(root, "rev-parse", "--verify", "--quiet", ref).returncode == 0
 
 
-def ref_head(root: Path, ref: str) -> str | None:
-    result = run_git(root, "rev-parse", "--verify", ref)
-    if result.returncode != 0:
-        return None
-    return result.stdout.strip()
-
-
 def default_branch(root: Path) -> str | None:
     origin_head = run_git(root, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
     if origin_head.returncode == 0:
@@ -194,21 +185,6 @@ def default_branch(root: Path) -> str | None:
         if ref_exists(root, candidate) or ref_exists(root, f"refs/heads/{candidate}"):
             return candidate
     return current_branch(root)
-
-
-def is_linked_worktree(root: Path) -> bool:
-    superproject = run_git(root, "rev-parse", "--show-superproject-working-tree")
-    in_submodule = superproject.returncode == 0 and bool(superproject.stdout.strip())
-
-    git_dir = run_git(root, "rev-parse", "--path-format=absolute", "--git-dir")
-    common_dir = run_git(root, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    if git_dir.returncode == 0 and common_dir.returncode == 0:
-        git_dir_path = Path(git_dir.stdout.strip()).resolve()
-        common_dir_path = Path(common_dir.stdout.strip()).resolve()
-        if git_dir_path != common_dir_path and not in_submodule:
-            return True
-
-    return False
 
 
 def is_implementation_path(path: str) -> bool:
@@ -400,177 +376,8 @@ def resolve_unit(root: Path, value: str) -> Path:
     raise ValueError(f"unit is ambiguous: {value}")
 
 
-def is_implementation_unit(unit_dir: Path) -> bool:
-    parts = unit_dir.parts
-    return len(parts) >= 3 and parts[0] == ".codestable" and parts[1] in IMPLEMENTATION_UNIT_ROOTS
-
-
-def override_file_for(root: Path, unit_dir: Path) -> Path:
-    return root / unit_dir / "worktree-override.md"
-
-
-def has_human_approved_override(root: Path, unit_dir: Path) -> bool:
-    path = override_file_for(root, unit_dir)
-    if not path.exists():
-        return False
-    text = path.read_text(encoding="utf-8").lower()
-    return "reason" in text and "scope" in text and ("approved" in text or "approval" in text)
-
-
-def baseline_id(unit_dir: Path) -> str:
-    return re.sub(r"[^a-zA-Z0-9_.-]+", "_", unit_dir.as_posix()).strip("_")
-
-
-def baseline_path(root: Path, unit_dir: Path) -> Path:
-    result = run_git(root, "rev-parse", "--git-path", f"codestable/worktree-gate/{baseline_id(unit_dir)}.json")
-    if result.returncode == 0 and result.stdout.strip():
-        return (root / result.stdout.strip()).resolve()
-    return root / ".git" / "codestable" / "worktree-gate" / f"{baseline_id(unit_dir)}.json"
-
-
-def write_baseline(root: Path, unit_dir: Path) -> dict[str, object]:
-    branch = current_branch(root)
-    default = default_branch(root)
-    default_ref = default or branch or "HEAD"
-    baseline = {
-        "unit": unit_dir.as_posix(),
-        "default_branch": default,
-        "default_head": ref_head(root, default_ref),
-        "current_branch": branch,
-        "worktree": root.resolve().as_posix(),
-        "linked_worktree": is_linked_worktree(root),
-        "timestamp": int(time.time()),
-    }
-    path = baseline_path(root, unit_dir)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(baseline, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return baseline
-
-
-def read_baseline(root: Path, unit_dir: Path) -> dict[str, object] | None:
-    path = baseline_path(root, unit_dir)
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def iter_baselines(root: Path) -> list[dict[str, object]]:
-    git_path = run_git(root, "rev-parse", "--git-path", "codestable/worktree-gate")
-    if git_path.returncode != 0 or not git_path.stdout.strip():
-        return []
-    baseline_root = (root / git_path.stdout.strip()).resolve()
-    if not baseline_root.exists():
-        return []
-    baselines: list[dict[str, object]] = []
-    for path in sorted(baseline_root.glob("*.json")):
-        try:
-            baselines.append(json.loads(path.read_text(encoding="utf-8")))
-        except json.JSONDecodeError:
-            continue
-    return baselines
-
-
-def changed_paths_between(root: Path, base_ref: str, head_ref: str) -> list[str]:
-    diff = run_git(root, "diff", "--name-only", f"{base_ref}..{head_ref}")
-    if diff.returncode != 0:
-        return []
-    return [line.strip() for line in diff.stdout.splitlines() if line.strip()]
-
-
-def post_baseline_implementation_changes(root: Path, baseline: dict[str, object]) -> list[str]:
-    default = baseline.get("default_branch")
-    default_head = baseline.get("default_head")
-    if not default or not default_head:
-        return []
-    head = ref_head(root, str(default))
-    if not head or head == default_head:
-        return []
-    return [
-        path
-        for path in changed_paths_between(root, str(default_head), str(default))
-        if is_implementation_path(path)
-    ]
-
-
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def git_common_dir(root: Path) -> Path:
-    result = run_git(root, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    if result.returncode == 0 and result.stdout.strip():
-        return Path(result.stdout.strip()).resolve()
-    return (root / ".git").resolve()
-
-
-def inbox_dir(root: Path) -> Path:
-    return git_common_dir(root) / "codestable" / "worktree-inbox"
-
-
-def inbox_record_id(branch: str | None, unit_dir: Path | str | None) -> str:
-    source = branch or (unit_dir.as_posix() if isinstance(unit_dir, Path) else str(unit_dir or "detached"))
-    return re.sub(r"[^a-zA-Z0-9_.-]+", "_", source).strip("_") or "detached"
-
-
-def inbox_record_path(root: Path, branch: str | None, unit_dir: Path | str | None) -> Path:
-    return inbox_dir(root) / f"{inbox_record_id(branch, unit_dir)}.json"
-
-
-def write_inbox_record(root: Path, record: dict[str, object]) -> Path:
-    path = inbox_record_path(root, str(record.get("branch") or ""), str(record.get("unit") or ""))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return path
-
-
-def iter_inbox_records(root: Path) -> list[dict[str, object]]:
-    directory = inbox_dir(root)
-    if not directory.exists():
-        return []
-    records: list[dict[str, object]] = []
-    for path in sorted(directory.glob("*.json")):
-        try:
-            record = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            continue
-        if isinstance(record, dict):
-            record["_record_path"] = path.as_posix()
-            records.append(record)
-    return records
-
-
-def branch_head(root: Path, branch: str) -> str | None:
-    return ref_head(root, branch) or ref_head(root, f"refs/heads/{branch}")
-
-
-def is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
-    return run_git(root, "merge-base", "--is-ancestor", ancestor, descendant).returncode == 0
-
-
-def worktree_map(root: Path) -> dict[str, dict[str, object]]:
-    result = run_git(root, "worktree", "list", "--porcelain")
-    if result.returncode != 0:
-        return {}
-    entries: dict[str, dict[str, object]] = {}
-    current: dict[str, object] = {}
-    for line in result.stdout.splitlines():
-        if not line:
-            if current.get("path"):
-                entries[str(current["path"])] = current
-            current = {}
-            continue
-        key, _, value = line.partition(" ")
-        if key == "worktree":
-            current["path"] = str(Path(value).resolve())
-        elif key == "HEAD":
-            current["head"] = value
-        elif key == "branch":
-            current["branch"] = value.removeprefix("refs/heads/")
-        elif key == "detached":
-            current["detached"] = True
-    if current.get("path"):
-        entries[str(current["path"])] = current
-    return entries
 
 
 BACKLOG_PATTERNS = (

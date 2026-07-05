@@ -4,15 +4,11 @@
 
 很轻：没有 scan 清单、没有 design doc、没有 checklist，改完一句话汇报就行。
 
-## 执行 gate（worktree + commit）
+## 执行前检查与完成 gate
 
-改动前先按 `.codestable/reference/worktree-conventions.md` 的"改动前 worktree 探测与选择"确认检出（已在 worktree 或已有 `worktree-override.md` 则直接复用）。改前运行 start gate，`{slug}` 为 refactor 目录名：
+CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。改动前先确认当前 dirty scope，只把和本次小重构相关的改动纳入结果。
 
-```bash
-python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/refactors/YYYY-MM-DD-{slug}
-```
-
-gate 不通过不动代码；override 先在 unit 目录写 `worktree-override.md`（reason / scope / approval）。自证通过、提交前运行 commit gate（同命令 `commit`）；不通过先处理 findings。gate 安装与 branch-guard hook 见 `.codestable/reference/branch-guard-hooks.md`。
+自证通过、提交前进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
 
 ---
 

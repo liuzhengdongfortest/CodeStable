@@ -171,9 +171,6 @@ CodeStable 顺着软件编码的真实流程来设计，把开发活动建模成
 
 `cs-code-review` 是各执行流末端、commit 前的横切质量门禁。阶段或里程碑收尾时，用 `cs-docs-neat` 整理 `.codestable/`、README/docs、`CLAUDE.md` / `AGENTS.md` 和 agent 记忆，避免文档与代码脱节。
 
-> 强分支保护：`cs-onboard` 可选释放 `codestable-ai-branch-guard` hook，拦截 AI 在 `main`/`master` 上直接实现，强制走 worktree。详见 `cs-onboard` 的「分支保护 hook」。
-
-
 ---
 
 ## 技能总览

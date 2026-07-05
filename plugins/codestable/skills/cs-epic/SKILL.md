@@ -44,8 +44,6 @@ argument-hint: "[--stage planning|review|goal-package] <epic>"
 
 普通子 feature 仍放 `.codestable/features/YYYY-MM-DD-{feature-slug}/`。
 
-worktree 以整个 epic 为单位：planning Phase 3 起草前问一次是否切独立 worktree（见 `references/planning/protocol.md`），选定后 roadmap 与所有子 feature design / goal 执行都在此检出线性产出，子 feature 继承不再单独询问。
-
 ---
 
 ## 状态机
