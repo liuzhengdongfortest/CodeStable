@@ -85,6 +85,8 @@
 
 ### Phase 3：拆解与起草
 
+**worktree 探测（epic 级，只此一次）**：即将写 `{slug}-roadmap.md` 初稿（第一份持久产物）前，按 `.codestable/reference/worktree-conventions.md` 的"改动前 worktree 探测与选择"以整个 epic 为单位确认检出。选切后 roadmap 规划、各子 feature 的 design 与 goal 执行都在此 worktree 线性产出；子 feature 继承此选择，不再单独询问。（`roadmap` 不在 gate 的实现单元根，探测直接用该节的 git 命令判断，不依赖 `worktree-gate start`。）
+
 按 `reference.md` "主文档结构"和"items.yaml 格式"写**完整初稿**不分批。
 
 先做 **Granularity Gate**：确认本需求为什么应该进入 roadmap，而不是 single feature 或 brainstorm；结论写进主文档第 2 节，详细判据见 `reference.md`。

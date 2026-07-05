@@ -90,7 +90,7 @@ acceptance: ".codestable/features/YYYY-MM-DD-{slug}/{slug}-acceptance.md"
 
 - Goal 模式接管：普通流程中各阶段停等用户确认的 checkpoint，在 goal 模式下改为写入报告、状态和证据记录；只有命中 handoff 条件才停。
 - Goal driver 不得绕过 implementation 的 TDD policy；行为代码 step 缺 RED / GREEN / VERIFY evidence 且无 `TDD exception` 时，implementation gate 不通过。
-- 每个阶段 gate 通过后按上表更新 `goal-state.yaml` 的 `stage` / `status`，保证 driver 中断后可按仓库事实重派续跑。
+- 每个阶段 gate 通过后按上表更新 `goal-state.yaml` 的 `stage` / `status`，保证 driver 中断后可按仓库事实重派续跑；step 粒度的进度 ledger 与续跑判定见 `.codestable/reference/agent-conventions.md` 的"派发与审查精化"，续跑以 ledger + `git log` 为准，不重复派发已完成 step。
 - handoff 输出格式：
 
 ```text

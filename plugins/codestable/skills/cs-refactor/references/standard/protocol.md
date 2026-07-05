@@ -12,7 +12,7 @@ scan（扫优化点清单）→ design（和用户定做哪几条 + 顺序）→
 
 ## 执行 gate（worktree + commit）
 
-进入 apply 前运行 start gate，`{slug}` 为 refactor 目录名：
+检出通常在 scan 起手已按"改动前 worktree 探测与选择"确定：已在 worktree 或已有 `worktree-override.md` 则直接复用；未探测过先补一次（见 `.codestable/reference/worktree-conventions.md`）。进入 apply 前运行 start gate，`{slug}` 为 refactor 目录名：
 
 ```bash
 python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/refactors/YYYY-MM-DD-{slug}
@@ -61,6 +61,8 @@ gate 不通过不开始改代码；override 时先在 unit 目录写 `worktree-o
 ---
 
 ## 阶段 1：scan
+
+即将写 `{slug}-scan.md`（第一份持久产物）前，按 `.codestable/reference/worktree-conventions.md` 的"改动前 worktree 探测与选择"确认检出。
 
 ### 先跑前置检查（7 条），命中就停
 

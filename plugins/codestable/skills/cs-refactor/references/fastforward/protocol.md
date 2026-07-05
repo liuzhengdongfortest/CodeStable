@@ -6,7 +6,7 @@
 
 ## 执行 gate（worktree + commit）
 
-改前运行 start gate，`{slug}` 为 refactor 目录名：
+改动前先按 `.codestable/reference/worktree-conventions.md` 的"改动前 worktree 探测与选择"确认检出（已在 worktree 或已有 `worktree-override.md` 则直接复用）。改前运行 start gate，`{slug}` 为 refactor 目录名：
 
 ```bash
 python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/refactors/YYYY-MM-DD-{slug}

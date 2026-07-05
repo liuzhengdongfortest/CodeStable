@@ -161,7 +161,7 @@ CodeStable worktree 生命周期门禁。用于实现开始前、提交前、以
 
 ### start
 
-实现开始前运行。feature / issue / refactor 这类实现单元必须在 linked execution worktree 中开始；如果用户明确批准在主检出中实现，单元目录下必须有 `worktree-override.md`，并写明 reason、scope、approval。dogfood / 一次性隔离仓库也必须写 override，reason 用 `dogfood-ephemeral-repo`。
+实现开始前运行。检出由"改动前 worktree 探测与选择"（见 `worktree-conventions.md`）先定：feature / issue / refactor 这类实现单元要么在 linked execution worktree 中开始，要么用户选择不切、单元目录下有写明 reason、scope、approval 的 `worktree-override.md`——gate 校验的正是这两者之一。dogfood / 一次性隔离仓库也走 override，reason 用 `dogfood-ephemeral-repo`。
 
 ```bash
 python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/features/YYYY-MM-DD-slug

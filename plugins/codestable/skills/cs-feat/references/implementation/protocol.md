@@ -12,7 +12,7 @@
 
 ## 执行 gate（worktree + commit）
 
-进入实现前运行 start gate，路径用项目运行时 `.codestable/tools/...`：
+检出通常在 design 起手已按"改动前 worktree 探测与选择"确定：已在 worktree 或已有 `worktree-override.md` 则直接复用；若本轮是快速通道 / 中途续跑等未探测过的路径，先补一次探测（见 `.codestable/reference/worktree-conventions.md`）。进入实现前运行 start gate，路径用项目运行时 `.codestable/tools/...`：
 
 ```bash
 python3 .codestable/tools/codestable-worktree-gate.py --root . --json start --unit .codestable/features/YYYY-MM-DD-{slug}
