@@ -23,6 +23,8 @@ CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录
 
 **spec 写当前为什么这样。** 合并 spec 时写需求、架构考量、统一语言、边界和取舍；不要写“某天从 A 改成 B”的流水。
 
+**核心理解不引用代码。** 回写 spec 时只合并人能读懂的稳定结论。代码路径、命令结果和调查证据留在 issue、notes 或证据索引里，不要让 project spec 的正文变成代码导览。
+
 **先守组织，再写内容。** 回写 project spec 时先从 `.cs/spec/index.md` 找阅读路径。缺少合适位置时，先补入口或子层索引，再写内容，不要散落平级文件。
 
 ## 行动指南
@@ -43,7 +45,7 @@ CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录
 按 issue 的 `epic` frontmatter 或“归属”判断回写层级：
 
 - `epic` 为空：把稳定需求、架构考量、统一语言或边界合并回 project spec。
-- `type: explore`：先确认用户认可 issue 内探索文档，再把毕业结论合并回 project spec；错误讨论、证据流水和仍未知问题留在 issue。
+- `type: explore`：先确认用户认可 issue 内探索文档，再把毕业结论提炼成人能读懂的 spec 内容；错误讨论、代码证据、证据流水和仍未知问题留在 issue。
 - `epic` 指向目录：把完成结果、验证事实、影响到的本轮计划和合并候选写回该 epic 的 `spec.md` / `plan.md`。
 
 再把坑点、操作经验、调试路径写入 notes；极少数启动必读事实写入 facts；稳定工具说明写入 tools。
