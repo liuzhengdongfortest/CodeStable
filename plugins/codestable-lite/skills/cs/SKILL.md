@@ -28,7 +28,7 @@ talk → spec → plan → design/test/do → close
 | 第一次接入项目，创建 `.cs/` 骨架 | `cs-onboard` |
 | 想法还模糊，用户心里有感觉但没说清 | `cs-talk` |
 | 维护项目主线规格或大需求规格 | `cs-spec` |
-| 把已明确范围变成独立 issue / epic / epic issue | `cs-plan` |
+| 把已明确范围先商量成计划草案，确认后变成 issue / epic | `cs-plan` |
 | 系统行为不符合预期、debug、修 bug | `cs-complain` |
 | 摸清系统未知，把 project spec 缺口写成探索型 issue | `cs-spec-explore` |
 | 为明确 issue 写实现设计 | `cs-design` |

@@ -36,6 +36,17 @@ Claude plugin marketplace:
 /plugin install codestable-lite@codestable-lite
 ```
 
+Note: Claude remote marketplaces read `.claude-plugin/marketplace.json` from the GitHub repository's default branch. If `codestable-lite` still lives only on a non-default branch, test it from a local checkout first:
+
+```bash
+git clone -b codestable-lite git@github.com:liuzhengdongfortest/CodeStable.git CodeStable-LITE
+```
+
+```text
+/plugin marketplace add ./CodeStable-LITE
+/plugin install codestable-lite@codestable-lite
+```
+
 You can also use the skills CLI:
 
 ```bash
@@ -61,6 +72,8 @@ The CodeStable LITE plugin only packages `cs` / `cs-*` skills under `plugins/cod
 ## Upgrade
 
 After a new release, check `CHANGELOG.md` for the version change, then refresh through the entry you installed from.
+
+Before publishing to Claude users, `.claude-plugin/marketplace.json`, `plugins/codestable-lite/`, and `VERSION` must be on the repository's default branch, or the LITE package should move to a separate repository whose default branch is LITE.
 
 Codex plugin marketplace:
 
@@ -162,7 +175,7 @@ The close rule is simple: independent issue → project spec; exploratory issue 
 <tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy or context is missing: inspect repo context first, then write the result into <code>talks/</code></td></tr>
 <tr><td><b>Spec entry</b></td><td><code>cs-spec</code></td><td>Maintain project or epic specs: requirements, architecture considerations, shared language, scope ready for this round, and open questions</td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, create/update a bug issue, build a feedback loop, diagnose, fix, verify, and write back</td></tr>
-<tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code> or the scope ready in an epic spec, then create an independent issue, new epic, or epic issue</td></tr>
+<tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code> or the scope ready in an epic spec, discuss a planning draft first, then create an independent issue, new epic, or epic issue after confirmation</td></tr>
 <tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Write a tutorial-style implementation design for one issue: functional split, request/data flow, boundaries, change route, and validation</td></tr>
 <tr><td><b>Test entry</b></td><td><code>cs-test</code></td><td>Optional gate: when test design is needed, write test goals, cases, and execution guidance for one issue</td></tr>
 <tr><td><b>Execution entry</b></td><td><code>cs-do</code></td><td>Implement from the issue design, verify, and write back the execution record</td></tr>
@@ -191,7 +204,7 @@ CodeStable isn't a single linear pipeline — it's a **project spec + epic spec 
         ┌─────────────────┼─────────────────┐
    (not onboarded)     (idea fuzzy)        (spec needs update)       (onboarded)
    cs-onboard          cs-talk ─────┐      cs-spec ─────┐           cs-plan ─▶ cs-design ─▶ cs-test? ─▶ cs-do ─▶ cs-close
-   skeleton            context + talks│      project/epic│           create items → design → optional tests → execute → sink by owner
+   skeleton            context + talks│      project/epic│           confirm draft, create items → design → optional tests → execute → sink by owner
                                     └───────────────┴────────────▶ independent issue / epic / epic issue
                        cs-complain ─▶ diagnose and fix behavior drift through a bug issue
 ═══════════════════════════════════════════════════════════════
@@ -200,7 +213,7 @@ CodeStable isn't a single linear pipeline — it's a **project spec + epic spec 
    project spec ─▶ what the project is / where it goes / capability map / architecture map / shared language / reading path
    epic spec    ─▶ what the big change changes / why this design / scope ready this round / open questions
    cs-spec      ─▶ maintain project or epic spec; write considerations, not change logs
-   cs-plan      ─▶ from talks or epic spec: independent issue / new epic / this round's epic issues
+   cs-plan      ─▶ from talks or epic spec: discuss a planning draft, then create independent issue / new epic / this round's epic issues after confirmation
 ═══════════════════════════════════════════════════════════════
  issues · closeable execution slices         (.cs/issues/)
 ───────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
 interface:
   display_name: "CS Plan"
   short_description: "规划独立/探索 issue、epic 或 epic issue"
-  default_prompt: "Use $cs-plan to turn a clarified talk or epic spec scope into an independent issue, an exploratory issue, a directory-based epic, or the next batch of epic issues."
+  default_prompt: "Use $cs-plan to discuss a planning draft with the user first, then after confirmation turn a clarified talk or epic spec scope into an independent issue, an exploratory issue, a directory-based epic, or the next batch of epic issues."
