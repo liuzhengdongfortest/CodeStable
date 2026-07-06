@@ -1,4 +1,6 @@
-.claude
+.claude/
+/dist/
 __pycache__
 *.pyc
-.codex
+.DS_Store
+.codex/

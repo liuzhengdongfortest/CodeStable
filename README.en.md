@@ -12,7 +12,7 @@ Tired of OpenSpec's flimsiness, Oh-My-OpenAgent's over-engineering, and Superpow
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/skills-18-6366F1?style=flat-square" alt="Skills"/>
+  <img src="https://img.shields.io/badge/skills-17-6366F1?style=flat-square" alt="Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -22,8 +22,24 @@ Tired of OpenSpec's flimsiness, Oh-My-OpenAgent's over-engineering, and Superpow
 
 ## Install
 
+Codex plugin marketplace:
+
 ```bash
-npx skills add https://github.com/liuzhengdongfortest/CodeStable
+codex plugin marketplace add liuzhengdongfortest/CodeStable
+codex plugin add codestable-lite@codestable-lite
+```
+
+Claude plugin marketplace:
+
+```text
+/plugin marketplace add liuzhengdongfortest/CodeStable
+/plugin install codestable-lite@codestable-lite
+```
+
+You can also use the skills CLI:
+
+```bash
+npx skills@latest add liuzhengdongfortest/CodeStable
 ```
 
 One command to start working:
@@ -39,6 +55,32 @@ For daily use, when you don't know which skill fits, call the root entry:
 ```
 
 `cs` reads your intent and tells you which `cs-xxx` to run.
+
+The CodeStable LITE plugin only packages `cs` / `cs-*` skills under `plugins/codestable-lite/skills/`; root-level standalone skill directories are not part of the distribution. The released version lives in `VERSION`, with release notes in `CHANGELOG.md`.
+
+## Upgrade
+
+After a new release, check `CHANGELOG.md` for the version change, then refresh through the entry you installed from.
+
+Codex plugin marketplace:
+
+```bash
+codex plugin marketplace upgrade codestable-lite
+codex plugin add codestable-lite@codestable-lite
+```
+
+Claude plugin marketplace:
+
+```text
+/plugin marketplace update
+/plugin update codestable-lite@codestable-lite
+```
+
+skills CLI:
+
+```bash
+npx skills@latest update
+```
 
 ---
 
@@ -132,8 +174,6 @@ The close rule is simple: independent issue → project spec; exploratory issue 
 <tr><td><code>cs-how-debug</code></td><td>Reproduce, gather evidence, explain the full cause chain from trigger to symptom, then make the smallest fix</td></tr>
 <tr><td><code>cs-how-docs</code></td><td>Organize project spec, epic spec, exploratory issues, notes, README, and doc sets as readable knowledge spaces instead of flat content</td></tr>
 <tr><td><code>cs-how-great-skills</code></td><td>When writing or reviewing skills, check whether context, principles, and usage boundaries are clear</td></tr>
-<tr><td rowspan="2"><b>Outward docs</b></td><td><code>cs-doc-tutorial</code></td><td>Outward-facing dev / user guides (task-oriented: how to use X to do Y)</td></tr>
-<tr><td><code>cs-doc-api</code></td><td>API reference reverse-engineered from source (entry-by-entry, parts lookup)</td></tr>
 </table>
 
 ---

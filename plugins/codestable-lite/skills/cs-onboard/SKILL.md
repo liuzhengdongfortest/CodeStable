@@ -22,7 +22,7 @@ onboard 可以观察项目，但不能编项目。能从代码、README、配置
 优先运行：
 
 ```bash
-python cs-onboard/scripts/init_codestable.py --project .
+python scripts/init_codestable.py --project .
 ```
 
 初始化后确认 `.cs/facts.md` 和 `.cs/spec/index.md` 存在，并确认基础实体目录已创建或保留。
