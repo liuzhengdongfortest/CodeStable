@@ -68,8 +68,8 @@ CodeStable goes the **other way**:
 
 <table>
 <tr><th></th><th>Agent-orchestration camp</th><th>CodeStable</th></tr>
-<tr><td><b>Core entity</b></td><td>Agent / Role / Team</td><td>Work items (issues / epics) · requirements (needs / constraints / trade-offs)</td></tr>
-<tr><td><b>Main question</b></td><td>How do agents divide work, hand off, coordinate?</td><td>How do requirements, constraints, trade-offs get recorded, retrieved, reused?</td></tr>
+<tr><td><b>Core entity</b></td><td>Agent / Role / Team</td><td>Project spec · epic spec · issues</td></tr>
+<tr><td><b>Main question</b></td><td>How do agents divide work, hand off, coordinate?</td><td>How does the software's current truth, change lines, and closeable work get organized, advanced, and sunk?</td></tr>
 <tr><td><b>Where state lives</b></td><td>Agent sessions / message buses / queues</td><td>The <code>.cs/</code> file tree (readable by both humans and AI)</td></tr>
 <tr><td><b>Pain it solves</b></td><td>One agent isn't enough; need coordination to scale</td><td>Software complexity overflows context; tacit knowledge gets lost; requirements drift</td></tr>
 <tr><td><b>Role of humans</b></td><td>The less the better — full automation is the ideal</td><td>Human-in-the-loop — the programmer owns the whole; AI is an efficient executor</td></tr>
@@ -87,33 +87,27 @@ I built CodeStable because I believe **the chaos of software engineering isn't r
 
 ---
 
-## Design: work items + requirements
+## Design: project spec + epic spec + issues
 
-Early CodeStable split development into 6 entities and 3 pipelines. In practice that was too many entities and too rigid — feature / issue / refactor are really the same thing (a closeable work item), and requirements / roadmap / architecture all describe the same thing (the current requirements truth). So it collapsed into **work items plus requirements**.
+Early CodeStable split development into 6 entities and 3 pipelines. After further compression, the core is three things: the project mainline truth, large-change lines, and closeable execution slices.
 
-### Work items — things to do that get closed
+### project spec — the mainline truth
 
-Bugs, refactors, small features, big needs — they're all "a change to make that gets closed when done," just differing in size and type. They live in `.cs/issues/` or `.cs/epics/`.
+The project spec lives in `.cs/spec/`. It is written for a developer entering the project for the first time: what the project is, where it is going, how requirements expand, how architecture expands, and where shared language lives. It is a tree, not a two-level directory; each `index.md` gives orientation first, then points to child documents.
 
-- **`cs-spec`** — bridge from upstream specs / PRDs / SE docs: when the target is stable but information is incomplete, investigate unknown systems, terms, and implementation blockers through repeated clarification rounds and batch `plan-brief`s
-- **`cs-plan`** — bridge from `talks/` or a spec `plan-brief`: small needs become issues directly; larger needs enter epics first and get split into issues
-- **`cs-complain`** — when behavior breaks expectations, record the complaint, build a feedback loop, diagnose, fix, verify, and write back the bug issue
-- **`cs-design`** — tutorial-style implementation design for one issue: functional split, request/data flow, boundaries, change route, and validation
-- **`cs-test`** — optional test design for one issue when the user or company requires test cases and execution guidance
-- **`cs-do`** — implement from the issue design, verify, and write back the execution record
-- **`cs-close`** — close an issue, write durable conclusions back to requirements, notes, facts, or tools, and commit related code plus issue/.cs writebacks in git repos
+Shared language belongs in the nearest `index.md` where it applies, not in a separate domain hierarchy. A spec does not record change logs; it explains why the current design, boundaries, and trade-offs stand.
 
-### requirements — human-readable current needs
+### epic spec — a large-change line
 
-This is CodeStable's north star: **read it and you know the requirements, constraints, and trade-offs behind the code.** It is not a field table. It should explain, in human language, the background, the rough capability being built, why this path was chosen, which user stories must hold, and which boundaries may vary.
+Large changes live under `.cs/epics/YYYY/MM/DD/{slug}/`. An epic directory contains `index.md`, `spec.md`, and `plan.md`: orientation, current requirements and architecture considerations, and the scope ready for this planning round. If implementation discovers additions, changes, or reversals, update the same epic spec instead of writing a `changes.md` log.
 
-Requirements are organized as a leading main document plus focused subdocuments: `.cs/requirements/index.md` owns the background, goals, shared terminology, core rules, and subdocument index; complex subsystems, steps, problem types, or domain rules live in separate requirement files linked from that index.
+Issues under an epic close back into the epic spec first. Only when a human confirms the whole epic is done does AI merge the graduated conclusions back into the project spec.
 
-- **`cs-wiki`** — automatically run multi-round structural questions, delegate subagent investigations, and build `.cs/wiki/` docs plus requirements candidates; it does not edit requirements directly
+### issues — closeable execution slices
 
-### How they mesh
+Small bugs, small features, and local chores do not need an epic; they can become independent issues directly. Large needs enter an epic, then get split from the epic spec in batches. An issue carries one verifiable change, not the whole requirement world.
 
-Work items are the increments; requirements is the current requirements truth those increments settle into. **When an issue or epic closes, the graduated constraints, facts, and trade-offs are written back to requirements.** Requirements keeps no history (that lives in closed issues); issues don't describe the standing requirements. The execution discipline (`cs-do`) and notes (`cs-note`) serve both.
+The close rule is simple: independent issue → project spec; exploratory issue → human-confirmed issue document merge into project spec; epic issue → epic spec; user-confirmed epic close → project spec.
 
 ---
 
@@ -124,19 +118,19 @@ Work items are the increments; requirements is the current requirements truth th
 <tr><td><b>Root entry</b></td><td><code>cs</code></td><td>Unified entry — introduces the system and routes open-ended intents to the right cs-* skill. Call it when you don't know which one fits</td></tr>
 <tr><td><b>Onboard</b></td><td><code>cs-onboard</code></td><td>Bring CodeStable into a repo: create or complete the <code>.cs/</code> workspace and base entity directories</td></tr>
 <tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy or context is missing: inspect repo context first, then write the result into <code>talks/</code></td></tr>
-<tr><td><b>Spec entry</b></td><td><code>cs-spec</code></td><td>When an upstream spec / PRD / SE doc has a stable target but incomplete information, clarify it, investigate unknown systems and blockers, and mark the scope ready for this planning round</td></tr>
+<tr><td><b>Spec entry</b></td><td><code>cs-spec</code></td><td>Maintain project or epic specs: requirements, architecture considerations, shared language, scope ready for this round, and open questions</td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, create/update a bug issue, build a feedback loop, diagnose, fix, verify, and write back</td></tr>
-<tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code> or a spec plan-brief, decide whether to create a direct issue or enter an epic first, then draft the artifact</td></tr>
+<tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code> or the scope ready in an epic spec, then create an independent issue, new epic, or epic issue</td></tr>
 <tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Write a tutorial-style implementation design for one issue: functional split, request/data flow, boundaries, change route, and validation</td></tr>
 <tr><td><b>Test entry</b></td><td><code>cs-test</code></td><td>Optional gate: when test design is needed, write test goals, cases, and execution guidance for one issue</td></tr>
 <tr><td><b>Execution entry</b></td><td><code>cs-do</code></td><td>Implement from the issue design, verify, and write back the execution record</td></tr>
-<tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue, sink durable conclusions, and commit related code plus issue/.cs writebacks in git repos</td></tr>
-<tr><td><b>System understanding</b></td><td><code>cs-wiki</code></td><td>Run multi-round structural questions and build <code>.cs/wiki/</code> docs plus requirements candidates</td></tr>
+<tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue or epic, sinking conclusions to project/epic specs by ownership, and commit related code plus .cs writebacks</td></tr>
+<tr><td><b>System understanding</b></td><td><code>cs-spec-explore</code></td><td>Turn project-spec gaps into exploratory issues, write the discussable document inside the issue, then merge on confirmed close</td></tr>
 <tr><td rowspan="2"><b>Support files</b></td><td><code>cs-note</code></td><td>Sink pitfalls, tricks, research, and command traps into <code>notes/</code>, or one-line startup facts into <code>facts.md</code></td></tr>
 <tr><td><code>cs-maketools</code></td><td>Let a human guide AI through an unknown workflow, then sink notes, a facts reference, and optional tools</td></tr>
 <tr><td rowspan="4"><b>Principles</b></td><td><code>cs-how-codedesign</code></td><td>Design module interfaces and capability ownership by making modules deep and placing seams where change is real</td></tr>
 <tr><td><code>cs-how-debug</code></td><td>Reproduce, gather evidence, explain the full cause chain from trigger to symptom, then make the smallest fix</td></tr>
-<tr><td><code>cs-how-docs</code></td><td>Organize wiki, requirements, notes, README, and doc sets as readable knowledge spaces instead of flat content</td></tr>
+<tr><td><code>cs-how-docs</code></td><td>Organize project spec, epic spec, exploratory issues, notes, README, and doc sets as readable knowledge spaces instead of flat content</td></tr>
 <tr><td><code>cs-how-great-skills</code></td><td>When writing or reviewing skills, check whether context, principles, and usage boundaries are clear</td></tr>
 <tr><td rowspan="2"><b>Outward docs</b></td><td><code>cs-doc-tutorial</code></td><td>Outward-facing dev / user guides (task-oriented: how to use X to do Y)</td></tr>
 <tr><td><code>cs-doc-api</code></td><td>API reference reverse-engineered from source (entry-by-entry, parts lookup)</td></tr>
@@ -146,7 +140,7 @@ Work items are the increments; requirements is the current requirements truth th
 
 ## Workflow at a glance
 
-CodeStable isn't a single linear pipeline — it's **work items + requirements + event-driven**:
+CodeStable isn't a single linear pipeline — it's a **project spec + epic spec + issues** loop:
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -155,30 +149,27 @@ CodeStable isn't a single linear pipeline — it's **work items + requirements +
 ═══════════════════════════════════════════════════════════════
                           │
         ┌─────────────────┼─────────────────┐
-   (not onboarded)     (idea fuzzy)        (unclear upstream spec)   (onboarded)
+   (not onboarded)     (idea fuzzy)        (spec needs update)       (onboarded)
    cs-onboard          cs-talk ─────┐      cs-spec ─────┐           cs-plan ─▶ cs-design ─▶ cs-test? ─▶ cs-do ─▶ cs-close
-   skeleton            context + talks│      specs + brief│           create items → design → optional tests → execute → close
-                                    └───────────────┴────────────▶ go to work items / requirements
+   skeleton            context + talks│      project/epic│           create items → design → optional tests → execute → sink by owner
+                                    └───────────────┴────────────▶ independent issue / epic / epic issue
                        cs-complain ─▶ diagnose and fix behavior drift through a bug issue
 ═══════════════════════════════════════════════════════════════
- Work items · things to do that get closed   (.cs/issues/ or .cs/epics/)
+ spec · current truth and change lines       (.cs/spec/ and .cs/epics/)
 ───────────────────────────────────────────────────────────────
-   cs-spec   ──▶ iterative upstream spec clarification: unknown systems / terms / flows → this round's plan-brief
-   cs-plan   ──▶ from talks or the spec scope ready this round: create a direct issue, or enter an epic then split issues
+   project spec ─▶ what the project is / where it goes / capability map / architecture map / shared language / reading path
+   epic spec    ─▶ what the big change changes / why this design / scope ready this round / open questions
+   cs-spec      ─▶ maintain project or epic spec; write considerations, not change logs
+   cs-plan      ─▶ from talks or epic spec: independent issue / new epic / this round's epic issues
+═══════════════════════════════════════════════════════════════
+ issues · closeable execution slices         (.cs/issues/)
+───────────────────────────────────────────────────────────────
    cs-complain ─▶ when behavior breaks expectations, feedback loop → diagnosis → fix/verify → bug issue writeback
    cs-design ──▶ design one issue's implementation (functional split / request-data flow / boundaries / change route / validation)
    cs-test   ──▶ optional test design (goals / cases / levels / test-first)
    cs-do     ──▶ implement, verify, and write back the execution record
-   cs-close  ──▶ close the issue, sink durable conclusions, and commit code + issue/.cs writebacks
-        │   coding via cs-do (stop the moment you drift)
-        ▼   on close, write graduated trade-offs back ▼
-═══════════════════════════════════════════════════════════════
-requirements · needs, constraints, trade-offs (.cs/requirements/)
-───────────────────────────────────────────────────────────────
-   requirements ──▶ index main doc + subdocument explanations + domain language + trade-offs
-                    (background / capability / key rules / boundaries)
-                    north star: read it and you know the requirements & trade-offs
-   cs-wiki ──▶ .cs/wiki/ + requirements-drafts (candidates, not direct edits)
+   cs-close  ──▶ independent issue → project spec; epic issue → epic spec; epic close → project spec
+   cs-spec-explore ─▶ exploratory issue: issue document → human-confirmed close → project spec
 ═══════════════════════════════════════════════════════════════
             ▼ any time something is worth recording ▼
  Support files · knowledge sink (compounding engineering)
@@ -189,8 +180,8 @@ requirements · needs, constraints, trade-offs (.cs/requirements/)
 
 **How to read this diagram:**
 
-- **Work items and requirements are not a time order** — open new work any time; requirements is refreshed as work items close
-- **Work items are the increments, requirements is the sediment**: when an issue or epic closes, the graduated trade-offs are written back to requirements
+- **Project spec is the mainline, epic spec is a change line** — large-change churn stays in the epic until it graduates
+- **Issues can be independent or epic-owned**: small bugs/features go direct; large needs split from epic specs in batches
 - **Support files are the flywheel**: any work item that surfaces something worth keeping triggers a sink; the next round of work reads it back — the physical implementation of CodeStable's "compounding"
 
 ---
@@ -205,32 +196,17 @@ your-project/
 │   ├── facts.md              # Startup facts
 │   ├── talks/                # Discussion synthesis (cs-talk, lazy)
 │   │   └── YYYY/MM/DD/{slug}.md
-│   ├── specs/                # Upstream spec clarification workspace (cs-spec, lazy)
-│   │   └── YYYY/MM/DD/{slug}/
+│   ├── spec/                 # Project spec: mainline truth (cs-spec)
 │   │       ├── index.md
-│   │       ├── source.md
-│   │       ├── questions.md
-│   │       ├── glossary.md
-│   │       ├── flow.md
-│   │       ├── findings/{topic}.md
-│   │       ├── changes.md
-│   │       └── plan-brief.md
+│   │       └── ...           # Recursive reading path; each layer may have its own index.md
 │   │
-│   ├── issues/               # Small work items, sharded by creation date, named open-{slug}.md / closed-{slug}.md
+│   ├── issues/               # Closeable work items, sharded by creation date, including feature/bug/chore/explore
 │   │   └── YYYY/MM/DD/{status}-{slug}.md
-│   ├── epics/                # Large work-item planning
-│   │   └── YYYY/MM/DD/{slug}.md
-│   │
-│   ├── requirements/         # Current needs, constraints, and trade-offs
-│   │   ├── index.md          # Requirements main doc: background / goals / terms / subdocument index
-│   │   └── {slug}.md         # One area per file
-│   │
-│   ├── wiki/                 # System wiki and requirements candidates (cs-wiki)
-│   │   ├── index.md
-│   │   ├── map.md
-│   │   ├── questions.md
-│   │   ├── requirements-drafts.md
-│   │   └── topics/{slug}.md
+│   ├── epics/                # Large-change lines
+│   │   └── YYYY/MM/DD/{slug}/
+│   │       ├── index.md      # Epic orientation, state, and issue list
+│   │       ├── spec.md       # Epic requirements, architecture considerations, shared language
+│   │       └── plan.md       # Scope ready this round and issue list
 │   │
 │   ├── notes/                # Knowledge notes, plain markdown, full-text search (cs-note)
 │   │   └── YYYY/MM/DD/{slug}.md
@@ -243,10 +219,10 @@ your-project/
 **Key points:**
 
 - All local artifacts aggregate under `.cs/`, so "how did we handle that change last time" is three seconds away
-- `specs/` handles upstream specs whose target is stable but information is incomplete: investigate unknown systems, terms, and flows first; when one batch is clear enough, write it into `plan-brief.md` for `cs-plan` and keep clarifying the rest
-- `requirements/` explains current needs, constraints, domain language, and trade-offs in human language; `index.md` leads the background, goals, and subdocument index, while details are progressively disclosed through submodule/problem-type files; history lives in closed issues
-- `wiki/` is an automatically built system-understanding wiki and requirements-candidate library; candidates must be reviewed before entering formal requirements
-- Talks, epics, and notes default to `YYYY/MM/DD/{slug}.md` date shards, specs use `YYYY/MM/DD/{slug}/` workspaces, while issues use `YYYY/MM/DD/{status}-{slug}.md`; search recursively under each area
+- `spec/` is the project spec, organizing mainline requirements, architecture considerations, shared language, and reading paths for a developer entering the project
+- `epics/` are large-change lines; each epic spec carries additions, changes, and reversals until the epic closes and graduates back into the project spec
+- `issues/` can carry exploratory work; the exploration document stays in the issue for discussion, then graduated conclusions merge into project spec after human-confirmed close
+- Talks and notes default to `YYYY/MM/DD/{slug}.md` date shards, epics use `YYYY/MM/DD/{slug}/` workspaces, while issues use `YYYY/MM/DD/{status}-{slug}.md`; search recursively under each area
 - `notes/` is the knowledge notes area — plain markdown, no frontmatter, full-text searchable. Daily "remember this" work goes through `cs-note`
 - `cs-maketools` turns human-guided unknown workflows into `notes/`, adds a `facts.md` reference, and only writes `tools/` when automation is stable
 - When one Markdown file exceeds 150 lines, split by progressive disclosure into same-directory resources instead of hard-compressing the entry file
@@ -255,11 +231,11 @@ your-project/
 
 > A skill is an independent install unit. At runtime, **each skill can only see files inside its own package**. References like `B-skill/reference/xxx.md` written in skill A's SKILL.md are **simply unreachable** at runtime.
 >
-> Do not solve cross-skill system rules by making skills reference each other's files. Keep system rules inside the `cs` skill, or sink project-specific stable knowledge into `.cs/requirements/`, `.cs/notes/`, and `.cs/facts.md`.
+> Do not solve cross-skill system rules by making skills reference each other's files. `cs` is only a guide; action skills must describe their own artifact contracts and boundaries. Sink project-specific stable knowledge into `.cs/spec/`, `.cs/notes/`, and `.cs/facts.md`.
 
-Each cs action skill should reuse the current context first: if `cs`, `facts.md`, or the requirements index has already been read and shows no sign of change, do not mechanically reread it. Read again only when context is missing, likely stale, needed for exact citation/write-back, or a new local slice is required. Before writing, always confirm the current version of the target issue, `.cs` file, or code file.
+Each cs action skill should reuse the current context first: if `facts.md`, project spec, epic spec, or the target issue has already been read and shows no sign of change, do not mechanically reread it. Read again only when context is missing, likely stale, needed for exact citation/write-back, or a new local slice is required. Before writing, always confirm the current version of the target issue, `.cs` file, or code file.
 
-To change system rules, update the `cs` skill and its references/templates; project-specific stable needs and operating knowledge belong in the matching `.cs/` entities.
+To change system rules, update the relevant skills' own instructions and templates; project-specific stable needs and operating knowledge belong in the matching `.cs/` entities.
 
 ---
 

@@ -15,32 +15,39 @@ FACTS = """# facts.md
 - [做某个已跑通流程前，先读 .cs/notes/YYYY/MM/DD/{slug}.md]
 """
 
-REQUIREMENTS_INDEX = """# [项目或领域] requirements
+PROJECT_SPEC_INDEX = """# Project Spec
 
-## 综述
+## 这个项目是什么
 
-[这是 requirements 主文档。填写真实内容前，先用它统领背景、目标、术语和子文档索引。]
+[面向第一次进入项目的开发者，说明项目解决什么问题、服务谁、当前最重要的能力是什么。]
 
-## 目标
+## 当前方向
 
-[当前阶段最重要的目标。]
+[项目接下来往哪里走，哪些能力正在强化，哪些方向暂不优先。]
 
-## 子文档索引
+## 能力地图
 
-- [子领域/模块/题型]：`relative/path.md` - [它负责什么]
+- [能力区]：[它负责什么，读者要深入时去哪里看]
 
-## 词汇
+## 架构地图
 
-- [全局术语]：[稳定含义]
+- [系统 / 模块 / 子系统]：[它负责什么，和谁交互，读者要深入时去哪里看]
+
+## 统一语言
+
+- [术语]：[在本 spec 范围内的稳定含义]
+
+## 阅读路径
+
+- 想理解用户和场景：读 `[path]`
+- 想理解架构分工：读 `[path]`
 """
 
 DIRS = [
     ".cs/talks",
-    ".cs/specs",
+    ".cs/spec",
     ".cs/issues",
     ".cs/epics",
-    ".cs/requirements",
-    ".cs/wiki/topics",
     ".cs/notes",
     ".cs/tools",
 ]
@@ -53,7 +60,7 @@ def init_codestable(project: Path, force: bool) -> int:
         (project / rel).mkdir(parents=True, exist_ok=True)
 
     facts = project / ".cs" / "facts.md"
-    requirements_index = project / ".cs" / "requirements" / "index.md"
+    project_spec_index = project / ".cs" / "spec" / "index.md"
     created: list[str] = []
     kept: list[str] = []
 
@@ -63,11 +70,11 @@ def init_codestable(project: Path, force: bool) -> int:
         facts.write_text(FACTS, encoding="utf-8")
         created.append(str(facts))
 
-    if requirements_index.exists() and not force:
-        kept.append(str(requirements_index))
+    if project_spec_index.exists() and not force:
+        kept.append(str(project_spec_index))
     else:
-        requirements_index.write_text(REQUIREMENTS_INDEX, encoding="utf-8")
-        created.append(str(requirements_index))
+        project_spec_index.write_text(PROJECT_SPEC_INDEX, encoding="utf-8")
+        created.append(str(project_spec_index))
 
     print(f"Initialized CodeStable workspace at {project / '.cs'}")
     print(f"Created or updated files: {len(created)}")

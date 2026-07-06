@@ -1,4 +1,4 @@
 interface:
   display_name: "CS"
-  short_description: "CodeStable LITE 体系导览"
-  default_prompt: "Use $cs to understand CodeStable LITE entities, principles, and which CS skill to use next."
+  short_description: "CodeStable LITE 技能导览"
+  default_prompt: "Use $cs to decide which CodeStable skill to use next. It is a lightweight guide and does not create artifacts."

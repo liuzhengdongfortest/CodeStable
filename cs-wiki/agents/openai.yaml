@@ -1,4 +1,0 @@
-interface:
-  display_name: "CS Wiki"
-  short_description: "自动建设系统 wiki 和 requirements 候选"
-  default_prompt: "Use $cs-wiki to run multi-round structural questioning with subagents, build .cs/wiki docs, and produce reviewable requirements candidates without directly editing requirements."

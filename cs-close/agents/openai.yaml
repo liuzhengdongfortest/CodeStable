@@ -1,4 +1,4 @@
 interface:
   display_name: "CS Close"
-  short_description: "关闭 issue、沉淀实体并提交相关变更"
-  default_prompt: "Use $cs-close to close a verified issue, rename it to closed status, write back durable learnings, and commit related repo changes when applicable."
+  short_description: "关闭 issue/epic 并沉淀 spec"
+  default_prompt: "Use $cs-close to close a verified or human-confirmed exploratory issue, or a user-confirmed epic, write durable conclusions to project or epic specs, and commit related repo changes when applicable."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Browser Bridge"
-  short_description: "通过 Chrome 扩展控制真实浏览器"
-  default_prompt: "Use $browser-bridge to operate or inspect real Chrome pages, extract DOM data, automate clicks/forms, capture screenshots, or export rendered component evidence."

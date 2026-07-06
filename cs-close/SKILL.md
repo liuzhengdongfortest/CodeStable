@@ -1,88 +1,91 @@
 ---
 name: cs-close
-description: 关闭已实现验证的 issue，沉淀 requirements/notes/facts/tools，并在 git 仓库提交相关变更。触发：关闭 issue、收尾、沉淀。
+description: 关闭已实现验证或已确认探索结论的 issue，或人工确认完成的 epic，沉淀到 project/epic spec、notes、facts、tools，并在 git 仓库提交相关变更。触发：关闭 issue、关闭 epic、收尾、沉淀。
 ---
 
 # cs-close
 
-关闭 issue，把这次工作里毕业的东西沉淀到长期实体。
+关闭 issue 或 epic，把这次工作里毕业的东西沉淀到正确层级。
 
 ## 背景
 
-CodeStable 的复利不在 issue 本身，而在关闭时的回写。issue 记录一次变更的历史；`requirements/` 记录当前仍然有效的需求、约束和取舍；`notes/` 记录下次能复用的坑点、操作经验和调查结论。
+CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录一次执行历史；epic spec 记录一条大需求变更线的当前理解；project spec 记录项目主线真相。
 
-如果做完就停，下一次 AI 还是会忘。`cs-close` 负责最后这一口：确认 issue 已经实现和验证，把仍然有未来价值的内容从 issue 中提炼出来，写到对应实体，再给 issue 留下清楚的关闭结论。
+独立 issue 关闭后，可以把稳定结论直接回写 project spec。探索型 issue 关闭时，把用户确认过的探索文档提炼进 project spec。epic issue 关闭后，先回写 epic spec。只有当用户确认整个 epic 完成，AI 才把 epic spec 中毕业的结论合并回 project spec。
 
 ## 原则
 
-**先确认可以关闭。** issue 的目标必须达成，范围不能暗中扩大，验证结果要能支撑关闭。缺少执行记录或验证结果时，不要关闭；回到 `cs-do` 补齐。
+**先确认可以关闭。** issue 的目标必须达成，范围不能暗中扩大，验证结果要能支撑关闭。epic 必须由人确认关闭，不能由 AI 因为 issue 看起来都完成就自行关闭。
 
-**只沉淀仍然有效的东西。** 不要把 issue 全文搬进长期实体。历史叙事、实现流水账、一次性中间判断，留在 issue，不要污染 requirements。
+**只沉淀仍然有效的东西。** 不要把 issue 或 epic 全文搬进 spec。历史叙事、实现流水账、一次性中间判断留在原事项里。
 
-**requirements 保持当前真相。** 写回 requirements 时，要把稳定结论融入背景、目标、核心规则、边界、取舍或子文档说明里；过期或被推翻的说法要改掉或标明不再成立。
+**回写到正确层级。** 独立 issue → project spec；epic issue → epic spec；epic 关闭 → project spec。notes、facts、tools 按复用价值分流。
 
-**requirements 先守组织，再写内容。** `.cs/requirements/index.md` 是需求主文档，负责统帅背景、目标、术语、核心规则和子文档索引。关闭回写不能随手新建一堆平级 requirements 文件；先判断结论属于主文档口径，还是属于某个子文档。没有合适位置时，先补主文档索引和对应子文档，再把细节写进去。
+**spec 写当前为什么这样。** 合并 spec 时写需求、架构考量、统一语言、边界和取舍；不要写“某天从 A 改成 B”的流水。
 
-**遵循 `cs-how-docs` 的文档组织口径。** 回写长期实体时先判断读者任务、主文档、子文档层级和阅读路径；不要把 issue 的历史过程平铺进 requirements 或 notes。
-
-**证据链留在历史里。** 如果长期判断发生变化，requirements 只保留新的当前真相；变化原因、证据、替代方案和为什么推翻旧判断，写在关闭 issue 或 notes 里。
+**先守组织，再写内容。** 回写 project spec 时先从 `.cs/spec/index.md` 找阅读路径。缺少合适位置时，先补入口或子层索引，再写内容，不要散落平级文件。
 
 ## 行动指南
 
 ### 读取关闭上下文
 
-必须有一个明确 issue。用户给路径就读该文件；没给路径就用 `rg` / grep 递归搜索 `.cs/issues/`，按标题、slug、关键词找候选并说明依据。
+必须先判断关闭对象：
 
-开始前先复用当前上下文，确认这些信息已经掌握：`cs` 技能、`.cs/facts.md`、目标 issue 的目标/范围/设计/验证/执行记录/关闭回写、requirements 主文档口径、相关 requirements 子文档，以及关闭回写指向的 notes/tools。
+- issue：用户给路径就读该文件；没给路径就递归搜索 `.cs/issues/`。
+- epic：用户给 `.cs/epics/YYYY/MM/DD/{slug}/`；读取 `index.md`、`spec.md`、`plan.md` 和相关 issue。
 
-已读且没有修改迹象的 facts 和 requirements 口径可以复用；目标 issue、准备写回的 requirements/notes/facts/tools，以及要提交的代码文件，写入或暂存前必须确认当前版本。
+开始前复用当前上下文；目标 issue/epic、准备写回的 spec/notes/facts/tools、以及要提交的代码文件，写入或暂存前必须确认当前版本。
 
-### 沉淀长期实体
+### 关闭 issue
 
-按内容分流：
+检查目标、范围、执行记录和验证。缺少执行记录或验证时，回到 `cs-do`。
 
-- `requirements/`：当前仍然有效的需求、约束、领域词汇、设计取舍、被否决方案的理由。
-- `notes/`：坑点、调研结论、操作经验、调试路径、下次可复用判断。
-- `facts.md`：极少数启动时必须知道、短期内非常影响判断的事实。
-- `tools/`：这次形成或修正了可复用脚本/工具时，更新用法、输入输出和危险边界。
+按 issue 的 `epic` frontmatter 或“归属”判断回写层级：
 
-写回 `requirements/` 时先走组织判断：
+- `epic` 为空：把稳定需求、架构考量、统一语言或边界合并回 project spec。
+- `type: explore`：先确认用户认可 issue 内探索文档，再把毕业结论合并回 project spec；错误讨论、证据流水和仍未知问题留在 issue。
+- `epic` 指向目录：把完成结果、验证事实、影响到的本轮计划和合并候选写回该 epic 的 `spec.md` / `plan.md`。
 
-1. 读 `.cs/requirements/index.md`；不存在时，用主文档模板创建它，不要把第一条需求直接写成孤立子文档。
-2. 判断这条长期结论属于主文档，还是属于已有子文档。
-3. 属于主文档的，写入背景、目标、核心规则、全局术语、边界或取舍。
-4. 属于子领域/模块/题型的，先确认 index 中已有子文档索引；没有就补索引并创建对应子文档，再把细节写入子文档。
-5. 如果结论同时影响多个子文档，在 index 写统帅规则，在各子文档只写本地化细节或引用，不要复制出多个互相漂移的版本。
+再把坑点、操作经验、调试路径写入 notes；极少数启动必读事实写入 facts；稳定工具说明写入 tools。
+
+### 关闭 epic
+
+只在用户明确要求关闭 epic 时执行。先确认：
+
+- `index.md` 的关闭条件已满足。
+- 相关 issue 都已关闭，或未关闭 issue 已明确废弃/移出。
+- `spec.md` 中“合并回 project spec 的候选”已经足够稳定。
+
+然后把 epic spec 中毕业的需求、架构考量、统一语言、边界和取舍合并回 `.cs/spec/` 的合适层级。合并后更新 epic `index.md` 状态为 closed，并记录合并位置。
 
 ### 提交关闭变更
 
-如果项目在 git 仓库里，关闭结论和长期实体回写完成后，把本 issue 相关变更提交在同一个 commit 里：业务代码改动、目标 issue 文件、requirements / notes / facts / tools 回写都一起提交。
+如果项目在 git 仓库里，关闭结论和长期实体回写完成后，把本次关闭相关变更提交在同一个 commit 里：业务代码、目标 issue/epic、project/epic spec、notes/facts/tools 回写都一起提交。
 
-提交前先看 `git status --short`，只暂存本 issue 相关文件。已有无关脏改不要碰；如果相关变更和无关变更混在同一个文件里，停下来说明风险，让用户决定是否拆分。不要 amend、rebase、reset；不要 push，除非用户明确要求。
+提交前看 `git status --short`，只暂存相关文件。已有无关脏改不要碰；相关和无关变更混在同一文件时，停下来说明风险。不要 amend、rebase、reset；不要 push，除非用户明确要求。
 
 ## 产物契约
 
-在目标 issue 中更新 `## 关闭结论`：关闭判断、验证摘要、回写位置、遗留事项。遗留事项应该成为新 issue，而不是藏在关闭结论里；只有用户明确要求时才创建新的 issue。
+关闭 issue 时：
 
-如果回写了 requirements，关闭结论必须说明它更新了主文档还是哪个子文档，以及为什么放在那里。
+- 更新 `## 关闭结论`：关闭判断、验证摘要、回写位置、遗留事项。
+- frontmatter 的 `status` 改为 `closed`。
+- 文件名改成 `.cs/issues/YYYY/MM/DD/closed-{slug}.md`。
 
-关闭结论写完后，把 issue frontmatter 的 `status` 改成 `closed`，并把文件名从 `open-{slug}.md` 改成 `closed-{slug}.md`。如果原文件名不是 `open-` 开头，也要改成 `closed-{slug}.md`，slug 保持原语义；如果已有同名 closed 文件，停下来让用户判断是否合并。
+关闭 epic 时：
+
+- 更新 epic `index.md` 的当前状态为 `closed`。
+- 在 epic `index.md` 或 `spec.md` 记录已合并到 project spec 的位置。
+- 不删除 epic 目录；它保留变更线历史。
+
+遗留事项应该成为新 issue 或留在 epic `plan.md`，不要藏在关闭结论里；只有用户明确要求时才创建新 issue。
 
 ## 收尾汇报
 
-汇报时先讲关闭结论：为什么可以关、验证支撑是什么、沉淀到了哪里、是否已提交。涉及 requirements 时，要说明更新的是主文档还是哪个子文档，以及这样放的组织理由。再给文件路径和 commit 作为证据。
+先讲关闭结论：为什么可以关、验证支撑是什么、沉淀到了 project spec 还是 epic spec、是否已提交。涉及 spec 时，要说明更新了哪个入口/子层，以及这样放的组织理由。最后给路径和 commit 作为证据。
 
 ## 应用场景
 
-- **实现和验证已经完成，用户要关闭 issue。** 做沉淀并写关闭结论。
-- **用户说“沉淀一下”。** 从 issue 的执行记录、验证和关闭回写里提炼长期内容。
-- **一个 bug 修完了。** 把稳定的预期行为、回归约束和调试经验分别写到 requirements / notes。
-- **一个 feature 完成了。** 把最终需求、边界、取舍和用户故事写回 requirements。
+实现和验证完成后关闭 issue；探索型 issue 经用户确认后合并 project spec；bug 修完后沉淀稳定预期；feature 完成后回写边界和取舍；用户确认大 epic 完成后，把 epic spec 合并回 project spec。
 
-不适用：
-
-- **不写业务代码。** 代码没完成回到 `cs-do`。
-- **不补实现设计或测试设计。** 设计缺口回到 `cs-design` / `cs-test`。
-- **不把 issue 全文归档到 requirements。** 只沉淀未来仍然有用的标准和经验。
-- **不主动清理全仓库。** 只围绕目标 issue 收尾。
-- **不替代发布流程。** 关闭时默认只提交，不推送、不部署，除非用户明确要求。
+不适用：代码没完成回 `cs-do`；设计缺口回 `cs-design`；规格仍在变化回 `cs-spec`；默认不推送、不部署，除非用户明确要求。

@@ -7,7 +7,7 @@ description: 初始化或补齐 CodeStable .cs 工作区。触发：第一次使
 
 ## 背景
 
-`cs-onboard` 负责把 CodeStable 的本地工作区放进项目：创建 `.cs/`、基础实体目录、启动事实和 requirements 主文档骨架。
+`cs-onboard` 负责把 CodeStable 的本地工作区放进项目：创建 `.cs/`、基础实体目录、启动事实和 project spec 主文档骨架。
 
 它只做初始化和补齐。已有内容默认保留，不迁移旧文档，不替用户整理需求，不创建 issue。
 
@@ -15,11 +15,9 @@ description: 初始化或补齐 CodeStable .cs 工作区。触发：第一次使
 
 onboard 可以观察项目，但不能编项目。能从代码、README、配置、测试和 git 历史推断的，只能作为候选事实或下一步建议；业务目标、路线图、明确不做什么、用户故事和长期取舍，除非已有文档证据或用户确认，否则不要写进 `.cs/`。
 
-默认不覆盖已有文件。只有用户明确要求重置 `facts.md` 或 `.cs/requirements/index.md` 时，才使用 `--force`，并在执行前再次确认。
+默认不覆盖已有文件。只有用户明确要求重置 `facts.md` 或 `.cs/spec/index.md` 时，才使用 `--force`，并在执行前再次确认。
 
 ## 行动指南
-
-开始前先确认：如果当前对话/执行上下文已经读过 `cs` 技能，就复用；没读过就先读一次，理解 CodeStable 的实体和技能边界。
 
 优先运行：
 
@@ -27,28 +25,26 @@ onboard 可以观察项目，但不能编项目。能从代码、README、配置
 python cs-onboard/scripts/init_codestable.py --project .
 ```
 
-初始化后确认 `.cs/facts.md` 和 `.cs/requirements/index.md` 存在，并确认基础实体目录已创建或保留。
+初始化后确认 `.cs/facts.md` 和 `.cs/spec/index.md` 存在，并确认基础实体目录已创建或保留。
 
-如果项目已有旧文档，只指出下一步可以用 `cs-talk`、`cs-plan`、`cs-note`、`cs-maketools` 或 `cs-close` 逐步沉淀，不在 onboard 里强迁移。
+如果项目已有旧文档，只指出下一步可以用 `cs-talk`、`cs-spec`、`cs-plan`、`cs-note`、`cs-maketools` 或 `cs-close` 逐步沉淀，不在 onboard 里强迁移。
 
 ## 产物契约
 
-脚本会创建 `.cs/facts.md`、`.cs/requirements/index.md` 和这些目录：
+脚本会创建 `.cs/facts.md`、`.cs/spec/index.md` 和这些目录：
 
 - `.cs/talks/`
-- `.cs/specs/`
+- `.cs/spec/`
 - `.cs/issues/`
 - `.cs/epics/`
-- `.cs/requirements/`
-- `.cs/wiki/`
 - `.cs/notes/`
 - `.cs/tools/`
 
-`.cs/requirements/index.md` 只是主文档骨架，用来承载未来的背景、目标、术语和子文档索引；onboard 不替用户填写真实需求，不创建 issue、epic、note 或 tool 正文，不覆盖已有内容。
+`.cs/spec/index.md` 只是 project spec 主文档骨架，用来承载未来的项目导读、当前方向、能力地图、架构地图、统一语言和阅读路径；onboard 不替用户填写真实需求，不创建 issue、epic、note 或 tool 正文，不覆盖已有内容。
 
 ## 收尾汇报
 
-告诉用户创建或补齐了哪些目录和文件、哪些已存在所以保留、下一步该用哪个技能：想法模糊用 `cs-talk`，上游规格不清用 `cs-spec`，已有讨论或 plan-brief 用 `cs-plan`，要记知识用 `cs-note`，内部流程未知用 `cs-maketools`。
+告诉用户创建或补齐了哪些目录和文件、哪些已存在所以保留、下一步该用哪个技能：想法模糊用 `cs-talk`，需要维护 project/epic spec 用 `cs-spec`，已有讨论或 epic spec 本轮可计划范围用 `cs-plan`，要记知识用 `cs-note`，内部流程未知用 `cs-maketools`。
 
 ## 应用场景
 

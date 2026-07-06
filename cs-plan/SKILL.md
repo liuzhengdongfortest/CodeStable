@@ -1,88 +1,75 @@
 ---
 name: cs-plan
-description: 把已聊清的 talk 或 spec plan-brief 落成 open issue / epic，支持规格渐进明确时分批计划。触发：开始计划、拆 issue、进 epic 规划。不写代码。
+description: 把已聊清的 talk 或 epic spec 本轮可计划范围落成独立 issue、探索型 issue、目录型 epic 或 epic issue。触发：开始计划、拆 issue、创建 epic、从 epic spec 切本轮事项。不写代码。
 ---
 
 # cs-plan
 
-把已经聊清楚的需求，从 `talks/` 或 `specs/*/plan-brief.md` 推到 `epics/` 或 `issues/`。spec 不要求全局完全明确；只要本轮范围足够清楚，就可以先计划这一批。
+判断一件事应该是独立 issue，还是需要 epic spec 承载的大需求；再生成对应的可关闭事项。
 
 ## 背景
 
-`cs-talk` 负责把模糊想法聊清楚，`cs-spec` 负责把上游规格持续澄清到“某一批可以计划”。它们都不创建执行出口。否则澄清会一边进行、一边过早承诺实现路径。
+CodeStable 不是所有事情都进 epic。小 bug、小功能、局部 chore、project spec 缺口调查可以直接成为独立 issue；跨模块、会多轮变化、会分批切 issue 的大需求，才需要 epic 和 epic spec。
 
-`cs-plan` 站在它后面：读取讨论整理，回到当前系统和 requirements，判断这件事是一个可关闭 issue，还是大到需要先进入 epic 拆分。它不是做代码的技能，也不替单个 issue 做实现设计；它把“想清楚了”变成“可以被设计、执行和关闭”的事项。
+`cs-plan` 站在 `cs-talk` 和 `cs-spec` 后面：把已经想清楚或已经在 epic spec 中明确的一批范围，变成后续可以设计、执行和关闭的事项。它不写代码，也不替 spec 继续澄清。
 
 ## 原则
 
-**先判断出口，不急着拆。** 如果真问题、约束或边界还说不清，回到 `cs-talk`，不要硬拆。计划不是把想法切成文件，而是判断它应该以什么粒度进入系统生命周期。
+**先判断形状，再生成文件。** 计划不是把想法切碎，而是判断它属于独立 issue、新 epic，还是已有 epic 的下一批 issue。
 
-**允许渐进计划。** 规格没完全明确时，不要把未定部分硬塞进 issue；但已经明确、可验证、不会被当前未知直接推翻的基础部分，可以先计划。后续规格补充或修改后，再从同一个 spec 的新一轮 `plan-brief.md` 继续计划。
+**issue 必须可关闭。** 每个 issue 只承载一条能独立验证的变更。未定范围、可能推翻的内容和需要继续讨论的内容，不塞进 issue 目标。
 
-**事项必须可关闭。** issue 和 epic 都要服务关闭，不要写成愿望清单。每个 issue 只承载一条能独立验证的变更；不要把“顺手做掉”的内容塞进去。
+**epic 承载变化。** 大需求的需求变化、架构考量和统一语言进入 epic spec；issue 只是从 epic spec 某一轮切出来的执行片段。
 
-**计划语言不是会议纪要。** 从 talk 里搬来的内容要改写成事项语言：问题、约束、证据、验证，而不是原样保存讨论流水。
+**主线不被中途污染。** 独立 issue 可以关闭后直接回写 project spec；epic issue 先回写 epic spec。project spec 等 epic 人工关闭后再合并。
 
-**遵循 `cs-how-docs` 的文档组织口径。** issue / epic 草案是后续设计、执行和关闭的入口；要按读者任务组织目标、范围、验证和依赖，不按讨论顺序平铺材料。
-
-**计划阶段不做实现设计。** 可以查看相关代码来确认边界和模块归属；看到架构取舍时，优先判断能力归属、接口边界、模块是否足够深，以及接缝是否真实。但具体实现设计留给 `cs-design`，不要在 plan 阶段展开成长篇代码方案。
+**计划阶段不做实现设计。** 可以查看相关代码确认边界和模块归属，但具体功能分工、请求/数据流和实施步骤交给 `cs-design`。
 
 ## 行动指南
 
-### 先校准上下文
+开始前复用当前上下文。必要时补读：
 
-开始前先复用当前上下文。下面是必须掌握的信息，不是每次全量重读清单；只有没读过、有修改迹象、需要精确引用/写回，或本次计划需要新增局部时才补读。
+- `.cs/facts.md`
+- `.cs/spec/index.md` 和本次相关的 project spec 子层
+- 用户指定或最相关的 `.cs/talks/`
+- 用户指定或最相关的 `.cs/epics/YYYY/MM/DD/{slug}/index.md`、`spec.md`、`plan.md`
 
-- `cs` 技能：当前上下文没读过才读，理解实体和技能边界。
-- `.cs/facts.md`：当前上下文里还没读过就读一次；读过且没有修改迹象就复用。
-- `.cs/talks/` 或 `.cs/specs/`：优先读取用户指定的 talk 或 `plan-brief.md`；没指定时找最近或最相关的来源，并说明判断依据。
-- `.cs/requirements/`：已掌握主文档口径和索引就复用；只补读和本次需求相关的当前需求、约束、领域词汇和设计取舍。
+没有 `.cs/` 时提醒先用 `cs-onboard`。
 
-如果仓库里还没有 `.cs/`，提醒用户先接入 CodeStable。不要自己发明一套临时目录。
+判断出口：
 
-### 判断进入 issue 还是 epic
+- **独立 issue**：目标、范围、验证能说清；不需要长期变更上下文；不依赖一组未定架构取舍。
+- **探索型 issue**：目标是摸清 project spec 的某个缺口，产出 issue 内探索文档，关闭时由人确认是否合并进 project spec。
+- **新 epic**：大需求、跨模块、会分多批 issue、规格可能反复变化、需要一份 epic spec 记录当前方案和架构考量。
+- **已有 epic 的本轮 issue**：epic spec 已有“本轮可计划范围”，只需要切出可关闭 issue。
 
-能直接进 `issues/` 的需求，应该同时满足：目标能一句话讲清，范围能分清包含和不包含，做完后有明确验证方式，不依赖一组未定架构取舍，可以由一次执行闭环完成。
+从 talk 创建 epic 时，生成目录 `.cs/epics/YYYY/MM/DD/{slug}/`，写入 `index.md`、`spec.md`、`plan.md`。从 epic spec 切 issue 时，只消费 `spec.md` / `plan.md` 的本轮可计划范围；暂不计划范围继续留在 epic spec。
 
-进入 `epics/` 的需求，通常满足任一条：会拆出多个有依赖的 issue；横跨多个模块或用户工作流；关键取舍会影响拆分方式；直接写成一个 issue 会把目标、设计、验收全搅在一起。
-
-从 spec 分批计划时，只取 `plan-brief.md` 的“本轮可计划范围”。暂不计划范围、剩余阻碍、可能推翻已实现内容的规格变更，不写进本轮 issue 的目标，只作为依赖、风险或后续回到 `cs-spec` 的入口。
-
-### 生成事项并回写来源
-
-生成 issue 或 epic 后，回写源 talk 的“下一步”，或回写 spec 的 `plan-brief.md` / `index.md`：链接到生成的 issue / epic，说明为什么这样分流，并标明这是第几轮计划、覆盖了哪些范围、哪些范围仍留在 spec 里。
-
-稳定下来的需求、约束和领域词汇，只在关闭事项时再回写 `requirements/`。
+生成 issue 后，回写来源：talk 的下一步，或 epic `plan.md` 的 issue 列表。若新 plan 使旧 issue 需要修改、暂停或关闭，在 epic `plan.md` 的“暂停或废弃的 issue”记录原因，不直接改旧 issue 内容，除非用户明确要求。
 
 ## 产物契约
 
-事项默认落在项目本地的 `.cs/`：
+独立 issue 写入 `.cs/issues/YYYY/MM/DD/open-{slug}.md`，frontmatter 里 `status: open`，`epic: ""`。探索型 issue 的 `type` 填 `explore`，由 `cs-spec-explore` 执行和补文档。
 
-- 小需求写入 `.cs/issues/YYYY/MM/DD/open-{slug}.md`，frontmatter 里 `status: open`。
-- 大需求写入 `.cs/epics/YYYY/MM/DD/{slug}.md`，并列出子 issues。
+epic issue 也写入 `.cs/issues/YYYY/MM/DD/open-{slug}.md`，frontmatter 的 `epic` 填对应 `.cs/epics/YYYY/MM/DD/{slug}/` 路径，并在“归属”里写相关 epic spec。
 
-issue 必须使用 `cs/templates/entities/issue.md` 的完整结构，保留 YAML frontmatter；不要只凭章节名手写一个缺头的 markdown。issue 至少写清类型、目标、范围、当前证据、方案判断、验证、关闭回写。
+新 epic 使用：
 
-epic 至少写清目标、背景、关键取舍、子 issue、依赖、整体验收、关闭回写。
+- `templates/entities/epic-index.md`
+- `templates/entities/epic-spec.md`
+- `templates/entities/epic-plan.md`
+
+issue 必须使用 `templates/entities/issue.md` 的完整结构，保留 YAML frontmatter；不要只凭章节名手写一个缺头的 markdown。
 
 ## 收尾汇报
 
-汇报要让用户先听懂“这件事被安排成什么形状”。先用一句话说明规划结论：直接进入一个 issue，还是先进入 epic 再拆多个 issue；再解释判断依据，例如目标粒度、依赖关系、验证方式或未定取舍。
-
-然后按用户能判断的语言串起事项：每个 issue / epic 要解决什么问题、做到什么就算完成、哪些边界暂不覆盖、下一步应该交给哪个技能。文件路径和标题放在最后作为索引，不要把它们当成主要汇报。
+先说明这件事被安排成什么形状：独立 issue、新 epic，还是已有 epic 的本轮 issue。再解释依据：目标粒度、变化风险、依赖关系、验证方式和是否需要 epic spec 承载。最后给文件路径和下一步技能。
 
 ## 应用场景
 
-- **talk 已经整理完，用户要进入落地。** 读取 talk，把它转成 issue 或 epic。
-- **spec 有一批范围已经可计划。** 读取 `.cs/specs/.../plan-brief.md`，只把本轮可计划范围转成 issue 或 epic。
-- **用户说“这个太大，帮我拆一下”。** 先判断是不是 epic，再拆成可关闭 issues。
-- **用户说“直接建个 issue”。** 仍然检查目标、范围、验证是否足够清楚；不清楚就先补问。
-- **用户拿一段对话或想法要求规划。** 先整理成计划判断；必要时要求补一个 talk，再继续。
+- talk 已经整理完，用户要进入落地。
+- epic spec 有一批范围已经可计划。
+- 用户说“这个太大，帮我拆一下”或“创建 epic”。
+- 用户说“直接建个 issue”，但仍需检查是否其实需要 epic。
 
-不适用：
-
-- **不负责澄清真实诉求或规格。** 想法还模糊时回到 `cs-talk`；上游规格信息不足以决定本轮范围时回到 `cs-spec`。
-- **不写代码。** 计划落完后等用户调用执行技能。
-- **不替代实现设计。** 某个 issue 怎么落到模块、接口、数据和测试面，交给 `cs-design`。
-- **不长期保存需求真相。** requirements 只接收关闭事项后毕业的约束和取舍。
-- **不主动扫描仓库找活。** 没有用户给定的 talk、需求或事项，就不凭空规划。
+不适用：想法还模糊时回 `cs-talk`；规格还不足以决定本轮范围时回 `cs-spec`；project spec 缺口需要调查时交给 `cs-spec-explore`；实现设计交给 `cs-design`；代码执行交给 `cs-do`。
