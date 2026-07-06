@@ -176,7 +176,7 @@ The close rule is simple: independent issue → project spec; exploratory issue 
 <tr><td><b>Spec entry</b></td><td><code>cs-spec</code></td><td>Maintain project or epic specs: requirements, architecture considerations, shared language, scope ready for this round, and open questions</td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, create/update a bug issue, build a feedback loop, diagnose, fix, verify, and write back</td></tr>
 <tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code> or the scope ready in an epic spec, discuss a planning draft first, then create an independent issue, new epic, or epic issue after confirmation</td></tr>
-<tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Write a tutorial-style implementation design for one issue: functional split, request/data flow, boundaries, change route, and validation</td></tr>
+<tr><td><b>Design entry</b></td><td><code>cs-design</code></td><td>Write a tutorial-style implementation design for one issue: functional split, request/data flow, design focus points, boundaries, change route, and validation</td></tr>
 <tr><td><b>Test entry</b></td><td><code>cs-test</code></td><td>Optional gate: when test design is needed, write test goals, cases, and execution guidance for one issue</td></tr>
 <tr><td><b>Execution entry</b></td><td><code>cs-do</code></td><td>Implement from the issue design, verify, and write back the execution record</td></tr>
 <tr><td><b>Close entry</b></td><td><code>cs-close</code></td><td>Close an issue or epic, sinking conclusions to project/epic specs by ownership, and commit related code plus .cs writebacks</td></tr>
@@ -218,7 +218,7 @@ CodeStable isn't a single linear pipeline — it's a **project spec + epic spec 
  issues · closeable execution slices         (.cs/issues/)
 ───────────────────────────────────────────────────────────────
    cs-complain ─▶ when behavior breaks expectations, feedback loop → diagnosis → fix/verify → bug issue writeback
-   cs-design ──▶ design one issue's implementation (functional split / request-data flow / boundaries / change route / validation)
+   cs-design ──▶ design one issue's implementation (functional split / request-data flow / design focus points / boundaries / change route / validation)
    cs-test   ──▶ optional test design (goals / cases / levels / test-first)
    cs-do     ──▶ implement, verify, and write back the execution record
    cs-close  ──▶ independent issue → project spec; epic issue → epic spec; epic close → project spec
