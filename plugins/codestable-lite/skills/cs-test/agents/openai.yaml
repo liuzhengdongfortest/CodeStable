@@ -1,4 +1,0 @@
-interface:
-  display_name: "CS Test"
-  short_description: "为单个 issue 生成可选测试设计"
-  default_prompt: "Use $cs-test to add test design for a specific issue."

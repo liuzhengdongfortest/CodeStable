@@ -32,7 +32,6 @@ talk → spec → plan → design/test/do → close
 | 系统行为不符合预期、debug、修 bug | `cs-complain` |
 | 摸清系统未知，把 project spec 缺口写成探索型 issue | `cs-spec-explore` |
 | 为明确 issue 写实现设计 | `cs-design` |
-| 为明确 issue 补测试设计 | `cs-test` |
 | 执行明确 issue，改代码并验证 | `cs-do` |
 | 关闭 issue 或人工确认后的 epic，沉淀 spec/notes/facts/tools | `cs-close` |
 | 记可复用知识或启动必读事实 | `cs-note` |
@@ -45,7 +44,7 @@ talk → spec → plan → design/test/do → close
 - **规格缺口要调查**：`cs-spec-explore`
 - **要切事项**：`cs-plan`
 - **坏了**：`cs-complain`
-- **要写代码**：先看是否需要 `cs-design` / `cs-test`，再 `cs-do`
+- **要写代码**：先看是否需要 `cs-design`，再 `cs-do`
 - **做完了**：`cs-close`
 - **值得以后复用**：`cs-note`
 
