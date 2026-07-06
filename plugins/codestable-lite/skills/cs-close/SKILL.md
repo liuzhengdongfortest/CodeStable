@@ -32,7 +32,7 @@ CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录
 必须先判断关闭对象：
 
 - issue：用户给路径就读该文件；没给路径就递归搜索 `.cs/issues/`。
-- epic：用户给 `.cs/epics/YYYY/MM/DD/{slug}/`；读取 `index.md`、`spec.md`、`plan.md` 和相关 issue。
+- epic：用户给 `.cs/epics/YYYY/MM/DD/{短语}/`；读取 `index.md`、`spec.md`、`plan.md` 和相关 issue。
 
 开始前复用当前上下文；目标 issue/epic、准备写回的 spec/notes/facts/tools、以及要提交的代码文件，写入或暂存前必须确认当前版本。
 
@@ -70,7 +70,7 @@ CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录
 
 - 更新 `## 关闭结论`：关闭判断、验证摘要、回写位置、遗留事项。
 - frontmatter 的 `status` 改为 `closed`。
-- 文件名改成 `.cs/issues/YYYY/MM/DD/closed-{slug}.md`。
+- 文件名改成 `.cs/issues/YYYY/MM/DD/closed-{短语}.md`。
 
 关闭 epic 时：
 

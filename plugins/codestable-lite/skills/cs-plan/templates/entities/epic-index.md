@@ -23,7 +23,7 @@
 
 ## Issues
 
-- [ ] `.cs/issues/YYYY/MM/DD/open-{slug}.md`：[它解决什么；依赖什么]
+- [ ] `.cs/issues/YYYY/MM/DD/open-{短语}.md`：[它解决什么；依赖什么]
 
 ## 关闭条件
 

@@ -33,12 +33,12 @@ description: 让用户带 AI 跑通未知流程，并沉淀 notes、facts 引用
 
 ## 产物契约
 
-notes 必写：在 `.cs/notes/YYYY/MM/DD/{slug}.md` 写流程笔记，包含流程用途、前置条件、操作步骤、成功判断、失败处理、危险边界和可自动化机会。
+notes 必写：在 `.cs/notes/YYYY/MM/DD/{短语}.md` 写流程笔记，正文包含流程用途、前置条件、操作步骤、成功判断、失败处理、危险边界和可自动化机会。
 
 facts 加引用：在 `.cs/facts.md` 追加一行轻量索引，而不是复制流程全文。
 
 ```markdown
-- 做 X 流程前，先读 .cs/notes/YYYY/MM/DD/{slug}.md。
+- 做 X 流程前，先读 .cs/notes/YYYY/MM/DD/{短语}.md。
 ```
 
 tools 按需沉淀：只有当某个步骤稳定、重复、机械化，且自动化不会绕过必要确认时，才写入 `.cs/tools/`。工具说明必须包含输入、输出、运行方式、依赖、危险边界和验证方式。

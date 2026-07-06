@@ -25,7 +25,7 @@ bug | feature | refactor | chore | explore
 ## 归属
 
 - 独立 issue / 隶属 epic：
-- 相关 spec：`.cs/spec/...` 或 `.cs/epics/YYYY/MM/DD/{slug}/spec.md`
+- 相关 spec：`.cs/spec/...` 或 `.cs/epics/YYYY/MM/DD/{短语}/spec.md`
 
 ## 当前证据
 

@@ -154,7 +154,7 @@ Shared language belongs in the nearest `index.md` where it applies, not in a sep
 
 ### epic spec — a large-change line
 
-Large changes live under `.cs/epics/YYYY/MM/DD/{slug}/`. An epic directory contains `index.md`, `spec.md`, and `plan.md`: orientation, current requirements and architecture considerations, and the scope ready for this planning round. If implementation discovers additions, changes, or reversals, update the same epic spec instead of writing a `changes.md` log.
+Large changes live under `.cs/epics/YYYY/MM/DD/{短语}/`. An epic directory contains `index.md`, `spec.md`, and `plan.md`: orientation, current requirements and architecture considerations, and the scope ready for this planning round. If implementation discovers additions, changes, or reversals, update the same epic spec instead of writing a `changes.md` log.
 
 Issues under an epic close back into the epic spec first. Only when a human confirms the whole epic is done does AI merge the graduated conclusions back into the project spec.
 
@@ -248,21 +248,21 @@ your-project/
 ├── .cs/
 │   ├── facts.md              # Startup facts
 │   ├── talks/                # Discussion synthesis (cs-talk, lazy)
-│   │   └── YYYY/MM/DD/{slug}.md
+│   │   └── YYYY/MM/DD/{短语}.md
 │   ├── spec/                 # Project spec: mainline truth (cs-spec)
 │   │       ├── index.md
 │   │       └── ...           # Recursive reading path; each layer may have its own index.md
 │   │
 │   ├── issues/               # Closeable work items, sharded by creation date, including feature/bug/chore/explore
-│   │   └── YYYY/MM/DD/{status}-{slug}.md
+│   │   └── YYYY/MM/DD/{status}-{短语}.md
 │   ├── epics/                # Large-change lines
-│   │   └── YYYY/MM/DD/{slug}/
+│   │   └── YYYY/MM/DD/{短语}/
 │   │       ├── index.md      # Epic orientation, state, and issue list
 │   │       ├── spec.md       # Epic requirements, architecture considerations, shared language
 │   │       └── plan.md       # Scope ready this round and issue list
 │   │
 │   ├── notes/                # Knowledge notes, plain markdown, full-text search (cs-note)
-│   │   └── YYYY/MM/DD/{slug}.md
+│   │   └── YYYY/MM/DD/{短语}.md
 │   │
 │   └── tools/                # Cross-workflow shared scripts (added by cs-maketools as needed)
 │
@@ -275,7 +275,7 @@ your-project/
 - `spec/` is the project spec, organizing mainline requirements, architecture considerations, shared language, and reading paths for a developer entering the project
 - `epics/` are large-change lines; each epic spec carries additions, changes, and reversals until the epic closes and graduates back into the project spec
 - `issues/` can carry exploratory work; the exploration document stays in the issue for discussion, then graduated conclusions merge into project spec after human-confirmed close
-- Talks and notes default to `YYYY/MM/DD/{slug}.md` date shards, epics use `YYYY/MM/DD/{slug}/` workspaces, while issues use `YYYY/MM/DD/{status}-{slug}.md`; search recursively under each area
+- Talks and notes default to `YYYY/MM/DD/{短语}.md` date shards, epics use `YYYY/MM/DD/{短语}/` workspaces, while issues use `YYYY/MM/DD/{status}-{短语}.md`; search recursively under each area
 - `notes/` is the knowledge notes area — plain markdown, no frontmatter, full-text searchable. Daily "remember this" work goes through `cs-note`
 - `cs-maketools` turns human-guided unknown workflows into `notes/`, adds a `facts.md` reference, and only writes `tools/` when automation is stable
 - When one Markdown file exceeds 150 lines, split by progressive disclosure into same-directory resources instead of hard-compressing the entry file

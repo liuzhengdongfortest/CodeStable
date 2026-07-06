@@ -31,7 +31,7 @@ description: 创建或执行探索型 issue，把 project spec 缺口调查成 i
 
 开始前复用当前上下文；必要时补读 `.cs/facts.md`、`.cs/spec/index.md`、相关 spec 子层、README、目录结构、关键代码和历史 issue/epic。没有 `.cs/` 时先建议 `cs-onboard`。
 
-如果用户已经指定 issue，确认它的 `type: explore` 或适合改成探索型 issue。如果没有指定，就创建 `.cs/issues/YYYY/MM/DD/open-{slug}.md`，frontmatter 使用 `type: explore`、`status: open`、`epic: ""`，除非它明确隶属某个 epic。
+如果用户已经指定 issue，确认它的 `type: explore` 或适合改成探索型 issue。如果没有指定，就创建 `.cs/issues/YYYY/MM/DD/open-{短语}.md`，frontmatter 使用 `type: explore`、`status: open`、`epic: ""`，除非它明确隶属某个 epic。
 
 探索 issue 的目标要说清：
 
@@ -66,7 +66,7 @@ description: 创建或执行探索型 issue，把 project spec 缺口调查成 i
 
 ## 产物契约
 
-探索型 issue 使用普通 issue 路径：`.cs/issues/YYYY/MM/DD/open-{slug}.md`。
+探索型 issue 使用普通 issue 路径：`.cs/issues/YYYY/MM/DD/open-{短语}.md`。
 
 frontmatter 的 `type` 必须是 `explore`。issue 正文至少包含或补齐：
 

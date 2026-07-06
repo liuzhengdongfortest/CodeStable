@@ -34,7 +34,7 @@ CodeStable 不是所有事情都进 epic。小 bug、小功能、局部 chore、
 - `.cs/facts.md`
 - `.cs/spec/index.md` 和本次相关的 project spec 子层
 - 用户指定或最相关的 `.cs/talks/`
-- 用户指定或最相关的 `.cs/epics/YYYY/MM/DD/{slug}/index.md`、`spec.md`、`plan.md`
+- 用户指定或最相关的 `.cs/epics/YYYY/MM/DD/{短语}/index.md`、`spec.md`、`plan.md`
 
 没有 `.cs/` 时提醒先用 `cs-onboard`。
 
@@ -55,7 +55,7 @@ CodeStable 不是所有事情都进 epic。小 bug、小功能、局部 chore、
 - **新 epic**：大需求、跨模块、会分多批 issue、规格可能反复变化、需要一份 epic spec 记录当前方案和架构考量。
 - **已有 epic 的本轮 issue**：epic spec 已有“本轮可计划范围”，只需要切出可关闭 issue。
 
-从 talk 创建 epic 时，生成目录 `.cs/epics/YYYY/MM/DD/{slug}/`，写入 `index.md`、`spec.md`、`plan.md`。从 epic spec 切 issue 时，只消费 `spec.md` / `plan.md` 的本轮可计划范围；暂不计划范围继续留在 epic spec。
+从 talk 创建 epic 时，生成目录 `.cs/epics/YYYY/MM/DD/{短语}/`，写入 `index.md`、`spec.md`、`plan.md`。从 epic spec 切 issue 时，只消费 `spec.md` / `plan.md` 的本轮可计划范围；暂不计划范围继续留在 epic spec。
 
 生成 issue 后，回写来源：talk 的下一步，或 epic `plan.md` 的 issue 列表。若新 plan 使旧 issue 需要修改、暂停或关闭，在 epic `plan.md` 的“暂停或废弃的 issue”记录原因，不直接改旧 issue 内容，除非用户明确要求。
 
@@ -63,9 +63,11 @@ CodeStable 不是所有事情都进 epic。小 bug、小功能、局部 chore、
 
 确认前没有文件产物；计划草案留在对话里。不要为了“先存一下”创建草稿 issue 或半成品 epic。
 
-独立 issue 写入 `.cs/issues/YYYY/MM/DD/open-{slug}.md`，frontmatter 里 `status: open`，`epic: ""`。探索型 issue 的 `type` 填 `explore`，由 `cs-spec-explore` 执行和补文档。
+独立 issue 写入 `.cs/issues/YYYY/MM/DD/open-{短语}.md`，frontmatter 里 `status: open`，`epic: ""`。探索型 issue 的 `type` 填 `explore`，由 `cs-spec-explore` 执行和补文档。
 
-epic issue 也写入 `.cs/issues/YYYY/MM/DD/open-{slug}.md`，frontmatter 的 `epic` 填对应 `.cs/epics/YYYY/MM/DD/{slug}/` 路径，并在“归属”里写相关 epic spec。
+epic issue 也写入 `.cs/issues/YYYY/MM/DD/open-{短语}.md`，frontmatter 的 `epic` 填对应 `.cs/epics/YYYY/MM/DD/{短语}/` 路径，并在“归属”里写相关 epic spec。
+
+`open-`、`closed-` 这类状态前缀保持英文。
 
 新 epic 使用：
 
