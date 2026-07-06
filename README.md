@@ -28,6 +28,20 @@ codex plugin marketplace add liuzhengdongfortest/CodeStable
 codex plugin add codestable-lite@codestable-lite
 ```
 
+如果 `codestable-lite` 还没有合到默认分支，Codex 可以直接指定分支：
+
+```bash
+codex plugin marketplace add liuzhengdongfortest/CodeStable --ref codestable-lite
+codex plugin add codestable-lite@codestable-lite
+```
+
+本地开发测试也可以直接加本地 marketplace：
+
+```bash
+codex plugin marketplace add D:\playground\CodeStable
+codex plugin add codestable-lite@codestable-lite
+```
+
 Claude plugin marketplace：
 
 ```text

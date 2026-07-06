@@ -29,6 +29,20 @@ codex plugin marketplace add liuzhengdongfortest/CodeStable
 codex plugin add codestable-lite@codestable-lite
 ```
 
+If `codestable-lite` has not merged into the default branch yet, Codex can install from that branch directly:
+
+```bash
+codex plugin marketplace add liuzhengdongfortest/CodeStable --ref codestable-lite
+codex plugin add codestable-lite@codestable-lite
+```
+
+For local development, Codex can also add a local marketplace path:
+
+```bash
+codex plugin marketplace add D:\playground\CodeStable
+codex plugin add codestable-lite@codestable-lite
+```
+
 Claude plugin marketplace:
 
 ```text

@@ -162,6 +162,8 @@ def check_readme_commands(root: Path, findings: list[Finding]) -> None:
     required = [
         "codex plugin marketplace add liuzhengdongfortest/CodeStable",
         "codex plugin add codestable-lite@codestable-lite",
+        "codex plugin marketplace add liuzhengdongfortest/CodeStable --ref codestable-lite",
+        "codex plugin marketplace add D:\\playground\\CodeStable",
         "codex plugin marketplace upgrade codestable-lite",
         "/plugin marketplace add liuzhengdongfortest/CodeStable",
         "/plugin marketplace update",
