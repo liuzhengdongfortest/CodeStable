@@ -186,7 +186,7 @@ The close rule is simple: independent issue → project spec; exploratory issue 
 <tr><th>Group</th><th>Skill</th><th>Purpose</th></tr>
 <tr><td><b>Root entry</b></td><td><code>cs</code></td><td>Unified entry — introduces the system and routes open-ended intents to the right cs-* skill. Call it when you don't know which one fits</td></tr>
 <tr><td><b>Onboard</b></td><td><code>cs-onboard</code></td><td>Bring CodeStable into a repo: create or complete the <code>.cs/</code> workspace and base entity directories</td></tr>
-<tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>Discussion + synthesis when ideas are fuzzy or context is missing: inspect repo context first, then write the result into <code>talks/</code></td></tr>
+<tr><td><b>Discussion entry</b></td><td><code>cs-talk</code></td><td>When ideas are fuzzy or context is missing, inspect repo context and clarify through discussion; write into <code>talks/</code> only after the user confirms closure</td></tr>
 <tr><td><b>Spec entry</b></td><td><code>cs-spec</code></td><td>Maintain project or epic specs: requirements, architecture considerations, shared language, scope ready for this round, and open questions</td></tr>
 <tr><td><b>Complaint entry</b></td><td><code>cs-complain</code></td><td>When behavior breaks expectations, create/update a bug issue, build a feedback loop, diagnose, fix, verify, and write back</td></tr>
 <tr><td><b>Plan entry</b></td><td><code>cs-plan</code></td><td>Read <code>talks/</code> or the scope ready in an epic spec, discuss a planning draft first, then create an independent issue, new epic, or epic issue after confirmation</td></tr>
