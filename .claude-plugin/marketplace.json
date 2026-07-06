@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "codestable-lite",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "CodeStable LITE AI coding workflow skills.",
       "source": "./plugins/codestable-lite"
     }
