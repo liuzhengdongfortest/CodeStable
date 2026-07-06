@@ -16,6 +16,14 @@ sys.dont_write_bytecode = True
 from codestable_gate_common import gate_result, load_yaml, main_exit, parse_args, repo_root, run_command
 
 
+def clear_previous_json_out(json_out: str | None) -> None:
+    if not json_out:
+        return
+    path = Path(json_out)
+    if (path.exists() or path.is_symlink()) and not (path.is_dir() and not path.is_symlink()):
+        path.unlink()
+
+
 def collect_commands(checklist: dict[str, Any]) -> list[dict[str, Any]]:
     # Authoritative schema: top-level `dod.commands` (cs-feat-design reference §"DoD
     # Contract" — `dod` is a top-level checklist key alongside `steps`/`checks`).
@@ -39,6 +47,7 @@ def main() -> None:
     parser.add_argument("--only", action="append", default=[], help="Run only this command id; repeatable")
     parser.add_argument("--stage", default="implementation.before_review")
     args = parser.parse_args()
+    clear_previous_json_out(args.json_out)
 
     checklist_path = Path(args.checklist)
     if not checklist_path.exists():

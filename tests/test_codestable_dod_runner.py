@@ -10,12 +10,14 @@ TOOLS_DIR = Path(__file__).resolve().parents[1] / "plugins/codestable/skills/cs-
 DOD_RUNNER = TOOLS_DIR / "codestable-dod-runner.py"
 
 
-def run_dod(tmp_path: Path, checklist_yaml: str) -> dict:
+def run_dod(tmp_path: Path, checklist_yaml: str, existing_json_out: str | None = None) -> dict:
     repo = tmp_path / "proj"
     (repo / ".codestable").mkdir(parents=True, exist_ok=True)  # repo_root() marker
     checklist = repo / "checklist.yaml"
     checklist.write_text(checklist_yaml, encoding="utf-8")
     out = repo / "dod-results.json"
+    if existing_json_out is not None:
+        out.write_text(existing_json_out, encoding="utf-8")
     subprocess.run(
         [sys.executable, str(DOD_RUNNER), "--checklist", str(checklist), "--json-out", str(out)],
         cwd=repo,
@@ -124,3 +126,19 @@ steps:
 """,
     )
     assert data["status"] == "skipped"
+
+
+def test_existing_json_out_is_hidden_from_dod_commands(tmp_path: Path) -> None:
+    data = run_dod(
+        tmp_path,
+        """feature: x
+dod:
+  commands:
+    - id: CMD-001
+      command: "test ! -e dod-results.json"
+      core: true
+""",
+        existing_json_out='{"status":"stale"}\n',
+    )
+    assert data["status"] == "passed"
+    assert data["evidence"][0]["exit_code"] == 0
