@@ -67,7 +67,6 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 │   └── YYYY-MM-DD-{slug}.md
 │                          纯 markdown，无 frontmatter，grep 检索
 ├── gates/                 workflow gate 配置（onboard 从技能包释放）
-├── tools/                 跨工作流共享脚本（onboard 从技能包释放）
 └── reference/             共享参考文档（onboard 从技能包释放）
 ```
 
@@ -277,8 +276,6 @@ feature-design / issue-analyze / issue-fix 动手前到 `.codestable/compound/` 
 - 机器状态（YAML / JSON / `state.yaml` / frontmatter 字段）保持机读格式不翻译，不从不同语言的叙述反推状态。
 - 默认只写 canonical 报告文件；只有 attention 明确要求多语言副本时，才额外写 `{name}.{lang}.md`。
 
-## 9. 执行约定与 worktree
+## 9. 执行约定
 
-preflight 和 runtime 恢复在 `.codestable/reference/execution-conventions.md`；worktree、finish 和 context packet 在 `worktree-conventions.md`；Task agent 与 Goal driver 在 `agent-conventions.md`；approval 报告口径在 `approval-conventions.md`。
-
-- **不要让 AI 在主协调检出里 `git switch` / `git checkout`**——需要执行分支时用 git worktree；可用 `branch-guard-hooks.md` 配 command hook 硬拦在 `main`/`master` 上的直接实现。
+preflight 和 runtime 恢复在 `.codestable/reference/execution-conventions.md`；Task agent 与 Goal driver 在 `agent-conventions.md`；approval 报告口径在 `approval-conventions.md`；context packet、commit planning 和 backlog 工具在 `tools-context.md`。

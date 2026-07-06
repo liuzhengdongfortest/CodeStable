@@ -17,7 +17,7 @@ def main() -> int:
     parser.add_argument(
         "--source-skill-dir",
         default=Path(__file__).resolve().parents[1].as_posix(),
-        help="cs-onboard skill directory containing gates/, tools/, references/, hooks/",
+        help="cs-onboard skill directory containing gates/, references/, and global tools/",
     )
     parser.add_argument("--plugin-version", default=None, help="Expected CodeStable plugin version")
     parser.add_argument("--force", action="store_true", help="Overwrite dirty managed runtime paths")

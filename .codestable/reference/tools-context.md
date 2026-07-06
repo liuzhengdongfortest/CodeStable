@@ -1,7 +1,10 @@
-# CodeStable Context 与 Finish 工具
+# CodeStable Context 与 Commit 工具
 
 本文件会由 `cs-onboard` 复制到 `.codestable/reference/tools-context.md`。它补充
-`tools.md` 中的 context、finish、inbox、commit 和 backlog 工具说明。
+`tools.md` 中的 context、commit 和 backlog 工具说明。
+
+命令里的 `<cs-onboard skill 目录>` 是当前加载的 `cs-onboard/SKILL.md` 所在目录。新版
+CodeStable 从这个全局 skill 包运行工具；旧项目已有 `.codestable/tools/` 只作兼容副本。
 
 ## 1. build-context-packet.py
 
@@ -9,7 +12,7 @@
 learner 使用，避免复制完整聊天历史。
 
 ```bash
-python3 .codestable/tools/build-context-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --audience handoff --output /tmp/codestable-handoff.md \
+python3 <cs-onboard skill 目录>/tools/build-context-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --audience handoff --output /tmp/codestable-handoff.md \
   --decided "Use staged review packets" \
   --rejected "Do not adopt full Team pipeline" \
   --risk "Verification can be skipped if no gate enforces evidence" \
@@ -49,70 +52,30 @@ Handoff 输出章节：
 检查生成的 handoff / audience 报告是否有可识别结构、secret-like 文本、具体文件和证据。
 
 ```bash
-python3 .codestable/tools/check-context-sufficiency.py --file /tmp/codestable-human-review.md --strict --json
+python3 <cs-onboard skill 目录>/tools/check-context-sufficiency.py --file /tmp/codestable-human-review.md --strict --json
 ```
 
 派发 human reviewer / Task agent reviewer 前，或把 context packet 作为 approval report
 证据分享前使用。
 
-## 3. codestable-finish-worktree.py
-
-merge 前运行执行 worktree 的 finish gate。它生成 learning report、context sufficiency
-check、merge readiness JSON 和本地 inbox item。它不会 merge、rebase、commit、删除
-worktree，也不会替代 merge approval。
-
-```bash
-python3 .codestable/tools/codestable-finish-worktree.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --json \
-  --validation "uv run pytest -> passed" \
-  --validation "CLI smoke -> passed"
-```
-
-生成文件：
-
-- `{slug}-learning-report.md`
-- `{slug}-learning-context-check.json`
-- `{slug}-merge-readiness.json`
-- `$(git rev-parse --git-common-dir)/codestable/worktree-inbox/{branch}.json`
-
-关键规则：
-
-- 只在 linked execution worktree 中运行。
-- 除可刷新 finish-gate 产物外，保持 worktree 干净。
-- 必须有 implementation review evidence。
-- learning report 的 `covered_head` 之后 branch HEAD 变化时必须重跑。
-- 缺 validation、缺 review 或存在 blocking backlog 时失败。
-
-## 4. codestable-worktree-inbox.py
-
-读取 Git common-dir 中跨 branch / worktree 的 merge 提醒。
-
-```bash
-python3 .codestable/tools/codestable-worktree-inbox.py --root . --json
-python3 .codestable/tools/codestable-worktree-inbox.py --root . --snooze codex_slug --until 2026-06-12T00:00:00Z --json
-python3 .codestable/tools/codestable-worktree-inbox.py --root . --abandon codex_slug --reason "owner canceled" --json
-```
-
-状态：`ready-to-merge`、`stale-report`、`merged`、`blocked`、`abandoned`。
-snoozed item 仍可见，但在到期或变 stale 前不会提示 merge。
-
-## 5. plan-commits.py
+## 3. plan-commits.py
 
 只读 commit planner。它按逻辑 bucket 对 dirty paths 分组，并标记 migration doc-sync、
 runbook doc-sync、tracked ignored files、large files 和 live writers。它不会 stage 或 commit。
 
 ```bash
-python3 .codestable/tools/plan-commits.py --root . --json
+python3 <cs-onboard skill 目录>/tools/plan-commits.py --root . --json
 ```
 
 常见 buckets：`code`、`tests`、`docs`、`migrations`、`database_docs`、`data`、
 `logs`、`codestable`、`installed_skill`、`unknown`。
 
-## 6. codestable-backlog.py
+## 4. codestable-backlog.py
 
 最终汇报前扫描 `.codestable/` 中的人审与 follow-up backlog。
 
 ```bash
-python3 .codestable/tools/codestable-backlog.py --root . --json
+python3 <cs-onboard skill 目录>/tools/codestable-backlog.py --root . --json
 ```
 
 它报告 `needs-human-review`、`Human review required`、显式 `Follow-up:` 行、

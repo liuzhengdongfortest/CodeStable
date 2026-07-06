@@ -2,7 +2,9 @@
 
 本文件由 `cs-onboard` 复制到项目的 `.codestable/reference/tools.md`，所有 CodeStable 子技能用项目相对路径 `.codestable/reference/tools.md` 引用。
 
-`.codestable/tools/` 下共享脚本的完整用法参考。子技能里只写本技能特有的 1-2 行典型查询；完整语法和示例看这里。
+当前 `cs-onboard` skill 包 `tools/` 下共享脚本的完整用法参考。子技能里只写本技能特有的 1-2 行典型查询；完整语法和示例看这里。
+
+命令里的 `<cs-onboard skill 目录>` 是当前加载的 `cs-onboard/SKILL.md` 所在目录。新版 CodeStable 从这个全局 skill 包运行工具；旧项目已有 `.codestable/tools/` 只作兼容副本，不作为新版技能入口。
 
 ---
 
@@ -13,7 +15,7 @@
 ### 基本语法
 
 ```bash
-python3 .codestable/tools/search-yaml.py --dir {目录} [--filter key=value]... [--query "全文关键词"] [--sort-by FIELD [--order asc|desc]] [--full] [--json]
+python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir {目录} [--filter key=value]... [--query "全文关键词"] [--sort-by FIELD [--order asc|desc]] [--full] [--json]
 ```
 
 ### filter 语法
@@ -44,15 +46,15 @@ ls -lt .codestable/compound/ | head        # 看最近沉淀
 
 ```bash
 # 搜索 feature 方案 doc
-python3 .codestable/tools/search-yaml.py --dir .codestable/features --filter doc_type=feature-design --filter status=approved
+python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter doc_type=feature-design --filter status=approved
 
 # 按时间排序
-python .codestable/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc         # 最久没 review 的在前（找陈旧文档）
-python .codestable/tools/search-yaml.py --dir .codestable/guides --filter status=current --sort-by last_reviewed --order asc
+python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc
+python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/guides --filter status=current --sort-by last_reviewed --order asc
 
 # 输出控制
-python .codestable/tools/search-yaml.py --dir .codestable/features --filter status=approved --full
-python .codestable/tools/search-yaml.py --dir .codestable/features --filter tags~=llm --json
+python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter status=approved --full
+python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter tags~=llm --json
 ```
 
 ### 典型使用场景
@@ -72,11 +74,11 @@ YAML 语法校验工具。用于验证 frontmatter 语法和必填字段。
 
 ```bash
 # 纯 YAML：checklist/items/goal-state 等逐文件校验
-python3 .codestable/tools/validate-yaml.py --file {文件路径}.yaml --yaml-only
+python3 <cs-onboard skill 目录>/tools/validate-yaml.py --file {文件路径}.yaml --yaml-only
 
 # Markdown frontmatter：单文件或目录校验必填字段
-python3 .codestable/tools/validate-yaml.py --file {文件路径}.md --require doc_type --require status
-python3 .codestable/tools/validate-yaml.py --dir .codestable/features --require doc_type --require status
+python3 <cs-onboard skill 目录>/tools/validate-yaml.py --file {文件路径}.md --require doc_type --require status
+python3 <cs-onboard skill 目录>/tools/validate-yaml.py --dir .codestable/features --require doc_type --require status
 ```
 
 目录模式默认只校验 `.md` frontmatter；要批量校验纯 YAML 目录必须显式加 `--yaml-only`。不要对混有 checklist/items/goal-state 的目录直接加 `--require doc_type --require status`；纯 YAML 没有 Markdown frontmatter 字段，会造成假失败。
@@ -85,22 +87,22 @@ python3 .codestable/tools/validate-yaml.py --dir .codestable/features --require 
 
 ## 3. Roadmap Goal Gates
 
-`cs-onboard` 会把技能包里的 `gates/` 和 gate 脚本释放到项目 `.codestable/`，并清理 `__pycache__` / `*.pyc`。这些 gate 不是全局 PreToolUse 拦截器，而是由 `cs-epic` / `cs-feat` 等主入口在阶段边界显式调用。
+`cs-onboard` 会把技能包里的 `gates/` 释放到项目 `.codestable/`；gate 脚本从当前 `cs-onboard` skill 包的 `tools/` 目录运行。这些 gate 不是全局 PreToolUse 拦截器，而是由 `cs-epic` / `cs-feat` 等主入口在阶段边界显式调用。
 
 ```bash
-python3 .codestable/tools/codestable-workflow-next.py epic --roadmap .codestable/roadmap/{slug} --json
-python3 .codestable/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --epic-child-batch --json
-python3 .codestable/tools/validate-yaml.py --file .codestable/gates/roadmap-goal-gates.yaml --yaml-only
-python3 .codestable/tools/codestable-dod-contract-gate.py --design .codestable/features/YYYY-MM-DD-{slug}/{slug}-design.md
-python3 .codestable/tools/codestable-dod-runner.py --checklist .codestable/features/YYYY-MM-DD-{slug}/{slug}-checklist.yaml
-python3 .codestable/tools/codestable-evidence-pack.py --feature {slug} --design {design} --checklist {checklist} --out {slug}-evidence-pack.md
-python3 .codestable/tools/codestable-goal-consistency-gate.py --roadmap .codestable/roadmap/{slug}
+python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic --roadmap .codestable/roadmap/{slug} --json
+python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --epic-child-batch --json
+python3 <cs-onboard skill 目录>/tools/validate-yaml.py --file .codestable/gates/roadmap-goal-gates.yaml --yaml-only
+python3 <cs-onboard skill 目录>/tools/codestable-dod-contract-gate.py --design .codestable/features/YYYY-MM-DD-{slug}/{slug}-design.md
+python3 <cs-onboard skill 目录>/tools/codestable-dod-runner.py --checklist .codestable/features/YYYY-MM-DD-{slug}/{slug}-checklist.yaml
+python3 <cs-onboard skill 目录>/tools/codestable-evidence-pack.py --feature {slug} --design {design} --checklist {checklist} --out {slug}-evidence-pack.md
+python3 <cs-onboard skill 目录>/tools/codestable-goal-consistency-gate.py --roadmap .codestable/roadmap/{slug}
 ```
 
 `roadmap-goal-gates.yaml` 是阶段配置入口；`codestable-scope-gate.py`、`codestable-dod-runner.py` 和 `codestable-evidence-pack.py` 是 implementation.before_review 的最小 runtime。`status: protocol-only` 的 gate 只表示协议占位，由 review / QA / acceptance / audit 技能读取证据后执行，不代表已有独立脚本。
 `codestable-goal-consistency-gate.py` 是 roadmap_audit.before_complete 的 runtime，检查 goal-state、items、每个 feature 的 review/QA/acceptance/evidence/gate/DoD 产物和 checklist 状态，防止 goal-state 早于证据推进。
 `codestable-workflow-next.py` 是只读下一步解析器，输出 `next_action`、`must_continue` 和 `final_answer_allowed`；`cs-epic` / `cs-feat` 在 child design batch 边界必须按它的 JSON 继续或停 gate。
-如果项目缺少这些 runtime 脚本，说明已接入骨架过旧或不完整；不要从技能包深层路径绕过项目副本，先运行 runtime sync，刷新后再恢复原流程。
+如果 skill 包缺少这些 runtime 脚本，说明本机 CodeStable 安装不完整；先更新 / 重装 CodeStable。项目缺少 `gates/` 或 `reference/` 时运行 runtime sync。
 
 ---
 
@@ -109,14 +111,14 @@ python3 .codestable/tools/codestable-goal-consistency-gate.py --roadmap .codesta
 CodeStable 生命周期状态检查工具。只读，不修改文件。用于开始工作、恢复上下文、最终汇报前判断当前仓库是否还有阻塞项。
 
 ```bash
-python3 .codestable/tools/codestable-doctor.py --root . --json
+python3 <cs-onboard skill 目录>/tools/codestable-doctor.py --root . --json
 ```
 
 JSON 关键字段：
 
 - `status`：`idle` / `planning-safe` / `dirty` / `implementation-active` / `attention-needed` / `blocked`
-- `tooling.runtime`：`.codestable` runtime 静态体检；`runtime-incomplete` / `version-mismatch` 时运行 runtime sync
-- `tooling.runtime.capabilities`：`base` / `workflow-next` / `goal-gates` 的必需文件和缺失列表
+- `tooling.runtime`：repo-local runtime 与 skill-global tool 静态体检；`version-mismatch` 时运行 runtime sync
+- `tooling.runtime.capabilities`：`base` / `workflow-next` / `goal-gates` 的 `repo_paths`、`skill_tool_paths` 和缺失列表
 - `checkout`：当前分支、默认分支
 - `dirty_buckets`：按 `code` / `tests` / `docs` / `migrations` / `data` / `logs` / `codestable` / `unknown` 分组的 dirty paths
 - `implementation_changes`：当前 dirty tree 中的实现文件
@@ -128,7 +130,7 @@ JSON 关键字段：
 
 ```bash
 # 汇报前确认没有遗漏的人审 / follow-up / runtime 阻塞
-python3 .codestable/tools/codestable-doctor.py --root . --json
+python3 <cs-onboard skill 目录>/tools/codestable-doctor.py --root . --json
 ```
 
 ---
@@ -138,7 +140,7 @@ python3 .codestable/tools/codestable-doctor.py --root . --json
 独立 Task agent review 的输入包生成器。它把本次 unit 文档、diff stat、聚焦 diff、验证结果和风险提示整理成一份可发给 reviewer 的 Markdown，并自动隐藏 `.env` / token / secret 类路径和值。`--stage` 用来区分 review 目的，默认 `implementation` 兼容旧调用。
 
 ```bash
-python3 .codestable/tools/build-review-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --stage quality --output /tmp/codestable-review.md \
+python3 <cs-onboard skill 目录>/tools/build-review-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --stage quality --output /tmp/codestable-review.md \
   --validation "uv run pytest -> passed" \
   --validation "CLI smoke -> passed"
 ```

@@ -50,7 +50,7 @@ evidence、consequence 和 next action，就可以满足此规则。例如：
 - 答案会改变 route、scope 或 next work 的 interview / grill checkpoint。
 - 在多个可行 workflow 或 canonical spec 之间做 route choice。
 - review authorization、implementation Task agent authorization 或 inline-review fallback。
-- worktree override、gate override、破坏性操作、secrets、外部购买、merge、deploy 或风险接受。
+- 执行环境 override、gate override、破坏性操作、secrets、外部购买、merge、deploy 或风险接受。
 - blocker / owner-stop 决策。
 - 选择要修复、延期、丢弃、迁移或修复历史文档的内容。
 

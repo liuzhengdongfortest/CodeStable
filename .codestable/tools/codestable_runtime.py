@@ -12,39 +12,49 @@ from typing import Any
 
 MANIFEST_PATH = ".codestable/runtime-manifest.json"
 MANAGED_PATHS = [
-    ".codestable/tools",
     ".codestable/gates",
     ".codestable/reference",
-    ".codestable/hooks",
     ".codestable/.gitignore",
     MANIFEST_PATH,
 ]
-RUNTIME_CAPABILITIES: dict[str, list[str]] = {
+RUNTIME_IGNORE_PATTERNS = [
+    "worktree-conventions.md",
+    "branch-guard-hooks.md",
+]
+PRESERVED_LEGACY_RUNTIME_PATHS = {
+    ".codestable/reference/worktree-conventions.md",
+    ".codestable/reference/branch-guard-hooks.md",
+    ".codestable/hooks/hooks.codex.json",
+}
+REPO_RUNTIME_CAPABILITIES: dict[str, list[str]] = {
     "base": [
         ".codestable/attention.md",
         ".codestable/reference/execution-conventions.md",
         ".codestable/reference/shared-conventions.md",
         ".codestable/reference/agent-conventions.md",
-        ".codestable/reference/worktree-conventions.md",
         ".codestable/reference/tools.md",
-        ".codestable/tools/validate-yaml.py",
-        ".codestable/tools/search-yaml.py",
         MANIFEST_PATH,
-    ],
-    "workflow-next": [
-        ".codestable/tools/codestable-workflow-next.py",
-    ],
-    "worktree-gate": [
-        ".codestable/tools/codestable-worktree-gate.py",
-        ".codestable/tools/validate-implementation-review.py",
     ],
     "goal-gates": [
         ".codestable/gates/roadmap-goal-gates.yaml",
-        ".codestable/tools/codestable-scope-gate.py",
-        ".codestable/tools/codestable-dod-contract-gate.py",
-        ".codestable/tools/codestable-dod-runner.py",
-        ".codestable/tools/codestable-evidence-pack.py",
-        ".codestable/tools/codestable-goal-consistency-gate.py",
+    ],
+}
+SKILL_TOOL_CAPABILITIES: dict[str, list[str]] = {
+    "base": [
+        "tools/validate-yaml.py",
+        "tools/search-yaml.py",
+        "tools/codestable-doctor.py",
+        "tools/build-review-packet.py",
+    ],
+    "workflow-next": [
+        "tools/codestable-workflow-next.py",
+    ],
+    "goal-gates": [
+        "tools/codestable-scope-gate.py",
+        "tools/codestable-dod-contract-gate.py",
+        "tools/codestable-dod-runner.py",
+        "tools/codestable-evidence-pack.py",
+        "tools/codestable-goal-consistency-gate.py",
     ],
 }
 
@@ -97,7 +107,10 @@ def git_dirty_managed_paths(root: Path) -> list[str]:
     dirty: list[str] = []
     for line in result.stdout.splitlines():
         if line:
-            dirty.append(line[3:].strip('"'))
+            path = line[3:].strip('"')
+            if path in PRESERVED_LEGACY_RUNTIME_PATHS:
+                continue
+            dirty.append(path)
     return dirty
 
 
@@ -107,10 +120,22 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
     manifest = read_manifest(root)
     capabilities: dict[str, Any] = {}
     missing_all: list[str] = []
-    for name, paths in RUNTIME_CAPABILITIES.items():
-        missing = [path for path in paths if not (root / path).exists()]
-        capabilities[name] = {"ok": not missing, "required_paths": paths, "missing": missing}
-        missing_all.extend(missing)
+    source_skill_dir = source_skill_dir.resolve() if source_skill_dir else None
+    for name in sorted(set(REPO_RUNTIME_CAPABILITIES) | set(SKILL_TOOL_CAPABILITIES)):
+        repo_paths = REPO_RUNTIME_CAPABILITIES.get(name, [])
+        skill_paths = SKILL_TOOL_CAPABILITIES.get(name, [])
+        missing_repo = [path for path in repo_paths if not (root / path).exists()]
+        missing_skill = [path for path in skill_paths if not source_skill_dir or not (source_skill_dir / path).exists()]
+        capabilities[name] = {
+            "ok": not missing_repo and not missing_skill,
+            "required_paths": repo_paths + skill_paths,
+            "repo_paths": repo_paths,
+            "skill_tool_paths": skill_paths,
+            "missing": missing_repo + missing_skill,
+            "missing_repo": missing_repo,
+            "missing_skill_tools": missing_skill,
+        }
+        missing_all.extend(missing_repo + missing_skill)
 
     installed_version = manifest.get("plugin_version") if manifest else None
     if not (root / ".codestable").exists():
@@ -121,7 +146,7 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
         hint = "Run `cs-onboard` to complete the skeleton; runtime sync does not create attention.md."
     elif missing_all:
         status = "runtime-incomplete"
-        hint = "Run runtime sync or `cs-onboard --mode refresh-runtime` to refresh .codestable runtime assets."
+        hint = "Run runtime sync or `cs-onboard --mode refresh-runtime` to refresh repo-local assets; missing skill tools require reinstalling/updating CodeStable."
     elif expected_version and installed_version != expected_version:
         status = "version-mismatch"
         hint = "Run runtime sync to refresh .codestable runtime assets for the installed CodeStable plugin."
@@ -138,6 +163,7 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
         "expected_plugin_version": expected_version,
         "capabilities": capabilities,
         "missing": missing_all,
+        "tool_runtime": "skill-global",
     }
 
 
@@ -149,6 +175,7 @@ def write_manifest(root: Path, plugin_version: str) -> None:
         "plugin": "codestable",
         "plugin_version": plugin_version,
         "runtime_version": plugin_version,
+        "tool_runtime": "skill-global",
         "managed_paths": MANAGED_PATHS,
         "updated_by": "codestable-runtime-sync",
     }
@@ -176,9 +203,7 @@ def sync_runtime(root: Path, source_skill_dir: Path, plugin_version: str | None 
 
     copies = [
         ("gates", ".codestable/gates"),
-        ("tools", ".codestable/tools"),
         ("references", ".codestable/reference"),
-        ("hooks", ".codestable/hooks"),
     ]
     for source_rel, target_rel in copies:
         source = source_skill_dir / source_rel
@@ -188,15 +213,11 @@ def sync_runtime(root: Path, source_skill_dir: Path, plugin_version: str | None 
                 source,
                 target,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", *RUNTIME_IGNORE_PATTERNS),
             )
     gitignore = source_skill_dir / "codestable.gitignore"
     if gitignore.is_file():
         shutil.copy2(gitignore, root / ".codestable/.gitignore")
-    for pycache in (root / ".codestable/tools").rglob("__pycache__"):
-        shutil.rmtree(pycache, ignore_errors=True)
-    for pyc in (root / ".codestable/tools").rglob("*.pyc"):
-        pyc.unlink(missing_ok=True)
     write_manifest(root, version)
     health = runtime_health(root, source_skill_dir=source_skill_dir, plugin_version=version)
     return {"ok": health["ok"], "status": health["status"], "plugin_version": version, "health": health}

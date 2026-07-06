@@ -67,7 +67,6 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 │   └── YYYY-MM-DD-{slug}.md
 │                          纯 markdown，无 frontmatter，grep 检索
 ├── gates/                 workflow gate 配置（onboard 从技能包释放）
-├── tools/                 跨工作流共享脚本（onboard 从技能包释放）
 └── reference/             共享参考文档（onboard 从技能包释放）
 ```
 

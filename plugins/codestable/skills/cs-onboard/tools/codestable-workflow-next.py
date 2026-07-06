@@ -59,6 +59,11 @@ def rel(root: Path, path: Path | None) -> str | None:
         return path.as_posix()
 
 
+def tool_command(tool_name: str, *args: str | None) -> str:
+    tool_path = Path(__file__).resolve().with_name(tool_name).as_posix()
+    return " ".join(["python3", tool_path, *[arg for arg in args if arg is not None]])
+
+
 def first_existing(*paths: Path) -> Path | None:
     for path in paths:
         if path.exists():
@@ -423,7 +428,7 @@ def feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
                     **evidence,
                     "roadmap": rel(root, roadmap),
                     "roadmap_item": meta.get("roadmap_item"),
-                    "epic_command": f"python3 .codestable/tools/codestable-workflow-next.py epic --roadmap {rel(root, roadmap)} --json",
+                    "epic_command": tool_command("codestable-workflow-next.py", "epic", "--roadmap", rel(root, roadmap), "--json"),
                 },
             )
         return decision(

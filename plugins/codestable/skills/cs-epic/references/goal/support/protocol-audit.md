@@ -26,7 +26,7 @@ Commands to re-run: <去重命令列表>
 先运行机器一致性 gate：
 
 ```bash
-python3 .codestable/tools/codestable-goal-consistency-gate.py --roadmap {roadmap-path}
+python3 <cs-onboard skill 目录>/tools/codestable-goal-consistency-gate.py --roadmap {roadmap-path}
 ```
 
 失败时不得打印完成标记；按 blocking 项补齐证据或回退状态后重跑。

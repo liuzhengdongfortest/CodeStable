@@ -126,6 +126,10 @@ def test_feature_epic_child_batch_returns_to_epic_loop(tmp_path: Path) -> None:
     assert result["must_continue"] is True
     assert result["final_answer_allowed"] is False
     assert result["evidence"]["roadmap_item"] == "api-seed"
+    assert result["evidence"]["epic_command"] == (
+        f"python3 {(TOOLS_DIR / 'codestable-workflow-next.py').as_posix()} "
+        "epic --roadmap .codestable/roadmap/billing-system --json"
+    )
 
 
 def test_feature_single_mode_stops_at_design_confirmation(tmp_path: Path) -> None:

@@ -1,10 +1,11 @@
 # Spec Governance Tools
 
 This file documents project-runtime helpers copied by `cs-onboard` into
-`.codestable/reference/`. The source tool is:
+`.codestable/reference/`. The source tool runs from the current `cs-onboard`
+skill package:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json <command>
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json <command>
 ```
 
 ## Commands
@@ -15,7 +16,7 @@ Select candidate long-lived specs before design, roadmap, requirement, or
 acceptance work:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json route \
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json route \
   --query "source scout query coverage before crawl"
 ```
 
@@ -32,7 +33,7 @@ Append an owner clarification to an existing spec file without rewriting the
 whole document:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json clarify \
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json clarify \
   --file .codestable/requirements/source-discovery.md \
   --question "Which source field is canonical?" \
   --answer "Use retrieved_at plus intent bucket." \
@@ -47,7 +48,7 @@ Create a feature-local requirement delta instead of mutating a long-lived
 requirement directly:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json create-delta \
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json create-delta \
   --unit .codestable/features/YYYY-MM-DD-source-query-coverage \
   --requirement source-discovery \
   --added "The system records query intent coverage before crawl." \
@@ -62,7 +63,7 @@ The file path is `{unit}/{slug}-req-delta.md`.
 Mechanically record an approved delta in the target requirement change log:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json apply-delta \
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json apply-delta \
   --delta .codestable/features/YYYY-MM-DD-source-query-coverage/source-query-coverage-req-delta.md \
   --target .codestable/requirements/source-discovery.md
 ```
@@ -76,7 +77,7 @@ Classify current spec documents as `current-trusted`,
 `orphaned`:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json inventory
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json inventory
 ```
 
 Old specs with `status: current` but no explicit `owner_review_state` are
@@ -86,7 +87,7 @@ Write a human-readable rehabilitation artifact when the inventory needs to be
 reviewed or handed to the owner:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json inventory \
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json inventory \
   --output .codestable/spec-governance/YYYY-MM-DD-{slug}-inventory.md
 ```
 
@@ -99,7 +100,7 @@ same state is content-aware and does not rewrite the file.
 Run a read-only acceptance/design consistency pass:
 
 ```bash
-python3 .codestable/tools/codestable-spec-governance.py --root . --json analyze \
+python3 <cs-onboard skill dir>/tools/codestable-spec-governance.py --root . --json analyze \
   --unit .codestable/features/YYYY-MM-DD-source-query-coverage
 ```
 

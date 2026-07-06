@@ -3,13 +3,16 @@
 本文件会由 `cs-onboard` 复制到 `.codestable/reference/tools-context.md`。它补充
 `tools.md` 中的 context、commit 和 backlog 工具说明。
 
+命令里的 `<cs-onboard skill 目录>` 是当前加载的 `cs-onboard/SKILL.md` 所在目录。新版
+CodeStable 从这个全局 skill 包运行工具；旧项目已有 `.codestable/tools/` 只作兼容副本。
+
 ## 1. build-context-packet.py
 
 生成可持久保存的 context packet，供下一阶段 agent、reviewer、人类 reviewer、owner 或
 learner 使用，避免复制完整聊天历史。
 
 ```bash
-python3 .codestable/tools/build-context-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --audience handoff --output /tmp/codestable-handoff.md \
+python3 <cs-onboard skill 目录>/tools/build-context-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --audience handoff --output /tmp/codestable-handoff.md \
   --decided "Use staged review packets" \
   --rejected "Do not adopt full Team pipeline" \
   --risk "Verification can be skipped if no gate enforces evidence" \
@@ -49,7 +52,7 @@ Handoff 输出章节：
 检查生成的 handoff / audience 报告是否有可识别结构、secret-like 文本、具体文件和证据。
 
 ```bash
-python3 .codestable/tools/check-context-sufficiency.py --file /tmp/codestable-human-review.md --strict --json
+python3 <cs-onboard skill 目录>/tools/check-context-sufficiency.py --file /tmp/codestable-human-review.md --strict --json
 ```
 
 派发 human reviewer / Task agent reviewer 前，或把 context packet 作为 approval report
@@ -61,7 +64,7 @@ python3 .codestable/tools/check-context-sufficiency.py --file /tmp/codestable-hu
 runbook doc-sync、tracked ignored files、large files 和 live writers。它不会 stage 或 commit。
 
 ```bash
-python3 .codestable/tools/plan-commits.py --root . --json
+python3 <cs-onboard skill 目录>/tools/plan-commits.py --root . --json
 ```
 
 常见 buckets：`code`、`tests`、`docs`、`migrations`、`database_docs`、`data`、
@@ -72,7 +75,7 @@ python3 .codestable/tools/plan-commits.py --root . --json
 最终汇报前扫描 `.codestable/` 中的人审与 follow-up backlog。
 
 ```bash
-python3 .codestable/tools/codestable-backlog.py --root . --json
+python3 <cs-onboard skill 目录>/tools/codestable-backlog.py --root . --json
 ```
 
 它报告 `needs-human-review`、`Human review required`、显式 `Follow-up:` 行、

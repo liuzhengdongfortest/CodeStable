@@ -149,6 +149,25 @@ def test_codestable_skill_markdown_has_no_default_worktree_contract_residue() ->
     assert findings == []
 
 
+def test_global_tool_sources_do_not_advertise_repo_local_tool_entrypoints() -> None:
+    forbidden = [
+        "python .codestable/tools/",
+        "python3 .codestable/tools/",
+        "python codestable/tools/",
+        "python3 codestable/tools/",
+    ]
+    findings: list[tuple[str, str]] = []
+    for path in (SKILLS / "cs-onboard/tools").glob("*"):
+        if path.suffix not in {".py", ".sh"}:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for term in forbidden:
+            if term in text:
+                findings.append((path.relative_to(ROOT).as_posix(), term))
+
+    assert findings == []
+
+
 def test_compatibility_entries_delegate_to_main_protocols() -> None:
     for skill, (main, key, value) in COMPATIBILITY_ENTRIES.items():
         path = SKILLS / skill / "SKILL.md"
@@ -239,10 +258,13 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     onboard = (SKILLS / "cs-onboard/SKILL.md").read_text(encoding="utf-8")
     conventions = (SKILLS / "cs-onboard/references/execution-conventions.md").read_text(encoding="utf-8")
     tools_doc = (SKILLS / "cs-onboard/references/tools.md").read_text(encoding="utf-8")
+    shared_conventions = (SKILLS / "cs-onboard/references/shared-conventions.md").read_text(encoding="utf-8")
     feat = (SKILLS / "cs-feat/SKILL.md").read_text(encoding="utf-8")
     feat_design = (SKILLS / "cs-feat/references/design/protocol.md").read_text(encoding="utf-8")
     epic = (SKILLS / "cs-epic/SKILL.md").read_text(encoding="utf-8")
     epic_goal = (SKILLS / "cs-epic/references/goal/protocol.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_en = (ROOT / "README.en.md").read_text(encoding="utf-8")
 
     assert "--mode refresh-runtime" in onboard
     assert "可重复执行" in onboard
@@ -250,8 +272,10 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     assert "不重新审计 / 迁移文档" in onboard
     assert "不移动用户文件" in onboard
     assert "不改 `attention.md` 的实质内容" in onboard
-    for managed_path in [".codestable/gates/", ".codestable/tools/", ".codestable/reference/"]:
+    for managed_path in [".codestable/gates/", ".codestable/reference/"]:
         assert managed_path in onboard
+    assert "旧项目已有 `.codestable/tools/` 只作兼容副本" in onboard
+    assert "不删除或覆盖旧 `.codestable/tools/`" in onboard
     assert ".codestable/runtime-manifest.json" in onboard
     assert "codestable-runtime-sync.py" in onboard
 
@@ -261,20 +285,28 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     assert "用当前插件包里的\n`cs-onboard/tools/codestable-runtime-sync.py` 自动同步" in conventions
     assert "--check --json" in conventions
     assert "去掉 `--check`" in conventions
-    assert "不要用\n项目 `.codestable/tools/` 里的旧副本做版本判定" in conventions
-    assert "`workflow-next`" in conventions
+    assert "不要用项目\n`.codestable/tools/` 里的旧副本做版本判定或新版工具入口" in conventions
+    assert "skill_tool_paths" in conventions
     assert "managed-paths-dirty" in conventions
     assert "不自动覆盖" in conventions
     assert ".codestable/reference/agent-conventions.md" in conventions
     assert ".codestable/reference/worktree-conventions.md" not in conventions
     assert "worktree-gate" not in conventions
-    assert "不要从技能包深层路径绕过项目副本" in tools_doc
+    assert "<cs-onboard skill 目录>/tools/" in tools_doc
+    assert "不作为新版技能入口" in tools_doc
     assert "version-mismatch" in tools_doc
     assert "tooling.runtime.capabilities" in tools_doc
+    assert "Python 工具脚本从已安装的 `cs-onboard` skill 包运行，不再复制到每个 repo" in readme
+    assert "Python tool scripts run from the installed `cs-onboard` skill package instead of being copied into each repo" in readme_en
 
     default_runtime_text = "\n".join([onboard, conventions, tools_doc, feat, feat_design, epic, epic_goal])
     assert "codestable-worktree-gate.py" not in default_runtime_text
     assert "branch-guard-hooks.md" not in default_runtime_text
+    for text in [shared_conventions, readme, readme_en]:
+        assert "tools/                 跨工作流共享脚本" not in text
+        assert "shared workflow scripts released by onboard" not in text
+        assert "tools、hooks" not in text
+        assert "tools, hooks" not in text
 
     for text in [feat, feat_design, epic, epic_goal]:
         assert "runtime capability" not in text

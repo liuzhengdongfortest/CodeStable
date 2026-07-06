@@ -242,7 +242,7 @@ See [WORKFLOW.en.md](./WORKFLOW.en.md) for the compact diagram.
 
 ## Runtime structure
 
-After `/cs-onboard`, a `.codestable/` directory appears at your project root as the aggregate root for requirements, roadmap, goals, features, issues, refactors, audits, compound, tools, hooks, and reference.
+After `/cs-onboard`, a `.codestable/` directory appears at your project root as the aggregate root for requirements, roadmap, goals, features, issues, refactors, audits, compound, gates, and reference. Python tool scripts run from the installed `cs-onboard` skill package instead of being copied into each repo.
 
 ```text
 your-project/
@@ -304,7 +304,6 @@ your-project/
 │   │       # plain markdown, no frontmatter, grep to search
 │   │
 │   ├── gates/                             # workflow gate config released by onboard
-│   ├── tools/                             # shared workflow scripts released by onboard
 │   └── reference/                         # shared references released by onboard
 │       ├── shared-conventions.md          # cross-skill conventions / paths / metadata
 │       ├── system-overview.md             # system overview + scenario routing

@@ -213,7 +213,7 @@ done / dropped 终态
 ### 校验
 
 ```bash
-python .codestable/tools/validate-yaml.py --file .codestable/roadmap/{slug}/{slug}-items.yaml --yaml-only
+python <cs-onboard skill 目录>/tools/validate-yaml.py --file .codestable/roadmap/{slug}/{slug}-items.yaml --yaml-only
 ```
 
 ---

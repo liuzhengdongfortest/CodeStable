@@ -39,7 +39,7 @@
 - `dod-runner`
 - `evidence-pack`
 
-`scope-gate` / `dod-runner` / `evidence-pack` 由 `cs-onboard` 安装到项目 `.codestable/tools/`；缺脚本说明项目骨架过旧，应先重跑 `cs-onboard` 刷新 gate runtime。
+`scope-gate` / `dod-runner` / `evidence-pack` 从当前 `cs-onboard` skill 包 `tools/` 运行；缺脚本说明本机 CodeStable 安装不完整，应先更新 / 重装 CodeStable。
 
 检查：
 

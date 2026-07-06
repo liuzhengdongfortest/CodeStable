@@ -243,7 +243,7 @@ cs
 
 ## 运行时结构
 
-`/cs-onboard` 跑完后，会在你的项目根下生成 `.codestable/`，作为 requirements、roadmap、goals、features、issues、refactors、audits、compound、tools、hooks 和 reference 的聚合根。
+`/cs-onboard` 跑完后，会在你的项目根下生成 `.codestable/`，作为 requirements、roadmap、goals、features、issues、refactors、audits、compound、gates 和 reference 的聚合根。Python 工具脚本从已安装的 `cs-onboard` skill 包运行，不再复制到每个 repo。
 
 ```text
 你的项目/
@@ -305,7 +305,6 @@ cs
 │   │       # 纯 markdown，无 frontmatter，grep 检索（cs-keep 产出）
 │   │
 │   ├── gates/                             # workflow gate 配置（onboard 释放）
-│   ├── tools/                             # 跨工作流共享脚本（onboard 释放）
 │   └── reference/                         # 共享参考文档（onboard 释放）
 │       ├── shared-conventions.md          # 跨技能口径 / 路径命名 / 元数据规范
 │       ├── system-overview.md             # CodeStable 体系总览 + 场景路由

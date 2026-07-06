@@ -13,24 +13,24 @@ Filter syntax (--filter flag, repeatable, AND logic):
 
 Usage examples:
   # Search feature specs by status
-  python .codestable/tools/search-yaml.py --dir .codestable/features --filter doc_type=feature-design --filter status=approved
+  python <cs-onboard skill dir>/tools/search-yaml.py --dir .codestable/features --filter doc_type=feature-design --filter status=approved
 
   # Filter by tag (list element match) and full-text search body + frontmatter values
-  python .codestable/tools/search-yaml.py --dir .codestable/features --filter tags~=prisma
-  python .codestable/tools/search-yaml.py --dir .codestable/features --query "shadow database"
+  python <cs-onboard skill dir>/tools/search-yaml.py --dir .codestable/features --filter tags~=prisma
+  python <cs-onboard skill dir>/tools/search-yaml.py --dir .codestable/features --query "shadow database"
 
   # JSON output for AI agent consumption
-  python .codestable/tools/search-yaml.py --dir .codestable/issues --filter status=open --json
+  python <cs-onboard skill dir>/tools/search-yaml.py --dir .codestable/issues --filter status=open --json
 
   # Sort by a frontmatter date field (works on any ISO-8601 date string, YAML date, or sortable value)
-  python .codestable/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc   # oldest first (stalest)
+  python <cs-onboard skill dir>/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc
 
   # NOTE: .codestable/compound/ is plain markdown (no frontmatter) — use grep instead:
   #   grep -r "keyword" .codestable/compound/
 
   # Works on any yaml-frontmatter markdown directory
-  python .codestable/tools/search-yaml.py --dir docs/decisions --filter status=accepted
-  python .codestable/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
+  python <cs-onboard skill dir>/tools/search-yaml.py --dir docs/decisions --filter status=accepted
+  python <cs-onboard skill dir>/tools/search-yaml.py --dir content/posts --filter tags~=python --query "asyncio"
 """
 
 import argparse

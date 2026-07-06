@@ -41,8 +41,8 @@ doc-tutorial 产物**不在 `.codestable/` 下**——指南是面向外部读�
 检索：
 
 ```
-python .codestable/tools/search-yaml.py --dir docs/dev --filter doc_type=dev-guide --filter status=current
-python .codestable/tools/search-yaml.py --dir docs/user --filter doc_type=user-guide --filter component={feature-slug}
+python <cs-onboard skill 目录>/tools/search-yaml.py --dir docs/dev --filter doc_type=dev-guide --filter status=current
+python <cs-onboard skill 目录>/tools/search-yaml.py --dir docs/user --filter doc_type=user-guide --filter component={feature-slug}
 ```
 
 ---

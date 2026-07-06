@@ -21,15 +21,16 @@
 
 ## Runtime 资产恢复
 
-`.codestable/tools/`、`.codestable/gates/`、`.codestable/reference/`、
-`.codestable/hooks/` 和 `.codestable/.gitignore` 是 `cs-onboard` 释放的 package-owned
-runtime 资产。已接入项目可以重复运行 runtime sync 刷新这些资产并写
-`.codestable/runtime-manifest.json`；该模式不重新迁移文档、不移动用户文件、不改
-`attention.md` 的实质内容。
+`.codestable/gates/`、`.codestable/reference/`、`.codestable/.gitignore` 和
+`.codestable/runtime-manifest.json` 是 `cs-onboard` 释放的 package-owned repo-local runtime
+资产。Python 工具脚本从当前 `cs-onboard` skill 包的 `tools/` 目录运行；旧项目已有
+`.codestable/tools/` 只作兼容副本，不删除、不覆盖。已接入项目可以重复运行 runtime sync
+刷新 repo-local 资产并写 `.codestable/runtime-manifest.json`；该模式不重新迁移文档、不移动
+用户文件、不改 `attention.md` 的实质内容。
 
-preflight 自动同步时，先定位当前插件包的 `cs-onboard` skill 目录：优先用当前已加载
-CodeStable skill 的 sibling `../cs-onboard`，找不到再加载 `codestable:cs-onboard`。不要用
-项目 `.codestable/tools/` 里的旧副本做版本判定。运行：
+preflight 自动同步或调用工具时，先定位当前插件包的 `cs-onboard` skill 目录：优先用当前已加载
+CodeStable skill 的 sibling `../cs-onboard`，找不到再加载 `codestable:cs-onboard`。不要用项目
+`.codestable/tools/` 里的旧副本做版本判定或新版工具入口。运行：
 
 ```bash
 python3 <cs-onboard skill 目录>/tools/codestable-runtime-sync.py --root . --source-skill-dir <cs-onboard skill 目录> --check --json
@@ -40,15 +41,14 @@ python3 <cs-onboard skill 目录>/tools/codestable-runtime-sync.py --root . --so
 `managed-paths-dirty`、`not-onboarded` 或 `onboard-incomplete` 停用户；managed paths 有未提交
 改动时不自动覆盖。
 
-常用 runtime capability：`base`、`workflow-next`、`worktree-gate`、`goal-gates`。可用
-`python3 .codestable/tools/codestable-doctor.py --root . --json` 查看项目副本的
-`tooling.runtime.capabilities`；`workflow-next` 对应 `codestable-workflow-next.py`。
+常用 runtime capability：`base`、`workflow-next`、`goal-gates`。可用
+`python3 <cs-onboard skill 目录>/tools/codestable-doctor.py --root . --json` 查看
+`tooling.runtime.capabilities`；`repo_paths` 是项目资产，`skill_tool_paths` 是全局工具资产。
 
 ## 按需规则索引
 
 - 目录、frontmatter、checklist、roadmap ↔ feature：`.codestable/reference/shared-conventions.md`
-- 代码编辑、执行 worktree、commit、finish、context packet：
-  `.codestable/reference/worktree-conventions.md`
+- context packet、commit planning 和 backlog 工具：`.codestable/reference/tools-context.md`
 - Task agent 选择、Task agent 生命周期、Goal driver 派发：
   `.codestable/reference/agent-conventions.md`
 - owner approval 报告：`.codestable/reference/approval-conventions.md`
