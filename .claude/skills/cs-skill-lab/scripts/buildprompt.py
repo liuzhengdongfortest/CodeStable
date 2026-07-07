@@ -123,6 +123,8 @@ def build_docs_prompt(fixture: Fixture, variant_text: str) -> str:
     ]
     if task.get("audience"):
         parts += [f"\n受众：{task['audience']}"]
+    if task.get("diff"):   # 被文档化的材料（配置/API/代码/清单）——效度铁律 3
+        parts += ["\n## 待文档化的材料（依此写文档，不要臆造）", "```", task["diff"].strip(), "```"]
     parts += [
         "\n## 输出要求",
         "按该 skill 的文档契约产出文档，并逐条列出你**覆盖到的关键要素**（`- 要素：…`）："

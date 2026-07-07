@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build CS Skill"
+  short_description: "Author and refactor CodeStable skills with testable contracts."
+  default_prompt: "Use build-cs-skill to design or refactor a CodeStable skill."
