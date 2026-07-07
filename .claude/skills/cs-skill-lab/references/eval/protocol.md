@@ -2,6 +2,16 @@
 
 对某个 cs skill 跑「fixtures × models × harnesses」评测，产出带 tag 的 measured 分数与证据。评测执行引擎在 `scripts/`，被测 SKILL.md 以快照文本注入 prompt（隔离宿主已装版本）。
 
+## 评测效度（validity）：三条铁律（campaign 血泪教训）
+
+要测的是「skill 在其**设计环境**下的真实能力」，不是「skill 在残缺环境下的反应」。一轮真实模型 campaign 里，每个看似的「模型/skill gap」核查后都是**评测缺陷**：
+
+1. **复现 onboard 运行环境**：cs skills 为已 onboard 的 `.codestable/` 仓库设计；裸输入下弱模型会（正确地）拒绝执行 → 假 gap。用 `inject_context: true` 补齐 attention/来源 spec/git（cs-code-review haiku bare 0.31 → 补上下文 0.92）。
+2. **散文 answer 用语义 oracle**：token 重叠对「`>=` 改成 `>`」「删掉早返回守卫」这类符号/散文 answer 会误判漏检（cs-refactor 两模型满分被打成 0.62/0.75）。用 `recall_judge`（judge 语义判定）+ `planted_defect`（机械兜底）。
+3. **fixture 必须内嵌 subject matter**：转换/文档型 skill 需要被操作的对象。给 cs-docs「写配置文档」却不给配置，模型会（正确地）要材料而非捏造（sonnet 0.75）。review 需要 diff、docs 需要 code/config/API、design/plan 可只从需求推导。
+
+核查纪律：**分模型看**（合计数掩盖 haiku↔sonnet 差异）、**手工读原始输出**（token 数字会骗人）、**k=1 有 variance**（同一 fixture 会抖，发布级结论 k≥5）。
+
 ## 何时进入
 
 - 已有 `experiments/{skill}-{NNN}/fixtures/`，但缺 `artifacts/analysis/*-results.json`。
@@ -20,7 +30,7 @@
   "model_list": ["claude-opus-4-8", "claude-sonnet-4-6"],
   "k": 5,
   "harnesses": ["claude-headless"],
-  "scorers": ["planted_defect", "llm_judge"],
+  "scorers": ["planted_defect", "recall_judge"],
   "fixture_classes": ["planted-defect", "golden"],
   "budget_usd": 50.0,
   "judge_model": "claude-sonnet-4-6"
@@ -35,10 +45,10 @@
 
 `fixtures/<class>/<id>.json`，字段 `id / answerType / answer / task`：
 
-- `answerType: findings-recall`：`answer` 是应被发现的缺陷列表；scorer=`planted_defect` 按 token 重叠判召回。
+- `answerType: findings-recall`：`answer` 是应被发现/覆盖的要点列表。**散文/符号 answer 必须配 `recall_judge`**（语义判定）；`planted_defect`（token）只对关键词型可靠、对 prose 会低估。
 - `answerType: dod-gate`：给 `checklist_path`，scorer=`dod_gate` 跑 checklist 命令判 pass/fail。
 - `answerType: dimensions-judge`：scorer=`llm_judge` 按 8 维 rubric 两轴打分。
-- `task`：`{kind: review|fix|audit, diff, spec}`；`kind` 决定 buildprompt 分派。
+- `task`：`{kind: review|fix|audit|design|docs, diff, spec}`；`kind` 决定 buildprompt 分派。**铁律 3**：转换/文档型 skill 的 `task` 必须内嵌被操作对象——review/fix/audit/docs 把代码/配置/API 放进 `diff`，design/plan 可只给 `spec` 需求。否则模型没东西可做，会（正确地）要材料 → 假 gap。
 
 每类 `n ≥ 8` 才有统计功效；否则结论标 `[underpowered]`。planted-defect 应含**关键词可检**与**需推理**两种缺陷，避免只测到关键词匹配。
 

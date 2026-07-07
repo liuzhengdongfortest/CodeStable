@@ -39,6 +39,7 @@ CodeStable 原有 `tests/test_skill_*` 只验证 skill **写得对不对**（路
 - 生产失败经 `cs-feedback/feedback_to_fixture.py` 转 regression fixture，闭环回评测。
 - cs-skill-lab 自身可被同一闭环评测优化（自指）。
 - 真实多模型运行需 API/CLI 鉴权并产生成本，受 `--dry-run` + `budget_usd` 护栏约束。
+- **评测效度是头等风险**（首轮真实 campaign 教训）：必须复现 skill 的设计运行环境（`inject_context` 补 onboard 上下文）、用语义 oracle（`recall_judge`）判散文 answer、fixture 内嵌被操作的 subject matter；否则测到的是「skill 在残缺环境下的反应」而非真实能力。核查须分模型看 + 手工读原始输出 + 认 k=1 variance。细则见 `references/eval/protocol.md` 效度三铁律。
 
 ## Rejected alternatives
 
