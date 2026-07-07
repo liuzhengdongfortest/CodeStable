@@ -62,7 +62,7 @@ def samples_for(exp_dir: Path, variant: str, n: int) -> list[float]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="cs-skill-lab 回归电池")
+    p = argparse.ArgumentParser(description="eval-cs-skill 回归电池")
     p.add_argument("--experiment", required=True)
     p.add_argument("--n", type=int, default=5)
     p.add_argument("--candidate", default="baseline", help="候选 variant 名")
@@ -75,14 +75,14 @@ def main(argv: list[str] | None = None) -> int:
     cand = samples_for(exp_dir, args.candidate, args.n)
     if args.record_baseline or not base_path.is_file():
         write_json(base_path, {"variant": args.candidate, "n": args.n, "samples": cand})
-        print(f"[cs-skill-lab] 已记录 baseline（{args.candidate}, n={args.n}, mean={mean(cand) if cand else 0:.4f}）")
+        print(f"[eval-cs-skill] 已记录 baseline（{args.candidate}, n={args.n}, mean={mean(cand) if cand else 0:.4f}）")
         return 0
 
     base = read_json(base_path).get("samples", [])
     v = verdict(base, cand)
     bm = mean(base) if base else 0.0
     cm = mean(cand) if cand else 0.0
-    print(f"[cs-skill-lab] 回归判定: {v}（baseline mean={bm:.4f} → candidate mean={cm:.4f}, n={args.n}）")
+    print(f"[eval-cs-skill] 回归判定: {v}（baseline mean={bm:.4f} → candidate mean={cm:.4f}, n={args.n}）")
     return 3 if v == "regressed" else 0
 
 

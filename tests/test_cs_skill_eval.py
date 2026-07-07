@@ -1,4 +1,4 @@
-"""cs-skill-lab eval 层单测：fixtures / scorers / metrics / runner 端到端 / 认知诚实 tag。"""
+"""eval-cs-skill eval 层单测：fixtures / scorers / metrics / runner 端到端 / 认知诚实 tag。"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / ".claude/skills/cs-skill-lab/scripts"
+SCRIPTS = ROOT / ".claude/skills/eval-cs-skill/scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import fixtures as fx_mod            # noqa: E402

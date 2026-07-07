@@ -61,12 +61,12 @@ def run_next() -> int:
             item["status"] = "done" if rc == 0 else f"failed:{rc}"
             _save(items)
             return rc
-    print("[cs-skill-lab] 队列空")
+    print("[eval-cs-skill] 队列空")
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="cs-skill-lab 实验队列（自治路径 A）")
+    p = argparse.ArgumentParser(description="eval-cs-skill 实验队列（自治路径 A）")
     p.add_argument("--experiment")
     p.add_argument("--stage", default="eval", choices=["eval", "optimize"])
     p.add_argument("--run-next", action="store_true")
@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
         return run_next()
     if args.experiment:
         enqueue(args.experiment, args.stage)
-        print(f"[cs-skill-lab] 入队 {args.stage} {args.experiment}")
+        print(f"[eval-cs-skill] 入队 {args.stage} {args.experiment}")
         return 0
     p.error("需 --experiment / --run-next / --list 之一")
 

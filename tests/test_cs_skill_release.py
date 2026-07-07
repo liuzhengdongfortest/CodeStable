@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / ".claude/skills/cs-skill-lab/scripts"
+SCRIPTS = ROOT / ".claude/skills/eval-cs-skill/scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import adapt_extracted_skill as adapt_mod   # noqa: E402
@@ -37,7 +37,7 @@ def _mk_repo(tmp_path):
 
 def test_bump_version_syncs_all(tmp_path):
     repo = _mk_repo(tmp_path)
-    bump_mod.bump(repo, "1.1.0", "cs-skill-lab release")
+    bump_mod.bump(repo, "1.1.0", "eval-cs-skill release")
     assert (repo / "VERSION").read_text().strip() == "1.1.0"
     assert json.loads((repo / "plugins/codestable/.codex-plugin/plugin.json").read_text())["version"] == "1.1.0"
     assert json.loads((repo / ".claude-plugin/marketplace.json").read_text())["plugins"][0]["version"] == "1.1.0"

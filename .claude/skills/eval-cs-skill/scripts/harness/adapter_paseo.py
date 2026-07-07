@@ -4,7 +4,7 @@
 Paseo 主要通过 MCP 工具（create_agent/send_agent_prompt）驱动，不是纯 CLI。
 本适配器提供两条路径：
 - 若本机有 `paseo` CLI：shell 调用（best-effort，需对齐真实 CLI 契约）。
-- 否则抛 HarnessError，指向 agent 编排路径：由 cs-skill-lab 的 autonomy 协议（references/autonomy/protocol.md）
+- 否则抛 HarnessError，指向 agent 编排路径：由 eval-cs-skill 的 autonomy 协议（references/autonomy/protocol.md）
   用 Paseo MCP 逐 cell 起 agent，属「路径 B 宿主」，不在纯 Python runner 内联执行。
 """
 

@@ -1,6 +1,6 @@
 # Results — cs-code-review-robustness-001
 
-真实模型评测中发现并纠正了一个**评测效度硬伤**。经 cs-skill-lab 框架，经 sub2global 网关（api harness）。
+真实模型评测中发现并纠正了一个**评测效度硬伤**。经 eval-cs-skill 框架，经 sub2global 网关（api harness）。
 
 ## 发现（含纠错）
 

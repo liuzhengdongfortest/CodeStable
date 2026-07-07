@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cs-skill-lab eval runner：跨 variant×harness×model×k 执行被测 skill，打分，写 results.json。
+"""eval-cs-skill eval runner：跨 variant×harness×model×k 执行被测 skill，打分，写 results.json。
 
 用法：
   python3 runner.py --experiment experiments/cs-code-review-001 [--harness mock] \
@@ -142,7 +142,7 @@ def write_results_md(exp_dir: Path, config: ExperimentConfig, agg: dict, cells: 
         f"- skill_under_test: `{config.skill_under_test}`",
         f"- cells: {len(cells)}（variant×harness×model）× k={k}",
         f"- evidence_pointer: `{pointer}`",
-        "- generated_by: cs-skill-lab/scripts/runner.py", "",
+        "- generated_by: eval-cs-skill/scripts/runner.py", "",
         "## Aggregate（每个数值带认知诚实 tag）", "",
         "| variant | 指标 | 值 |", "|---|---|---|",
     ]
@@ -156,7 +156,7 @@ def write_results_md(exp_dir: Path, config: ExperimentConfig, agg: dict, cells: 
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="cs-skill-lab eval runner")
+    p = argparse.ArgumentParser(description="eval-cs-skill eval runner")
     p.add_argument("--experiment", required=True)
     p.add_argument("--harness")
     p.add_argument("--model")
@@ -174,22 +174,22 @@ def main(argv: list[str] | None = None) -> int:
     scorer_names = args.scorer or config.scorers
     fixtures = load_fixtures(exp_dir, config.fixture_classes)
     if not fixtures:
-        print(f"[cs-skill-lab] 无 fixtures：{exp_dir}/fixtures/{config.fixture_classes}", file=sys.stderr)
+        print(f"[eval-cs-skill] 无 fixtures：{exp_dir}/fixtures/{config.fixture_classes}", file=sys.stderr)
         return 2
     cells = build_matrix(config, args)
 
     for issue in judge_issues(config):
-        print(f"[cs-skill-lab][judge] {issue}", file=sys.stderr)
+        print(f"[eval-cs-skill][judge] {issue}", file=sys.stderr)
 
     est = dry_run(config, fixtures, cells, k, exp_dir)
-    print(f"[cs-skill-lab] 预估成本 ${est['est_total_usd']} / 预算 ${est['budget_usd']} "
+    print(f"[eval-cs-skill] 预估成本 ${est['est_total_usd']} / 预算 ${est['budget_usd']} "
           f"(cells={est['cells']} × fixtures={est['fixtures']} × k={k})")
     if args.dry_run:
         if args.out:
             write_json(Path(args.out), est)
         return 0
     if est["est_total_usd"] > config.budget_usd and not args.confirm:
-        print(f"[cs-skill-lab] 阻断：预估 ${est['est_total_usd']} 超预算 ${config.budget_usd}；加 --confirm 放行。", file=sys.stderr)
+        print(f"[eval-cs-skill] 阻断：预估 ${est['est_total_usd']} 超预算 ${config.budget_usd}；加 --confirm 放行。", file=sys.stderr)
         return 3
 
     results = run(config, fixtures, cells, scorer_names, k, exp_dir)
@@ -198,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "experiment": config.name,
         "skill_under_test": config.skill_under_test,
-        "generated_by": "cs-skill-lab/scripts/runner.py",
+        "generated_by": "eval-cs-skill/scripts/runner.py",
         "k": k, "scorers": scorer_names,
         "cells": [f"{v}|{h}|{m}" for v, h, m in cells],
         "aggregate": agg,
@@ -208,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.out:  # 默认路径运行才写 results.md 到实验目录（测试传 --out 不 clobber）
         write_results_md(exp_dir, config, agg, cells, k, out_path)
 
-    print(f"[cs-skill-lab] 完成 {len(results)} runs → {out_path}")
+    print(f"[eval-cs-skill] 完成 {len(results)} runs → {out_path}")
     for variant, a in agg.items():
         rec = a["scores"].get("recall")
         if rec:

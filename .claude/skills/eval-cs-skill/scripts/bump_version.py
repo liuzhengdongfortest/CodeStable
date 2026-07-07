@@ -74,7 +74,7 @@ def bump(root: Path, version: str, note: str) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="同步 CodeStable 版本")
     p.add_argument("--to", required=True, help="目标 semver，如 1.1.0")
-    p.add_argument("--note", default="cs-skill-lab release: evaluated + optimized skill update.")
+    p.add_argument("--note", default="eval-cs-skill release: evaluated + optimized skill update.")
     p.add_argument("--root")
     args = p.parse_args(argv)
     if not SEMVER.match(args.to):
@@ -82,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     root = Path(args.root).resolve() if args.root else repo_root()
     changed = bump(root, args.to, args.note)
-    print(f"[cs-skill-lab] 版本 → {args.to}；已更新: {', '.join(changed)}")
+    print(f"[eval-cs-skill] 版本 → {args.to}；已更新: {', '.join(changed)}")
     return 0
 
 

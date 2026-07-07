@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         target_dir = repo_root() / "plugins" / "codestable" / "skills" / args.target
     actions = adapt(draft, target_dir)
-    print(f"[cs-skill-lab] 适配 {draft} → {target_dir}")
+    print(f"[eval-cs-skill] 适配 {draft} → {target_dir}")
     for a in actions:
         print(f"  - {a}")
     return 0

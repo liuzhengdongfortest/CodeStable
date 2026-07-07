@@ -76,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     exp_dir = Path(args.experiment).resolve()
     result = calibrate(exp_dir)
     write_json(exp_dir / "artifacts" / "analysis" / "judge-calibration.json", result)
-    print(f"[cs-skill-lab] judge 校准: acc={result['pairwise_accuracy']} verdict={result['verdict']} "
+    print(f"[eval-cs-skill] judge 校准: acc={result['pairwise_accuracy']} verdict={result['verdict']} "
           f"(judge={result['judge_model']}, n={result['n']})")
     return 0
 

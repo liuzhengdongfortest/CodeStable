@@ -148,7 +148,7 @@ def write_iteration(exp_dir: Path, n: int, variant: str, vi: dict, vm: dict,
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="cs-skill-lab optimize（OCA 测量+记账+收敛）")
+    p = argparse.ArgumentParser(description="eval-cs-skill optimize（OCA 测量+记账+收敛）")
     p.add_argument("--experiment", required=True)
     p.add_argument("--max-iterations", type=int, default=3)
     p.add_argument("--weights", help="V_instance 权重 JSON，如 '{\"recall\":1.0}'")
@@ -182,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
 
     write_json(exp_dir / "artifacts" / "analysis" / f"optimize-{config.name}.json", {"history": history})
     conv = history[-1]["converged"]
-    print(f"[cs-skill-lab] optimize 完成 {len(history)} 轮；收敛={conv}")
+    print(f"[eval-cs-skill] optimize 完成 {len(history)} 轮；收敛={conv}")
     return 0
 
 

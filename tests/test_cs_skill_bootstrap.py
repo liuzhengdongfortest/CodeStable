@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / ".claude/skills/cs-skill-lab/scripts"
+SCRIPTS = ROOT / ".claude/skills/eval-cs-skill/scripts"
 FEEDBACK_SCRIPTS = ROOT / "plugins/codestable/skills/cs-feedback/scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(FEEDBACK_SCRIPTS))

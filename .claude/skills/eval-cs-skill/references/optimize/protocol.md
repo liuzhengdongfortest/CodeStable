@@ -36,7 +36,7 @@
 ## 收敛判据（三模式，借 BAIME convergence-criteria）
 
 - **standard**：V_instance ≥ 0.80 **且** V_meta ≥ 0.80 → 收敛。
-- **meta-focused**（方法本身是目标，如自指优化 cs-skill-lab）：V_meta ≥ 0.80 且 V_instance ≥ 0.55。
+- **meta-focused**（方法本身是目标，如自指优化 eval-cs-skill）：V_meta ≥ 0.80 且 V_instance ≥ 0.55。
 - **practical**：预算耗尽或连续 2 轮无严格改进 → 停并如实记「未达标即停」，不得谎报收敛。
 
 不要 force convergence；baseline V_meta 常在 0.15–0.30，正常。

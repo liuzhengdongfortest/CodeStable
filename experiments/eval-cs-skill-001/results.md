@@ -1,9 +1,9 @@
-# Results — cs-skill-lab-001
+# Results — eval-cs-skill-001
 
-- skill_under_test: `cs-skill-lab`
+- skill_under_test: `eval-cs-skill`
 - cells: 1（variant×harness×model）× k=1
-- evidence_pointer: `artifacts/analysis/exp-cs-skill-lab-001-results.json`
-- generated_by: cs-skill-lab/scripts/runner.py
+- evidence_pointer: `artifacts/analysis/exp-eval-cs-skill-001-results.json`
+- generated_by: eval-cs-skill/scripts/runner.py
 
 ## Aggregate（每个数值带认知诚实 tag）
 
@@ -12,7 +12,7 @@
 | baseline | recall | 1.0 [measured: mean over n=3] |
 | baseline | recall_judge | 1.0 [soft: mean over n=3] |
 | baseline | cost_usd | 0.0 [soft: mean n=3] |
-| baseline | input_tokens | 1411 [soft: mean n=3] |
+| baseline | input_tokens | 1412 [soft: mean n=3] |
 | baseline | output_tokens | 68 [soft: mean n=3] |
 | baseline | turns | 1 [measured: mean n=3] |
 | baseline | wall_ms | 0 [measured: mean n=3] |

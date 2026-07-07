@@ -25,11 +25,11 @@ python3 {skill_dir}/scripts/enqueue_experiment.py --run-next
 启用方式（用户自行决定）：
 1. `backlog` 项目就绪（见 BAIME `backlog-setup`）。
 2. 把每个实验封成 `kind:basic` 任务，DoD = `runner.py`/`optimize.py` 命令。
-3. 用户自己 `/loop-backlog` 消费；cs-skill-lab 不 own daemon/checkout/merge。
+3. 用户自己 `/loop-backlog` 消费；eval-cs-skill 不 own daemon/checkout/merge。
 
-## 自指（cs-skill-lab 评自己）
+## 自指（eval-cs-skill 评自己）
 
-`experiments/cs-skill-lab-001/` 用**同一** runner/scorer 指向 `cs-skill-lab/SKILL.md` 自身（把它当被测文本注入，不调用其工具→无递归）。收敛用 meta-focused（V_meta≥0.80 且 V_instance≥0.55）。这让「造 skill 的 skill」也进入同一评测闭环，可被优化——包括优化它自己。
+`experiments/eval-cs-skill-001/` 用**同一** runner/scorer 指向 `eval-cs-skill/SKILL.md` 自身（把它当被测文本注入，不调用其工具→无递归）。收敛用 meta-focused（V_meta≥0.80 且 V_instance≥0.55）。这让「造 skill 的 skill」也进入同一评测闭环，可被优化——包括优化它自己。
 
 ## 边界
 

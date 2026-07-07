@@ -1,16 +1,16 @@
 ---
-name: cs-skill-lab
+name: eval-cs-skill
 description: CodeStable skill 工程化闭环入口。触发：写/改一个 cs skill、评测 skill 效果、跨 model/agent 量化、优化 skill 提示词、把收敛结论固化回 skill。内部推进 author、eval、optimize、release。
 argument-hint: "[--stage author|eval|optimize|release] [--experiment <dir>] <skill-or-request>"
 ---
 
-# cs-skill-lab
+# eval-cs-skill
 
 ## 启动必读
 
 动作前先跑 CodeStable preflight：读 `.codestable/attention.md`（缺失先 `cs-onboard`）；不要用 `AGENTS.md`/`CLAUDE.md` 等外部入口代替它；细则见 `.codestable/reference/execution-conventions.md`。
 
-`cs-skill-lab` 是「造 skill 的 skill」：把 CodeStable 各 skill 的 **编写 → 评测 → 优化 → 再评测** 做成一条可复现、跨 model/agent 的迭代闭环。它编排的对象是 **skill 自身的生命周期**，不是业务代码 feature。它**自指**——同一套 harness 也能评测并优化 `cs-skill-lab` 自己。
+`eval-cs-skill` 是「造 skill 的 skill」：把 CodeStable 各 skill 的 **编写 → 评测 → 优化 → 再评测** 做成一条可复现、跨 model/agent 的迭代闭环。它编排的对象是 **skill 自身的生命周期**，不是业务代码 feature。它**自指**——同一套 harness 也能评测并优化 `eval-cs-skill` 自己。
 
 评测执行引擎（runner / scorers / harness 适配器）由本 skill 自带于 `scripts/`；实验纪律、双层价值函数、收敛判据、知识回写复用 BAIME 引擎（`run-quantitative-experiment`、`methodology-bootstrapping`、`knowledge-extractor`）——以**文本判据**内联，运行时不跨插件读 BAIME 文件。
 

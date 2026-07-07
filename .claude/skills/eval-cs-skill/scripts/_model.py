@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""cs-skill-lab eval 核心数据模型与认知诚实标注。
+"""eval-cs-skill eval 核心数据模型与认知诚实标注。
 
-self-contained：cs-skill-lab 不 import 其他 skill 的 lib（CLAUDE.md skill 独立性）。
+self-contained：eval-cs-skill 不 import 其他 skill 的 lib（CLAUDE.md skill 独立性）。
 数值一律带 tag：measured（oracle/机械可验）/ soft（自评/估算）/ underpowered（k<5 或 n<8）。
 """
 

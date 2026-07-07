@@ -1,6 +1,6 @@
 {
-  "name": "cs-skill-lab-001",
-  "skill_under_test": "cs-skill-lab",
+  "name": "eval-cs-skill-001",
+  "skill_under_test": "eval-cs-skill",
   "variants": [
     "baseline"
   ],

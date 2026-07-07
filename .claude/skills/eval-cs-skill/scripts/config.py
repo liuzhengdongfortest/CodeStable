@@ -92,7 +92,7 @@ def resolve_variant_text(config: ExperimentConfig, variant: str, root: Path,
     """把 variant 名解析成 SKILL.md 快照文本。
 
     - "baseline" → 被测 skill 的 SKILL.md（快照读取，注入 prompt，不让 harness 读宿主已装版本）。
-      支持 shipped 插件（plugins/codestable/skills/）与项目级 dev skill（.claude/skills/，如 cs-skill-lab 自指）。
+      支持 shipped 插件（plugins/codestable/skills/）与项目级 dev skill（.claude/skills/，如 eval-cs-skill 自指）。
     - 其它 → optimize 产生的候选；优先 `<exp_dir>/variants/<variant>.md`，再退回 `<repo>/experiments/<name>/variants/<variant>.md`。
     """
     baseline = _skill_md(root, config.skill_under_test)

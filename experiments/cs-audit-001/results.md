@@ -3,7 +3,7 @@
 - skill_under_test: `cs-audit`
 - cells: 1（variant×harness×model）× k=1
 - evidence_pointer: `artifacts/analysis/exp-cs-audit-001-results.json`
-- generated_by: cs-skill-lab/scripts/runner.py
+- generated_by: eval-cs-skill/scripts/runner.py
 
 ## Aggregate（每个数值带认知诚实 tag）
 
