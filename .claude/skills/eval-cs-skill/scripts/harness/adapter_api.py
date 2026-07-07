@@ -18,15 +18,26 @@ from pathlib import Path
 from .base import HarnessError, HarnessResult, register
 
 
-def _post(url: str, headers: dict, payload: dict, timeout_s: int) -> dict:
-    req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:
-        raise HarnessError(f"API HTTP {exc.code}: {exc.read()[:300]!r}") from exc
-    except urllib.error.URLError as exc:
-        raise HarnessError(f"API 网络错误: {exc}") from exc
+_RETRY_CODES = {429, 500, 502, 503, 504}  # 暂时性：限流/网关超时/上游不可用
+
+
+def _post(url: str, headers: dict, payload: dict, timeout_s: int, retries: int = 3) -> dict:
+    """带退避重试：消化间歇 504/超时（慢模型如 gpt-5.x 常触发 gateway 504）。"""
+    last: HarnessError | None = None
+    for attempt in range(retries):
+        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as exc:
+            last = HarnessError(f"API HTTP {exc.code}: {exc.read()[:300]!r}")
+            if exc.code not in _RETRY_CODES:  # 非暂时性（4xx 鉴权/请求错）不重试
+                raise last from exc
+        except urllib.error.URLError as exc:
+            last = HarnessError(f"API 网络错误: {exc}")
+        if attempt < retries - 1:
+            time.sleep(2 ** attempt)  # 退避 1/2/4s
+    raise last  # 重试耗尽
 
 
 class ApiHarness:

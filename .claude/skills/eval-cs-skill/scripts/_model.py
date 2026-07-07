@@ -99,6 +99,21 @@ class EvalResult:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "EvalResult":
+        """从 checkpoint jsonl 反序列化，供 runner resume round-trip。"""
+        return cls(
+            fixture_id=str(data["fixture_id"]),
+            variant=str(data["variant"]),
+            model=str(data["model"]),
+            harness=str(data["harness"]),
+            k_index=int(data["k_index"]),
+            scores=dict(data.get("scores", {})),
+            metrics=dict(data.get("metrics", {})),
+            status=str(data.get("status", "passed")),
+            evidence=list(data.get("evidence", [])),
+        )
+
 
 @dataclass
 class Verdict:

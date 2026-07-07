@@ -150,10 +150,42 @@ def build_audit_prompt(fixture: Fixture, variant_text: str) -> str:
     return "\n".join(parts)
 
 
+def build_routing_prompt(fixture: Fixture, variant_text: str) -> str:
+    """路由决策型：给仓库状态快照，要求 agent 按 skill 规则选下一步。
+
+    测的是「skill 文本能否让模型做出正确路由决策」——decision fixture 的执行引擎。
+    输出强制 JSON，交 routing_decision scorer 机械比对（measured）。
+    """
+    task = fixture.task or {}
+    state = task.get("state") or {}
+    intent = task.get("intent") or {}
+    state_lines = [f"- {k}: {v}" for k, v in state.items()]
+    parts = [
+        _INTRO,
+        "===== SKILL.md 开始 =====",
+        variant_text.strip(),
+        "===== SKILL.md 结束 =====\n",
+        "## 当前仓库状态（已从仓库事实恢复，权威）",
+        "\n".join(state_lines) if state_lines else "-（无既有产物）",
+    ]
+    if intent:
+        parts += ["\n## 本次调用意图", "\n".join(f"- {k}: {v}" for k, v in intent.items())]
+    if task.get("utterance"):
+        parts += ["\n## 用户原话", str(task["utterance"]).strip()]
+    parts += [
+        "\n## 输出要求",
+        "按该 skill 的路由规则，决定当前这一步该做什么。**只输出一个 JSON 对象，不要其他任何文本**：",
+        '{"result_type": "<RoutedTo|HumanCheckpoint|NeedsHuman|Completed|GoalHandoff|ChildDesignBatch>",'
+        ' "target": "<stage 名或 checkpoint reason；Completed/NeedsHuman 可为简述>", "reason": "<一句话依据>"}',
+    ]
+    return "\n".join(parts)
+
+
 _BUILDERS = {
     "review": build_review_prompt,
     "fix": build_fix_prompt,
     "audit": build_audit_prompt,
     "design": build_design_prompt,
     "docs": build_docs_prompt,
+    "routing": build_routing_prompt,
 }

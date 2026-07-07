@@ -16,6 +16,7 @@ import sys
 
 sys.dont_write_bytecode = True  # 不污染 plugin 包（check-plugin-package 禁 __pycache__）
 
+import json
 import tempfile
 from pathlib import Path
 from statistics import mean
@@ -41,6 +42,35 @@ def _agg_tag(tags: set[str]) -> str:
     if SOFT in tags:
         return SOFT
     return UNDERPOWERED
+
+
+def _cell_key(variant: str, harness: str, model: str, fixture_id: str, k_index: int) -> str:
+    """一个执行单元的唯一标识，用于 resume 去重。"""
+    return f"{variant}|{harness}|{model}|{fixture_id}|{k_index}"
+
+
+def _load_checkpoint(path: Path) -> tuple[list[EvalResult], set[str]]:
+    """读已完成 cell 的 checkpoint jsonl → (已完成结果, 已完成 cell key 集合)。"""
+    done: list[EvalResult] = []
+    keys: set[str] = set()
+    if not path.exists():
+        return done, keys
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        er = EvalResult.from_dict(json.loads(line))
+        done.append(er)
+        keys.add(_cell_key(er.variant, er.harness, er.model, er.fixture_id, er.k_index))
+    return done, keys
+
+
+def _append_checkpoint(path: Path, er: EvalResult) -> None:
+    """单个 cell 完成即 append 落盘 + flush，保证被 kill 也不丢已完成结果。"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(er.to_dict(), ensure_ascii=False) + "\n")
+        f.flush()
 
 
 def _models_for(config: ExperimentConfig, override: str | None, harness: str) -> list[str]:
@@ -77,8 +107,10 @@ def dry_run(config: ExperimentConfig, fixtures, cells, k: int, exp_dir: Path | N
             "fixtures": len(fixtures), "cells": len(cells), "k": k}
 
 
-def run(config: ExperimentConfig, fixtures, cells, scorer_names, k: int, exp_dir: Path | None = None) -> list[EvalResult]:
-    results: list[EvalResult] = []
+def run(config: ExperimentConfig, fixtures, cells, scorer_names, k: int, exp_dir: Path | None = None,
+        checkpoint_path: Path | None = None) -> list[EvalResult]:
+    done, done_keys = _load_checkpoint(checkpoint_path) if checkpoint_path else ([], set())
+    results: list[EvalResult] = list(done)
     root = repo_root()
     for variant, h, model in cells:
         text = resolve_variant_text(config, variant, root, exp_dir)
@@ -86,14 +118,26 @@ def run(config: ExperimentConfig, fixtures, cells, scorer_names, k: int, exp_dir
         for fx in fixtures:
             prompt = build_prompt(fx, text, config.inject_context)
             for ki in range(k):
-                with tempfile.TemporaryDirectory(prefix="cs-eval-") as tmp:
-                    hr = harness.invoke(prompt, model, Path(tmp), timeout_s=600)
+                if _cell_key(variant, h, model, fx.id, ki) in done_keys:
+                    continue  # resume：跳过已 checkpoint 的 cell
                 er = EvalResult(fixture_id=fx.id, variant=variant, model=model, harness=h, k_index=ki)
+                try:
+                    with tempfile.TemporaryDirectory(prefix="cs-eval-") as tmp:
+                        hr = harness.invoke(prompt, model, Path(tmp), timeout_s=600)
+                except Exception as exc:  # 单 cell 失败（504/网络等）不毁整段
+                    er.status = "error"
+                    er.evidence.append({"error": f"{type(exc).__name__}: {str(exc)[:200]}"})
+                    results.append(er)
+                    if checkpoint_path:
+                        _append_checkpoint(checkpoint_path, er)
+                    continue
                 er.metrics = metrics.capture(hr, prompt)
                 if hr.error:
                     er.status = "error"
                     er.evidence.append({"error": hr.error})
                     results.append(er)
+                    if checkpoint_path:
+                        _append_checkpoint(checkpoint_path, er)
                     continue
                 # 打分：只跑与 fixture.answer_type 匹配的 scorer
                 statuses = []
@@ -106,6 +150,8 @@ def run(config: ExperimentConfig, fixtures, cells, scorer_names, k: int, exp_dir
                     statuses.append(sc.get("status", "passed"))
                 er.status = "failed" if "failed" in statuses else "passed"
                 results.append(er)
+                if checkpoint_path:
+                    _append_checkpoint(checkpoint_path, er)
     return results
 
 
@@ -166,6 +212,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--confirm", action="store_true", help="确认超预算仍执行")
     p.add_argument("--out")
+    p.add_argument("--fresh", action="store_true", help="忽略并删除已有 checkpoint，从头跑")
+    p.add_argument("--offset", type=int, default=0, help="跳过前 M 个 fixture（分段用）")
+    p.add_argument("--limit", type=int, help="只跑 offset 起 N 个 fixture（分段用，每段配独立 --out）")
     args = p.parse_args(argv)
 
     exp_dir = Path(args.experiment).resolve()
@@ -173,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
     k = args.k if args.k is not None else config.k
     scorer_names = args.scorer or config.scorers
     fixtures = load_fixtures(exp_dir, config.fixture_classes)
+    if args.offset or args.limit:
+        fixtures = fixtures[args.offset: (args.offset + args.limit) if args.limit else None]
     if not fixtures:
         print(f"[eval-cs-skill] 无 fixtures：{exp_dir}/fixtures/{config.fixture_classes}", file=sys.stderr)
         return 2
@@ -192,9 +243,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[eval-cs-skill] 阻断：预估 ${est['est_total_usd']} 超预算 ${config.budget_usd}；加 --confirm 放行。", file=sys.stderr)
         return 3
 
-    results = run(config, fixtures, cells, scorer_names, k, exp_dir)
-    agg = aggregate(config, results)
     out_path = Path(args.out) if args.out else exp_dir / "artifacts" / "analysis" / f"exp-{config.name}-results.json"
+    checkpoint_path = out_path.parent / (out_path.name + ".partial.jsonl")
+    if args.fresh:
+        checkpoint_path.unlink(missing_ok=True)
+    _, resumed_keys = _load_checkpoint(checkpoint_path)
+    if resumed_keys:
+        print(f"[eval-cs-skill] resume：跳过 {len(resumed_keys)} 个已完成 cell（checkpoint={checkpoint_path.name}）")
+    results = run(config, fixtures, cells, scorer_names, k, exp_dir, checkpoint_path)
+    agg = aggregate(config, results)
     payload = {
         "experiment": config.name,
         "skill_under_test": config.skill_under_test,
@@ -205,6 +262,7 @@ def main(argv: list[str] | None = None) -> int:
         "runs": [r.to_dict() for r in results],
     }
     write_json(out_path, payload)
+    checkpoint_path.unlink(missing_ok=True)  # final 已落盘，清理中间 checkpoint
     if not args.out:  # 默认路径运行才写 results.md 到实验目录（测试传 --out 不 clobber）
         write_results_md(exp_dir, config, agg, cells, k, out_path)
 

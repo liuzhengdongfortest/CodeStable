@@ -57,13 +57,16 @@ def load_config(experiment_dir: Path) -> ExperimentConfig:
 
 
 def judge_issues(config: "ExperimentConfig") -> list[str]:
-    """LLM-judge oracle 独立性校验：judge_model 必须独立于被测 model_list（混杂控制）。"""
+    """judge oracle 独立性校验：judge_model 必须独立于被测 model_list（混杂控制）。
+    覆盖所有依赖 judge_model 的 scorer（llm_judge / recall_judge）。"""
     issues: list[str] = []
-    if "llm_judge" not in config.scorers:
+    used = {"llm_judge", "recall_judge"} & set(config.scorers)
+    if not used:
         return issues
+    label = "/".join(sorted(used))
     jm = (config.judge_model or "").strip()
     if not jm:
-        issues.append("llm_judge 已启用但未设 judge_model：离线走 mock 启发式(soft)；真实运行前须设独立 judge_model")
+        issues.append(f"{label} 已启用但未设 judge_model：离线走 token/mock 回退(soft)；真实运行前须设独立 judge_model")
     elif jm in set(config.model_list):
         issues.append(f"judge_model={jm} 在 model_list 中（同源偏差）：oracle 须独立于被测 model")
     return issues

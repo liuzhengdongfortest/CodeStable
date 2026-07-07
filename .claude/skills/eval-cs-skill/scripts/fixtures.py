@@ -32,12 +32,16 @@ def validate_fixture_dict(data: dict) -> list[str]:
     if "id" not in data:
         problems.append("缺 id")
     at = data.get("answerType")
-    if at not in {"findings-recall", "dod-gate", "dimensions-judge"}:
+    if at not in {"findings-recall", "dod-gate", "dimensions-judge", "routing-decision"}:
         problems.append(f"answerType 非法: {at!r}")
     if at == "findings-recall" and not data.get("answer"):
         problems.append("findings-recall 必须有非空 answer")
     if at == "dod-gate" and not data.get("checklist_path"):
         problems.append("dod-gate 必须有 checklist_path")
+    if at == "routing-decision":
+        expect = data.get("expect")
+        if not isinstance(expect, dict) or "result_type" not in expect:
+            problems.append("routing-decision 必须有 expect.result_type（机械比对的 oracle）")
     if "task" not in data:
         problems.append("缺 task")
     return problems
