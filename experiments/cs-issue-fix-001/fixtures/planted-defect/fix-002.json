@@ -1,0 +1,10 @@
+{
+  "id": "fix-002",
+  "answerType": "findings-recall",
+  "answer": ["根因: SQL 用 format() 拼接用户输入导致 SELECT 注入"],
+  "task": {
+    "kind": "fix",
+    "spec": "搜索接口返回异常数据，疑似注入",
+    "diff": "def search(term):\n    q = \"SELECT * FROM items WHERE name = '{}'\".format(term)\n    return db.run(q)"
+  }
+}

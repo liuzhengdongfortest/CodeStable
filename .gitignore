@@ -1,5 +1,11 @@
-/.claude/
+/.claude/*
+!/.claude/skills/
 /dist/
 __pycache__
 *.pyc
 .DS_Store
+# cs-skill-lab eval：生成物不入库（可复现）；hypotheses/config/fixtures/calibration/results.md 入库
+experiments/*/artifacts/
+experiments/*/iteration-*.md
+# 自治队列是运行时状态
+experiments/.queue.jsonl

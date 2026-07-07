@@ -1,0 +1,10 @@
+{
+  "id": "doc-003",
+  "answerType": "findings-recall",
+  "answer": [
+    "事件类型与载荷",
+    "验签步骤",
+    "重试、幂等与本地调试"
+  ],
+  "task": {"kind": "docs", "spec": "写 webhook 集成指南", "audience": "开发者"}
+}

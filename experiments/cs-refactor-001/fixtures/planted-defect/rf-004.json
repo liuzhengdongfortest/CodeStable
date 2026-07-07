@@ -1,0 +1,11 @@
+{
+  "id": "rf-004",
+  "answerType": "findings-recall",
+  "difficulty": "reasoning",
+  "answer": ["is None 改成 not x，把 0 和空串也当成缺失"],
+  "task": {
+    "kind": "review",
+    "spec": "自称等价重构，须保持行为不变",
+    "diff": "-    if value is None:\n+    if not value:\n         raise Missing()"
+  }
+}

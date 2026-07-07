@@ -1,0 +1,10 @@
+{
+  "id": "doc-004",
+  "answerType": "findings-recall",
+  "answer": [
+    "破坏性变更清单",
+    "逐步迁移与回滚",
+    "弃用时间表"
+  ],
+  "task": {"kind": "docs", "spec": "写 v1→v2 迁移指南", "audience": "存量用户"}
+}

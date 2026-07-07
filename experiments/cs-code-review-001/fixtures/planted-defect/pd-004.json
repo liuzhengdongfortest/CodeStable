@@ -1,0 +1,11 @@
+{
+  "id": "pd-004",
+  "answerType": "findings-recall",
+  "severity": "blocking",
+  "answer": ["command injection: os.system 拼接 filename"],
+  "task": {
+    "kind": "review",
+    "spec": "删除文件",
+    "diff": "+def remove(filename):\n+    os.system(\"rm -rf \" + filename)\n+    return True"
+  }
+}

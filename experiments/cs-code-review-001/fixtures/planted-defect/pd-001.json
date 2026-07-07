@@ -1,0 +1,11 @@
+{
+  "id": "pd-001",
+  "answerType": "findings-recall",
+  "severity": "blocking",
+  "answer": ["SQL injection: user_id 拼接进 SELECT query"],
+  "task": {
+    "kind": "review",
+    "spec": "查询用户信息",
+    "diff": "+def get_user(user_id):\n+    query = \"SELECT * FROM users WHERE id = \" + user_id\n+    return db.execute(query)"
+  }
+}

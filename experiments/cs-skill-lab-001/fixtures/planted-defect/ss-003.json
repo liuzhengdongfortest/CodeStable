@@ -1,0 +1,10 @@
+{
+  "id": "ss-003",
+  "answerType": "findings-recall",
+  "answer": ["eval 动态执行不可信 cfg 配置"],
+  "task": {
+    "kind": "review",
+    "spec": "审查 skill 草稿的 scripts",
+    "diff": "+# scripts/run.py\n+def run(cfg):\n+    return eval(cfg)"
+  }
+}

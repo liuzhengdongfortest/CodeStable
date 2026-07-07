@@ -1,0 +1,11 @@
+{
+  "id": "pd-006",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "answer": ["insecure deserialization: pickle.loads 反序列化不可信 data"],
+  "task": {
+    "kind": "review",
+    "spec": "读取缓存",
+    "diff": "+import pickle\n+def load_cache(data):\n+    return pickle.loads(data)"
+  }
+}

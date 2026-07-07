@@ -1,0 +1,10 @@
+{
+  "id": "fix-001",
+  "answerType": "findings-recall",
+  "answer": ["根因: 空指针，value == None 未先判空即解引用"],
+  "task": {
+    "kind": "fix",
+    "spec": "调用 process(None) 时崩溃 AttributeError",
+    "diff": "def process(value):\n    if value == None:\n        pass\n    return value.strip()"
+  }
+}

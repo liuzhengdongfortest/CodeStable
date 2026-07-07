@@ -1,0 +1,150 @@
+---
+name: cs-skill-lab
+description: CodeStable skill 工程化闭环入口。触发：写/改一个 cs skill、评测 skill 效果、跨 model/agent 量化、优化 skill 提示词、把收敛结论固化回 skill。内部推进 author、eval、optimize、release。
+argument-hint: "[--stage author|eval|optimize|release] [--experiment <dir>] <skill-or-request>"
+---
+
+# cs-skill-lab
+
+## 启动必读
+
+动作前先跑 CodeStable preflight：读 `.codestable/attention.md`（缺失先 `cs-onboard`）；不要用 `AGENTS.md`/`CLAUDE.md` 等外部入口代替它；细则见 `.codestable/reference/execution-conventions.md`。
+
+`cs-skill-lab` 是「造 skill 的 skill」：把 CodeStable 各 skill 的 **编写 → 评测 → 优化 → 再评测** 做成一条可复现、跨 model/agent 的迭代闭环。它编排的对象是 **skill 自身的生命周期**，不是业务代码 feature。它**自指**——同一套 harness 也能评测并优化 `cs-skill-lab` 自己。
+
+评测执行引擎（runner / scorers / harness 适配器）由本 skill 自带于 `scripts/`；实验纪律、双层价值函数、收敛判据、知识回写复用 BAIME 引擎（`run-quantitative-experiment`、`methodology-bootstrapping`、`knowledge-extractor`）——以**文本判据**内联，运行时不跨插件读 BAIME 文件。
+
+---
+
+## 入口意图
+
+本次调用参数：$ARGUMENTS
+
+意图来源优先级：调用参数 flag > 用户话术。参数为空或仍是字面 `$ARGUMENTS` 时跳过该来源。`--stage` 表示阶段意图，`--experiment <dir>` 指定实验目录，其余文本作为被测 skill 名或诉求。
+
+| 参数 | 入口意图 |
+|---|---|
+| `--stage author` | 编写/重构一个 cs skill（提示词工程 + 包结构） |
+| `--stage eval` | 对某 skill 跑 fixtures×models×harnesses 评测，产出 measured 分数 |
+| `--stage optimize` | autoresearch：hypothesis→变体→评测→留/杀→收敛 |
+| `--stage release` | 收敛结论固化回 SKILL.md + 打版本 + 回归电池 |
+
+无参数默认：不猜阶段；扫描 `experiments/` 与被测 skill 现状，用状态机恢复下一步；仍不确定就问用户要处理哪个 skill、想到哪一步。
+
+入口意图只是偏好，仓库事实优先。
+
+---
+
+## 闭环是什么（速读）
+
+```text
+生产失败(cs-feedback) ┐
+planted-defect fixtures ┼─▶ runner.py（多 harness/model 执行被测 skill，隔离宿主）
+golden 任务 ────────────┘        │
+                                 ▼
+        scorers：确定性(planted_defect 召回 / dod_gate) + llm_judge 两轴(照做没/质量)
+                                 │ 指标 token/$/wall/turns（带 [measured]/[soft] tag）
+                                 ▼
+     optimize.py：预注册 hypothesis → 生成变体 → 评测 → keep/kill → 收敛(V_instance∧V_meta)
+                                 │ 持久 experiments/<skill>-NNN/iteration-N.md
+                                 ▼
+     release：knowledge-extractor 草稿 → 适配成 CS 合规结构 → 打版本 → 回归 N 次电池
+```
+
+---
+
+## 文件放哪儿
+
+```text
+experiments/{skill}-{NNN}/
+├── hypotheses.md          # 预注册，冻结后先 git commit 再跑任何 LLM（provenance）
+├── config.json            # ExperimentConfig 声明
+├── fixtures/{planted-defect,golden,sanity,regression}/*.json
+├── calibration.md         # judge 校准 F1（oracle 校准证据）
+├── iteration-0..N.md      # 每轮观测，[measured]/[soft] 标注
+├── results.md             # 人读摘要 + evidence_pointer + 收敛模式
+└── artifacts/
+    ├── runs/              # gitignored 原始响应
+    └── analysis/{exp-NNN-results.json,baseline.json}
+```
+
+被测 skill 与本 skill 的执行代码在包内 `scripts/`；被测 SKILL.md 以**快照文本**注入 prompt（不读宿主已装版本，避免测成旧版）。
+
+---
+
+## Stage 状态机
+
+按仓库事实恢复：
+
+| 仓库事实 | 下一步 |
+|---|---|
+| 无 `experiments/{skill}-NNN/` 或要新写 skill | author：读 `references/author/protocol.md` |
+| 有 fixtures 但无 `artifacts/analysis/*-results.json` | eval：读 `references/eval/protocol.md` |
+| 有 baseline 结果，要提升分数 | optimize：读 `references/optimize/protocol.md` |
+| optimize 已收敛（V_instance∧V_meta 达标） | release：读 `references/release/protocol.md` |
+| release 落盘后 | 汇报版本、回归结论与后续候选 skill |
+
+用户说「下一步」时，按仓库事实而非聊天历史判断。
+
+---
+
+## Reference 加载（渐进）
+
+只在进入对应阶段时加载厚规则：
+
+- author：`references/author/protocol.md`（skill 编写契约：frontmatter、渐进披露、model/harness 无关措辞、包结构、≤300 行）
+- eval：`references/eval/protocol.md`
+- optimize：`references/optimize/protocol.md`，模板见 `references/optimize/support/`
+- release：`references/release/protocol.md`
+- 自治：`references/autonomy/protocol.md`
+
+不要一次读完；按阶段加载。
+
+---
+
+## 工具入口（从本 skill 包运行）
+
+```bash
+# 评测（--dry-run 先估成本；超预算需 --confirm）
+python3 {skill_dir}/scripts/runner.py --experiment experiments/{skill}-{NNN} [--harness H --model M --k N] [--dry-run]
+# 优化收敛循环
+python3 {skill_dir}/scripts/optimize.py --experiment experiments/{skill}-{NNN} --max-iterations N
+# 固化回写 + 打版本 + 回归
+python3 {skill_dir}/scripts/adapt_extracted_skill.py --draft .claude/skills/{name} --target {skill}
+python3 {skill_dir}/scripts/regression.py --experiment experiments/{skill}-{NNN} --n 5
+python3 {skill_dir}/scripts/bump_version.py --to X.Y.Z
+```
+
+`{skill_dir}` = 本 SKILL.md 所在目录。工具随 skill 包分发，不复制到 `.codestable/tools/`。
+
+---
+
+## 认知诚实纪律（硬约束）
+
+- 一切数值必带 tag：`[measured]`（oracle/机械可验）/ `[soft]`（自评估算）/ `[underpowered]`（k<5 或 n<8）。
+- `hypotheses.md` 冻结后**先 git commit 再跑任何 LLM**；provenance 由 `tests/test_cs_skill_convergence.py` 机械校验。
+- 禁止裸 `V_instance = 0.XX` 自评分；收敛判据见 optimize 协议。
+- 跨模型 ≥2；judge 模型须独立于被测模型（避免同源偏差）。
+
+---
+
+## 成本护栏
+
+多模型运行前用 `--dry-run` 估算 token×pricing；单实验默认预算上限 **$50**，超限阻断需 `--confirm`。分层省钱：确定性 scorer 先跑、llm_judge 只评候选变体、cheap model 探路 + 贵 model 只做终判。
+
+---
+
+## 退出条件
+
+- 当前 stage 产物已落盘，状态可由 `experiments/` 事实恢复。
+- eval 产出带 tag 的 measured 分数与 evidence_pointer。
+- optimize 产出 iteration-N 与收敛判定；release 产出合规回写 + 版本同步 + 回归结论。
+- 需要外部文档时提示 `cs-docs`；需要沉淀坑/决策时提示 `cs-keep`。
+
+---
+
+## 相关入口
+
+- `cs-feedback`：生产失败采集；其失败案例可转成 `fixtures/regression/`。
+- `cs-code-review` / `cs-issue` / `cs-audit`：常见被测 skill。
+- `cs-onboard`：runtime 与共享 reference 的属主。

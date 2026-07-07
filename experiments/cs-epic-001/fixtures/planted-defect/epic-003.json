@@ -1,0 +1,10 @@
+{
+  "id": "epic-003",
+  "answerType": "findings-recall",
+  "answer": [
+    "服务边界划分与依赖治理",
+    "跨服务数据一致性（分布式事务/最终一致）",
+    "灰度、回滚与可观测性"
+  ],
+  "task": {"kind": "design", "spec": "把单体系统拆分为微服务"}
+}

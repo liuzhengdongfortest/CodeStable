@@ -1,0 +1,11 @@
+{
+  "id": "pd-007",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "answer": ["TLS 校验关闭: requests verify=False 禁用证书校验"],
+  "task": {
+    "kind": "review",
+    "spec": "调用外部 API",
+    "diff": "+import requests\n+def fetch(url):\n+    return requests.get(url, verify=False)"
+  }
+}

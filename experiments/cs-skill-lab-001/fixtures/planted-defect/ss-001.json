@@ -1,0 +1,10 @@
+{
+  "id": "ss-001",
+  "answerType": "findings-recall",
+  "answer": ["硬编码 password 明文（hardcoded）"],
+  "task": {
+    "kind": "review",
+    "spec": "审查一个 skill 草稿的 scripts",
+    "diff": "+# scripts/deploy.py\n+password = \"s3cr3t-hardcoded\"\n+deploy(password)"
+  }
+}

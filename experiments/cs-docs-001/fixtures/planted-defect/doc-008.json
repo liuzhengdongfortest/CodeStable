@@ -1,0 +1,10 @@
+{
+  "id": "doc-008",
+  "answerType": "findings-recall",
+  "answer": [
+    "角色与能力矩阵",
+    "权限继承规则",
+    "常见场景示例与边界限制"
+  ],
+  "task": {"kind": "docs", "spec": "写权限模型的用户指南", "audience": "管理员"}
+}

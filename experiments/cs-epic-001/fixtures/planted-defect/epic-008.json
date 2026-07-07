@@ -1,0 +1,10 @@
+{
+  "id": "epic-008",
+  "answerType": "findings-recall",
+  "answer": [
+    "大文件流式导入与内存边界",
+    "schema 映射、校验与错误反馈",
+    "失败续传、幂等与审计"
+  ],
+  "task": {"kind": "design", "spec": "做一个数据导入导出平台"}
+}

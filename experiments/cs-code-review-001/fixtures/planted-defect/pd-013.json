@@ -1,0 +1,12 @@
+{
+  "id": "pd-013",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "difficulty": "reasoning",
+  "answer": ["空列表取 items[0] 未防护会 IndexError"],
+  "task": {
+    "kind": "review",
+    "spec": "取第一个元素",
+    "diff": "+def first(items):\n+    return items[0]"
+  }
+}

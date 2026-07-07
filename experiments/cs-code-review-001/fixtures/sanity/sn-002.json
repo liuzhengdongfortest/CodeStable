@@ -1,0 +1,11 @@
+{
+  "id": "sn-002",
+  "answerType": "findings-recall",
+  "severity": "blocking",
+  "answer": ["hardcoded credential: admin password 明文写死"],
+  "task": {
+    "kind": "review",
+    "spec": "登录",
+    "diff": "+def login(user):\n+    password = \"admin\"\n+    return user == \"admin\" and check(password)"
+  }
+}

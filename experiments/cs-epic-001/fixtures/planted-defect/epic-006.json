@@ -1,0 +1,10 @@
+{
+  "id": "epic-006",
+  "answerType": "findings-recall",
+  "answer": [
+    "日志不可篡改与完整性",
+    "保留期、归档与成本",
+    "PII 脱敏与查询导出合规"
+  ],
+  "task": {"kind": "design", "spec": "做一套审计与合规日志系统"}
+}

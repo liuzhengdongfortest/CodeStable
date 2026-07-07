@@ -1,0 +1,11 @@
+{
+  "id": "rf-005",
+  "answerType": "findings-recall",
+  "difficulty": "reasoning",
+  "answer": ["边界从 >= 改成 >，漏掉相等的临界值"],
+  "task": {
+    "kind": "review",
+    "spec": "自称等价重构，须保持行为不变",
+    "diff": "-    return score >= threshold\n+    return score > threshold"
+  }
+}

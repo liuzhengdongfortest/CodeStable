@@ -1,0 +1,10 @@
+{
+  "id": "rf-008",
+  "answerType": "findings-recall",
+  "answer": ["重构把哈希换成 md5，弱化了摘要强度，非等价"],
+  "task": {
+    "kind": "review",
+    "spec": "自称等价重构（换实现），须保持行为不变",
+    "diff": "-    return hashlib.sha256(x).hexdigest()\n+    return hashlib.md5(x).hexdigest()"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "pd-003",
+  "answerType": "findings-recall",
+  "severity": "blocking",
+  "answer": ["hardcoded secret: password 硬编码在源码"],
+  "task": {
+    "kind": "review",
+    "spec": "连接数据库",
+    "diff": "+def connect():\n+    password = \"P@ssw0rd-hardcoded\"\n+    return db.login(\"admin\", password)"
+  }
+}

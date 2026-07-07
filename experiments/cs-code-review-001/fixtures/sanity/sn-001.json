@@ -1,0 +1,11 @@
+{
+  "id": "sn-001",
+  "answerType": "findings-recall",
+  "severity": "blocking",
+  "answer": ["remote code execution: eval(input()) 执行任意用户输入"],
+  "task": {
+    "kind": "review",
+    "spec": "计算器",
+    "diff": "+def calc():\n+    return eval(input(\"expr: \"))"
+  }
+}

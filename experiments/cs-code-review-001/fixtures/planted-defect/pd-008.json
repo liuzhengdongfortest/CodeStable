@@ -1,0 +1,11 @@
+{
+  "id": "pd-008",
+  "answerType": "findings-recall",
+  "severity": "nit",
+  "answer": ["identity 比较错误: 用 == None 而非 is None"],
+  "task": {
+    "kind": "review",
+    "spec": "校验参数",
+    "diff": "+def check(value):\n+    if value == None:\n+        raise ValueError(\"missing\")\n+    return value"
+  }
+}

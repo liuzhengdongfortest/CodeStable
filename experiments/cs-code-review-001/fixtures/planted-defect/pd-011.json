@@ -1,0 +1,12 @@
+{
+  "id": "pd-011",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "difficulty": "reasoning",
+  "answer": ["可变默认参数 acc=[] 跨调用共享状态"],
+  "task": {
+    "kind": "review",
+    "spec": "累加",
+    "diff": "+def add(x, acc=[]):\n+    acc.append(x)\n+    return acc"
+  }
+}

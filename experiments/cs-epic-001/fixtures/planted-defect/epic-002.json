@@ -1,0 +1,10 @@
+{
+  "id": "epic-002",
+  "answerType": "findings-recall",
+  "answer": [
+    "并发编辑冲突合并（OT/CRDT）",
+    "离线编辑与重连同步",
+    "文档权限、可见性与历史版本"
+  ],
+  "task": {"kind": "design", "spec": "做一个实时协作文档编辑功能"}
+}

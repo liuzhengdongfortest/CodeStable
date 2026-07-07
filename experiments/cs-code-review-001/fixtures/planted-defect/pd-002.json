@@ -1,0 +1,11 @@
+{
+  "id": "pd-002",
+  "answerType": "findings-recall",
+  "severity": "blocking",
+  "answer": ["code injection: eval 执行不可信输入 payload"],
+  "task": {
+    "kind": "review",
+    "spec": "解析表达式",
+    "diff": "+def run(payload):\n+    result = eval(payload)\n+    return result"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "rf-003",
+  "answerType": "findings-recall",
+  "difficulty": "reasoning",
+  "answer": ["去掉 strip() 改变了输入清洗，行为不等价"],
+  "task": {
+    "kind": "review",
+    "spec": "自称等价重构，须保持行为不变",
+    "diff": "-    name = raw.strip().lower()\n+    name = raw.lower()"
+  }
+}

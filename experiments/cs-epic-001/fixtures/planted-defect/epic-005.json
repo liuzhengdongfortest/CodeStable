@@ -1,0 +1,10 @@
+{
+  "id": "epic-005",
+  "answerType": "findings-recall",
+  "answer": [
+    "文案外置与翻译流程回退",
+    "复数、日期、货币与数字本地化",
+    "RTL 布局与字体覆盖"
+  ],
+  "task": {"kind": "design", "spec": "给产品做全站国际化 i18n"}
+}

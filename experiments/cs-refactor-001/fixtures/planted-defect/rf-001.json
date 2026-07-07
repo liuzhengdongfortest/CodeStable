@@ -1,0 +1,11 @@
+{
+  "id": "rf-001",
+  "answerType": "findings-recall",
+  "difficulty": "reasoning",
+  "answer": ["重构改了默认值 timeout 30→60，行为不等价"],
+  "task": {
+    "kind": "review",
+    "spec": "本次自称等价重构（重命名+整理），须保持行为不变",
+    "diff": "-def fetch(url, timeout=30):\n+def fetch(url, timeout=60):\n     return http.get(url, timeout=timeout)"
+  }
+}

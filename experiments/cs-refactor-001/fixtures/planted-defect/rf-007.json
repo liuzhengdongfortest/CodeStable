@@ -1,0 +1,10 @@
+{
+  "id": "rf-007",
+  "answerType": "findings-recall",
+  "answer": ["重构引入 eval 动态执行，行为与安全都变了"],
+  "task": {
+    "kind": "review",
+    "spec": "自称等价重构（简化解析），须保持行为不变",
+    "diff": "-    value = int(expr)\n+    value = eval(expr)"
+  }
+}

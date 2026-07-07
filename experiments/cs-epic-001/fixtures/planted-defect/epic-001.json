@@ -1,0 +1,10 @@
+{
+  "id": "epic-001",
+  "answerType": "findings-recall",
+  "answer": [
+    "计量口径与用量采集准确性",
+    "租户数据隔离与越权防护",
+    "账期、对账与退款/调整处理"
+  ],
+  "task": {"kind": "design", "spec": "做一个多租户 SaaS 的计费与订阅系统"}
+}

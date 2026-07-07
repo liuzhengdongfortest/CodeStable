@@ -1,0 +1,12 @@
+{
+  "id": "pd-009",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "difficulty": "reasoning",
+  "answer": ["off-by-one：写入 b[i+1] 在末轮越界"],
+  "task": {
+    "kind": "review",
+    "spec": "复制数组",
+    "diff": "+def copy(a, b):\n+    for i in range(len(a)):\n+        b[i + 1] = a[i]"
+  }
+}

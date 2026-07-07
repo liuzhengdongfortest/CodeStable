@@ -1,0 +1,10 @@
+{
+  "id": "fix-003",
+  "answerType": "findings-recall",
+  "answer": ["根因: 裸 except: 吞掉所有异常掩盖真实错误"],
+  "task": {
+    "kind": "fix",
+    "spec": "任务偶发静默失败，无日志",
+    "diff": "def job():\n    try:\n        run()\n    except:\n        pass"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "doc-005",
+  "answerType": "findings-recall",
+  "answer": [
+    "每个配置项默认值与取值范围",
+    "环境变量映射",
+    "是否支持热更新"
+  ],
+  "task": {"kind": "docs", "spec": "写服务的配置项文档", "audience": "运维"}
+}

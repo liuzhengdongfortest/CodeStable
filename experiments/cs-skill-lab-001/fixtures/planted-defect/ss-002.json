@@ -1,0 +1,10 @@
+{
+  "id": "ss-002",
+  "answerType": "findings-recall",
+  "answer": ["SKILL.md description 留了 TODO 占位，缺触发词"],
+  "task": {
+    "kind": "review",
+    "spec": "审查 skill 草稿的 SKILL.md frontmatter",
+    "diff": "+---\n+name: my-skill\n+description: TODO 待补充\n+---"
+  }
+}

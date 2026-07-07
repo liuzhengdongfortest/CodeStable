@@ -1,0 +1,12 @@
+{
+  "id": "pd-010",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "difficulty": "reasoning",
+  "answer": ["边界错误：age > 18 漏掉刚满 18 岁"],
+  "task": {
+    "kind": "review",
+    "spec": "判断是否成年",
+    "diff": "+def is_adult(age):\n+    return age > 18"
+  }
+}

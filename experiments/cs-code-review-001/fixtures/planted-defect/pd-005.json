@@ -1,0 +1,11 @@
+{
+  "id": "pd-005",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "answer": ["weak hash: md5 用于密码摘要"],
+  "task": {
+    "kind": "review",
+    "spec": "存储密码摘要",
+    "diff": "+import hashlib\n+def digest(pw):\n+    return hashlib.md5(pw.encode()).hexdigest()"
+  }
+}

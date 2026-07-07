@@ -1,0 +1,10 @@
+{
+  "id": "doc-007",
+  "answerType": "findings-recall",
+  "answer": [
+    "方法参数与返回",
+    "抛出的异常",
+    "线程安全性与示例"
+  ],
+  "task": {"kind": "docs", "spec": "给 SDK 的核心方法写 reference", "audience": "开发者"}
+}

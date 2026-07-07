@@ -1,0 +1,10 @@
+{
+  "id": "epic-007",
+  "answerType": "findings-recall",
+  "answer": [
+    "权限模型选型（RBAC/ABAC）与最小权限",
+    "权限缓存与失效一致性",
+    "越权测试与审计"
+  ],
+  "task": {"kind": "design", "spec": "做一套细粒度权限体系"}
+}

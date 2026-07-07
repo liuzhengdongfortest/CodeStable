@@ -1,0 +1,10 @@
+{
+  "id": "doc-006",
+  "answerType": "findings-recall",
+  "answer": [
+    "每个错误码含义与触发条件",
+    "排查建议",
+    "是否可重试"
+  ],
+  "task": {"kind": "docs", "spec": "写 API 错误码手册", "audience": "开发者"}
+}

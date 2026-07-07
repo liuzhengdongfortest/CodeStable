@@ -1,0 +1,11 @@
+{
+  "id": "rf-006",
+  "answerType": "findings-recall",
+  "difficulty": "reasoning",
+  "answer": ["删掉早返回守卫，空输入不再短路，行为变了"],
+  "task": {
+    "kind": "review",
+    "spec": "自称等价重构，须保持行为不变",
+    "diff": "-    if not items:\n-        return []\n     return [transform(x) for x in items]"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "pd-012",
+  "answerType": "findings-recall",
+  "severity": "important",
+  "difficulty": "reasoning",
+  "answer": ["资源泄漏：文件句柄打开后未关闭"],
+  "task": {
+    "kind": "review",
+    "spec": "读取文件",
+    "diff": "+def read_all(path):\n+    handle = open(path)\n+    return handle.read()"
+  }
+}

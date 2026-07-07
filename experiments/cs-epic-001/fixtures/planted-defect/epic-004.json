@@ -1,0 +1,10 @@
+{
+  "id": "epic-004",
+  "answerType": "findings-recall",
+  "answer": [
+    "多渠道抽象（站内/邮件/推送）",
+    "用户偏好与退订合规",
+    "去重、频控与送达重试"
+  ],
+  "task": {"kind": "design", "spec": "做一个统一通知中心"}
+}

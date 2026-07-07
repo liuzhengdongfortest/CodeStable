@@ -1,0 +1,11 @@
+{
+  "id": "rf-002",
+  "answerType": "findings-recall",
+  "difficulty": "reasoning",
+  "answer": ["条件从 and 改成 or，判定逻辑变了"],
+  "task": {
+    "kind": "review",
+    "spec": "自称等价重构，须保持行为不变",
+    "diff": "-    if active and verified:\n+    if active or verified:\n         grant_access()"
+  }
+}
