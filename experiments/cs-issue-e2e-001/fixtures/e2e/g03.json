@@ -1,0 +1,11 @@
+{
+  "id": "g03",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "bug_id": "g03",
+    "issue_report": "通过 API 创建任务时传了 dueDate，但任务从不显示过期，smart 排序也不把它排前面；用 CLI 建同样 due date 的任务却一切正常。",
+    "hidden_tests": ["hidden/g03/test_g03_http_due_date.py"]
+  }
+}

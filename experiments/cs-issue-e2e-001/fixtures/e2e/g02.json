@@ -1,0 +1,11 @@
+{
+  "id": "g02",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "bug_id": "g02",
+    "issue_report": "通过 API 把已 done 的任务 transition 回 in_progress，居然返回 200，而且任务状态真的被改回去了；这会破坏数据完整性。",
+    "hidden_tests": ["hidden/g02/test_g02_http_transition_guard.py"]
+  }
+}

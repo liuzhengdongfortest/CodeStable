@@ -1,0 +1,11 @@
+{
+  "id": "g01",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "bug_id": "g01",
+    "issue_report": "搜索 \"Deploy\" 找不到标题为 \"deploy prod\" 的任务，明明就在列表里。",
+    "hidden_tests": ["hidden/g01/test_g01_search_case.py"]
+  }
+}

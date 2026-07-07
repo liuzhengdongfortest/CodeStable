@@ -1,0 +1,20 @@
+"""plain constants for now. don't over-model early."""
+
+STATUS_TODO = "todo"
+STATUS_IN_PROGRESS = "in_progress"
+STATUS_BLOCKED = "blocked"
+STATUS_DONE = "done"
+
+VALID_STATUSES = (
+    STATUS_TODO,
+    STATUS_IN_PROGRESS,
+    STATUS_BLOCKED,
+    STATUS_DONE,
+)
+
+TRANSITIONS = {
+    STATUS_TODO: (STATUS_IN_PROGRESS,),
+    STATUS_IN_PROGRESS: (STATUS_BLOCKED, STATUS_DONE),
+    STATUS_BLOCKED: (STATUS_IN_PROGRESS,),
+    STATUS_DONE: (),
+}
