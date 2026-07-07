@@ -1,6 +1,6 @@
 ---
 name: build-cs-skill
-description: "CodeStable skill authoring protocol. Use when creating, refactoring, simplifying, or reviewing cs-* skills under plugins/codestable/skills or .claude/skills. Applies the prompt-as-code framework: classify the skill, define Spec/types/state machine, separate operator rules from references, add machine-checkable contracts, and design decision fixtures. Do not use for normal feature implementation; use cs-feat/cs-issue/cs-docs for product work and cs-skill-lab for full measured experiment loops."
+description: "CodeStable skill authoring protocol. Use when creating, refactoring, simplifying, or reviewing cs-* skills under plugins/codestable/skills or .claude/skills. Applies the prompt-as-code framework: classify the skill, define Spec/types/state machine, separate operator rules from references, add machine-checkable contracts, and design decision fixtures. Do not use for normal feature implementation; use cs-feat/cs-issue/cs-docs for product work and eval-cs-skill for full measured experiment loops."
 ---
 
 # build-cs-skill
@@ -24,6 +24,14 @@ Target skill roots:
 
 Before changing a CodeStable skill, read the target `SKILL.md` and only the references needed for the current stage. Preserve user edits and existing compatibility entry points unless explicitly asked to remove them.
 
+## References
+
+Load these files only when the current task needs that layer:
+
+- `references/cs-skill-spec-standard.md`: read when writing or refactoring `description`, `## Spec`, state models, failure behavior, or output contracts.
+- `references/cs-skill-quality-gates.md`: read when reviewing a skill for prompt-as-code quality, P1/P3 separation, contracts, progressive loading, or regression risk.
+- `references/cs-skill-fixture-patterns.md`: read when designing decision fixtures for routing, checkpoints, forbidden actions, failure paths, fastforward, or compatibility entries.
+
 ## Spec
 
 ```haskell
@@ -32,8 +40,23 @@ buildCsSkill :: SkillWorkRequest -> SkillWorkOutcome
 data SkillWorkRequest = SkillWorkRequest
   { targetSkill  : Path
   , intent       : Create | Refactor | Simplify | Review | AddContracts | AddFixtures
+  , userIntent   : UserIntent
+  , targetRepo   : Path
   , constraints  : [Constraint]
   }
+
+data RefactorDepth
+  = MinimalHardeningPatch
+  | FullProtocolRefactor
+
+data ProcessProtocol
+  = WorkflowProtocol
+  | DomainProtocol
+  | LifecycleProtocol
+  | OperationProtocol
+  | AlgorithmProtocol
+  | ShimRoute
+  | ReferenceOnly
 
 data SkillKind
   = OperatorSkill       -- narrow trigger, concrete artifact, explicit state/branching
@@ -44,6 +67,8 @@ data SkillKind
 data SkillShape = SkillShape
   { trigger        : TriggerContract
   , entryPoint     : FunctionSignature
+  , refactorDepth  : RefactorDepth
+  , process        : ProcessProtocol
   , stateModel     : Maybe StateMachine
   , outputContract : OutputContract
   , failureModes   : [FailureMode]
@@ -54,18 +79,65 @@ data SkillShape = SkillShape
 data SkillWorkOutcome
   = PatchApplied [Path]
   | RefactorPlan SkillShape
+  | ReviewReport SkillShape
   | NeedsHuman Reason
+
+selectRefactorDepth :: UserIntent -> RefactorDepth
+selectRefactorDepth(intent)
+  | explicitMinimal(intent) -> MinimalHardeningPatch
+  | otherwise               -> FullProtocolRefactor
+
+classifySkill :: SkillSource -> SkillKind
+selectProcessProtocol :: SkillKind -> ProcessProtocol
+selectProcessProtocol(kind) =
+  case kind of
+    WorkflowSkill    -> WorkflowProtocol
+    OperatorSkill    -> OperationProtocol
+    MethodologySkill -> DomainProtocol
+    ReferenceDoc     -> ReferenceOnly
+
+buildSkillShape :: SkillSource -> UserIntent -> SkillShape
+validateSkillShape :: SkillShape -> ValidationReport
 ```
 
 ## Workflow
 
-### 1. Preflight
+### 1. Workspace safety
 
-Read `.codestable/attention.md` when present. If it is missing in a CodeStable repo, report that the repo may need `cs-onboard`; do not substitute `AGENTS.md` or `CLAUDE.md` as the CodeStable source of truth.
+`build-cs-skill` creates or edits skill files; it does not execute a product CodeStable workflow. Do not require `.codestable/attention.md` just to author or refactor a skill.
 
-Check git status before editing. Do not revert unrelated changes.
+Before editing, check git status in the target repository. Preserve unrelated user changes. Do not revert or move existing skill files unless explicitly requested.
 
-### 2. Classify the skill
+When authoring an active `cs-*` skill that will run inside CodeStable projects, include that target skill's CodeStable preflight rule. The generated target skill should read `.codestable/attention.md` when it depends on project setup, repo state, artifact writes, or recoverability. That rule belongs in the target skill, not in `build-cs-skill` itself.
+
+### 2. Choose refactor depth
+
+Default to `full protocol refactor` unless the user explicitly asks for a minimal patch, a small additive change, or no behavior-preserving rewrite.
+
+Use these labels exactly:
+
+| Depth | Meaning | Completion bar |
+|---|---|---|
+| `minimal hardening patch` | Add a small safety layer while preserving the existing shape | trigger tightening, small `## Spec`, or contracts only |
+| `full protocol refactor` | Rewrite the active skill body into a complete prompt-as-code protocol while preserving behavior | all required protocol sections below |
+
+A change that only adds description exclusions, a small `## Spec`, and machine contracts is a `minimal hardening patch`, not a `full protocol refactor`. If the user asked to refactor, simplify, or apply the build-cs-skill framework, produce a full protocol refactor or clearly state that the current proposal is only minimal hardening and ask whether to continue.
+
+A full protocol refactor must include all of these, even when behavior is unchanged:
+
+1. tightened frontmatter description;
+2. `## Spec` with entry function, request, state, outcome, and failure types;
+3. process protocol appropriate to the skill kind;
+4. explicit state restoration and next-action selection functions;
+5. state machine mirrored as decision rules, not only left as a prose table;
+6. progressive reference loading with allowed and forbidden loading behavior;
+7. human checkpoint rules and non-bypass conditions;
+8. failure behavior;
+9. output contract;
+10. machine contracts or recommended frontmatter contracts;
+11. decision fixture recommendations.
+
+### 3. Classify the skill
 
 Classify the target before writing:
 
@@ -78,7 +150,7 @@ Classify the target before writing:
 
 If a skill mixes kinds, split the active operator protocol from reference material instead of adding more prose.
 
-### 3. Tighten the trigger
+### 4. Tighten the trigger
 
 Rewrite `description` so it states:
 
@@ -88,21 +160,35 @@ Rewrite `description` so it states:
 
 Avoid broad verbs alone, such as "optimize", "improve", "analyze", or "help". Add exclusions when overlap exists with `cs-feat`, `cs-issue`, `cs-docs`, `cs-epic`, `cs-audit`, `cs-refactor`, or local authoring skills.
 
-### 4. Write the operator protocol first
+### 5. Write the operator protocol first
 
 Put execution-critical content in the first half of `SKILL.md`:
 
-1. startup/preflight;
+1. target preflight when applicable;
 2. entry intent parsing;
 3. `## Spec` with types and the main function;
-4. state restoration or branch selection;
-5. human checkpoints;
-6. failure behavior;
-7. output contract.
+4. process protocol appropriate to the skill kind;
+5. state restoration or branch selection;
+6. human checkpoints;
+7. failure behavior;
+8. output contract.
+
+Choose the process section by skill kind:
+
+| Skill kind | Required process section |
+|---|---|
+| `WorkflowSkill` | `## Workflow`, `## Protocol`, or `## Lifecycle` with the runtime path in 5-7 ordered steps |
+| `OperatorSkill` | `## Operation` or `## Algorithm` with the input -> action -> output path |
+| compatibility shim | no workflow required; state target skill and passed intent |
+| `ReferenceDoc` | no workflow required; state why it is reference material |
+
+For target skills, include a preflight step when the skill touches `.codestable/`, scans repo state, writes artifacts, dispatches agents, or depends on project initialization. For pure formatting, routing shims, or reference-only materials, a separate preflight step is usually unnecessary.
+
+For workflow skills, the process section should be shorter than the detailed decision rules and explain what the agent actually does from startup to recoverable exit. Do not replace it with only a type signature or only a routing table.
 
 Move long examples, templates, rationale, and pattern libraries to `references/` or late sections. Do not let background material precede the protocol.
 
-### 5. Make state recoverable
+### 6. Make state recoverable
 
 For workflow skills, define restoration from repository facts, not chat history:
 
@@ -112,7 +198,7 @@ repo facts -> state model -> next action
 
 Every stage transition must leave durable evidence on disk, such as a status field, review artifact, checklist, result file, marker, or note. "The previous assistant said so" is not recoverable state.
 
-### 6. Add progressive reference loading
+### 7. Add progressive reference loading
 
 State which reference file is loaded for each stage. The skill must not load all references at startup.
 
@@ -122,7 +208,7 @@ Use this wording when relevant:
 Load exactly one stage protocol before acting, plus only the support files that protocol requests.
 ```
 
-### 7. Add machine contracts
+### 8. Add machine contracts
 
 If the local validation system supports frontmatter contracts, add `contracts:`. If it does not, still include a `## Machine Contracts` section so the invariants are explicit and can later be wired into validation.
 
@@ -140,7 +226,7 @@ contracts:
 
 Select terms that would be missing only if an important rule was lost. Avoid generic words like `quality`, `check`, `best`, or `review`.
 
-### 8. Design decision fixtures
+### 9. Design decision fixtures
 
 For important branch logic, draft fixture cases even if the runner is not implemented yet. A fixture should test one decision:
 
@@ -166,7 +252,7 @@ Prioritize fixtures for:
 - failure paths;
 - fastforward or compatibility shortcuts.
 
-### 9. Define failure behavior
+### 10. Define failure behavior
 
 Every skill must say what happens when it cannot safely continue. A good failure result includes:
 
@@ -178,7 +264,16 @@ Every skill must say what happens when it cannot safely continue. A good failure
 
 Do not silently continue when approved scope, public contracts, data shape, or user-visible behavior would change.
 
-### 10. Keep the file small
+For `build-cs-skill` itself, return `NeedsHuman` when:
+
+- `targetSkill` is missing or ambiguous;
+- the requested output location is unclear;
+- the target file has unrelated user changes in sections that must be edited;
+- a full protocol refactor would require behavior changes but the user requested behavior-equivalent edits only;
+- the target skill references missing protocol files and the intended behavior cannot be inferred;
+- the user asks for measured evaluation rather than authoring/refactor; route to `eval-cs-skill` instead.
+
+### 11. Keep the file small
 
 Prefer a short `SKILL.md` plus references over a large always-loaded file. As a rule of thumb:
 
@@ -219,14 +314,58 @@ When a skill hands work to a goal driver or background agent, specify:
 
 ## Output
 
-When reporting a proposed or completed skill rewrite, include:
+When reporting a proposed or completed skill rewrite, use this structure:
 
-- skill kind classification;
-- key trigger changes;
-- new or changed Spec/state model;
-- contracts added or recommended;
-- fixtures recommended;
-- reference files that remain stage-loaded;
-- known gaps or decisions needing maintainer confirmation.
+```text
+Classification:
+Refactor depth: minimal hardening patch | full protocol refactor
+Trigger contract:
+Spec:
+Process protocol:
+State restoration:
+Stage routing / decision rules:
+Progressive reference loading:
+Human checkpoints:
+Failure behavior:
+Output contract:
+Machine contracts:
+Decision fixtures:
+Preserved behavior / unchanged sections:
+Open maintainer decisions:
+```
+
+If the output is not a full protocol refactor, explicitly name which required sections are missing and why.
 
 Keep unrelated product changes out of the skill rewrite unless the user explicitly asks for them.
+
+## Output Contract
+
+`build-cs-skill` final responses must include:
+
+- target skill path;
+- classification;
+- refactor depth;
+- files changed or planned;
+- validation result, or reason validation was not run;
+- missing confirmations or maintainer decisions;
+- next concrete action.
+
+When editing files, distinguish files actually changed from sample files or proposed fixtures.
+
+## Machine Contracts
+
+Keep these invariants in the body unless the local validator supports frontmatter `contracts:`:
+
+```yaml
+contracts:
+  - grep: "SkillWorkRequest"
+  - grep: "RefactorDepth"
+  - grep: "ProcessProtocol"
+  - grep: "selectRefactorDepth"
+  - grep: "selectProcessProtocol"
+  - grep: "FullProtocolRefactor"
+  - grep: "MinimalHardeningPatch"
+  - grep: "Target Skill Preflight"
+  - grep: "Output Contract"
+  - not-grep: "read `.codestable/attention.md` just to author"
+```
