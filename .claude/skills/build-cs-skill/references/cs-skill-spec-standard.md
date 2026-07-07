@@ -141,6 +141,33 @@ Every active skill must say when it stops. Use `NeedsHuman` or `HumanCheckpoint`
 
 Report the current artifact, blocking reason, safe next action, and files already written.
 
+## Review Report Template
+
+```text
+Classification:
+Refactor depth: minimal hardening patch | full protocol refactor
+Trigger contract:
+Spec:
+Process protocol:
+State restoration:
+Stage routing / decision rules:
+Progressive reference loading:
+Human checkpoints:
+Failure behavior:
+Output contract:
+Machine contracts:
+Decision fixtures:
+Preserved behavior / unchanged sections:
+Open maintainer decisions:
+```
+
+## CodeStable Shape Patterns
+
+- **Main workflow skills**（cs-feat / cs-issue / cs-epic / cs-docs）: optimize for entry intent parsing, repository-fact restoration, stage routing, human checkpoints, progressive reference loading, clear final handoff.
+- **Compatibility shims**: keep thin — set `requested_stage` / `requested_mode` and route to the main skill; never maintain independent rules.
+- **Fastforward modes**: a mode request, not permission to skip safety; must state eligibility and rejection conditions; if rejected, route back to the standard workflow and explain why.
+- **Goal / long-running handoff**: specify what artifact is handed off, what signal means success / blocked / needs-human, the visible fallback command, and which state files make recovery possible.
+
 ## Output Contract
 
 Final answers should include:

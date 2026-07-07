@@ -1,6 +1,14 @@
 ---
 name: build-cs-skill
 description: "CodeStable skill authoring protocol. Use when creating, refactoring, simplifying, or reviewing cs-* skills under plugins/codestable/skills or .claude/skills. Applies the prompt-as-code framework: classify the skill, define Spec/types/state machine, separate operator rules from references, add machine-checkable contracts, and design decision fixtures. Do not use for normal feature implementation; use cs-feat/cs-issue/cs-docs for product work and eval-cs-skill for full measured experiment loops."
+contracts:
+  - grep: "selectRefactorDepth"
+  - grep: "selectProcessProtocol"
+  - grep: "full protocol refactor"
+  - grep: "minimal hardening patch"
+  - grep: "Measured Rules"
+  - grep: "eval-cs-skill"
+  - not-grep: "read `.codestable/attention.md` just to author"
 ---
 
 # build-cs-skill
@@ -9,11 +17,7 @@ description: "CodeStable skill authoring protocol. Use when creating, refactorin
 
 Use this skill to turn a CodeStable skill into a small, recoverable, testable protocol. The output is either a new `SKILL.md` or a focused refactor plan for an existing `cs-*` skill.
 
-The governing principle:
-
-```text
-SKILL.md is prompt-as-code. Its quality is measured by behavior, recoverability, and testability, not by length.
-```
+The governing principle: **SKILL.md is prompt-as-code — its quality is measured by behavior, recoverability, and testability, not by length.**
 
 ## Scope
 
@@ -198,6 +202,8 @@ repo facts -> state model -> next action
 
 Every stage transition must leave durable evidence on disk, such as a status field, review artifact, checklist, result file, marker, or note. "The previous assistant said so" is not recoverable state.
 
+The routing function must cover the **complete lifecycle** from trigger to exit — including entry (grill/intake), rebuild/degrade branches, iteration, checkpoints, and completion. Guard order is priority order; an unreachable tail branch is a bug. Measured: a model that keeps picking "the nearest enum" on one branch usually signals a missing guard, not bad wording (cs-goal rt-g02: two wording rounds 0.33→0.33, one added entry guard →0.89 — see quality-gates Measured Rules 6).
+
 ### 7. Add progressive reference loading
 
 State which reference file is loaded for each stage. The skill must not load all references at startup.
@@ -212,45 +218,38 @@ Load exactly one stage protocol before acting, plus only the support files that 
 
 If the local validation system supports frontmatter contracts, add `contracts:`. If it does not, still include a `## Machine Contracts` section so the invariants are explicit and can later be wired into validation.
 
-Good contracts protect the skill's skeleton:
+Good contracts protect behavior, not documentation:
 
 ```yaml
 contracts:
-  - grep: "FeatureState"
-  - grep: "restoreFeatureStage"
-  - grep: "HumanCheckpoint"
+  - grep: "restoreFeatureStage"            # the sole-routing-truth function name
+  - grep: "must not auto-approve design"   # behavioral invariant sentence
   - grep: "progressive reference loading"
   - not-grep: "git push"
   - not-grep: "read all references"
 ```
 
-Select terms that would be missing only if an important rule was lost. Avoid generic words like `quality`, `check`, `best`, or `review`.
+Do NOT anchor bare Spec type names (`FeatureState`, `HumanCheckpoint`, `CheckpointReason`) — they only prove the Spec block exists, not that any behavior is protected (measured; see quality-gates Contract Gate). Select terms that would be missing only if an important rule was lost. Avoid generic words like `quality`, `check`, `best`, or `review`.
 
 ### 9. Design decision fixtures
 
-For important branch logic, draft fixture cases even if the runner is not implemented yet. A fixture should test one decision:
+For important branch logic, write fixtures in the runnable eval-cs-skill routing schema (`experiments/<skill>-routing-001/fixtures/routing/*.json`). A fixture should test one decision:
 
-```yaml
-name: review-passed-requires-human-confirmation
-step: restoreFeatureStage
-state:
-  has_design: true
-  design_status: draft
-  design_review: passed
-expect:
-  result_type: HumanCheckpoint
-  reason: ConfirmDesign
-  must_not_route_to: GoalPackage
+```json
+{
+  "id": "rt-f02",
+  "answerType": "routing-decision",
+  "task": {"kind": "routing",
+           "state": {"designStatus": "Draft", "reviewStatus": "Passed"}},
+  "expect": {"result_type": "HumanCheckpoint",
+             "target_any": ["ConfirmDesign", "design 整体确认"],
+             "must_not_target": "GoalPackage"}
+}
 ```
 
-Prioritize fixtures for:
+Oracle discipline: use `result_type_any` / `target_any` to accept semantically equivalent phrasings (older variants lack Spec vocabulary); spot-check observed answers before trusting a verdict.
 
-- activation/routing;
-- stage ordering;
-- forbidden actions;
-- human checkpoints;
-- failure paths;
-- fastforward or compatibility shortcuts.
+Prioritize fixtures for: activation/routing; stage ordering; forbidden actions; human checkpoints; failure paths; fastforward or compatibility shortcuts.
 
 ### 10. Define failure behavior
 
@@ -275,97 +274,22 @@ For `build-cs-skill` itself, return `NeedsHuman` when:
 
 ### 11. Keep the file small
 
-Prefer a short `SKILL.md` plus references over a large always-loaded file. As a rule of thumb:
+Prefer a short `SKILL.md` plus references over a large always-loaded file. Rule of thumb: active protocol in the first 150-250 lines; examples and templates go to references; detailed rationale to docs; deterministic checks and repeated transformations to scripts.
 
-- active protocol: first 150-250 lines;
-- examples and templates: references;
-- detailed rationale: docs or references;
-- scripts: deterministic checks and repeated transformations.
+### 12. Verify with measured evaluation
 
-## CodeStable Patterns
+Structural tests are necessary but not sufficient. After refactoring a core workflow/operator skill:
 
-### Main workflow skills
+1. run the repo's structural tests and `git diff --check`;
+2. re-check routing behavior via `eval-cs-skill`: routing-decision fixtures per Spec branch, >=2 models, k>=3, against a frozen pre-change variant snapshot;
+3. triage failures in this order before blaming the skill: oracle too strict > fixture ambiguity > skill defect > model behavior difference;
+4. cap live wording fixes at two rounds per fixture; wording-resistant failures signal a structural gap in the Spec (see quality-gates Measured Rules 6);
+5. write conclusions back into `references/cs-skill-quality-gates.md` Measured Rules when they generalize.
 
-For skills like `cs-feat`, `cs-issue`, `cs-epic`, or `cs-docs`, optimize for:
-
-- entry intent parsing;
-- repository-fact restoration;
-- stage routing;
-- human checkpoints;
-- progressive reference loading;
-- clear final handoff.
-
-### Compatibility skills
-
-For deprecated or compatibility entries, keep them thin. They should set a `requested_stage`, `requested_mode`, or route to the main skill. They should not maintain independent rules.
-
-### Fastforward modes
-
-Fastforward is a mode request, not permission to skip safety. It must state eligibility and rejection conditions. If rejected, route back to the standard workflow and explain why.
-
-### Goal or long-running handoff
-
-When a skill hands work to a goal driver or background agent, specify:
-
-- what artifact is handed off;
-- what signal means success, blocked, or needs human;
-- what the visible fallback command is;
-- which state files make recovery possible.
-
-## Output
-
-When reporting a proposed or completed skill rewrite, use this structure:
-
-```text
-Classification:
-Refactor depth: minimal hardening patch | full protocol refactor
-Trigger contract:
-Spec:
-Process protocol:
-State restoration:
-Stage routing / decision rules:
-Progressive reference loading:
-Human checkpoints:
-Failure behavior:
-Output contract:
-Machine contracts:
-Decision fixtures:
-Preserved behavior / unchanged sections:
-Open maintainer decisions:
-```
-
-If the output is not a full protocol refactor, explicitly name which required sections are missing and why.
-
-Keep unrelated product changes out of the skill rewrite unless the user explicitly asks for them.
+CodeStable-specific shape patterns (main workflow skills, compatibility shims, fastforward modes, goal handoff) live in `references/cs-skill-spec-standard.md`.
 
 ## Output Contract
 
-`build-cs-skill` final responses must include:
+`build-cs-skill` final responses must include: target skill path; classification; refactor depth (`minimal hardening patch` | `full protocol refactor`); files changed or planned (distinguishing actual edits from sample fixtures); validation result, or reason validation was not run; missing confirmations or maintainer decisions; next concrete action.
 
-- target skill path;
-- classification;
-- refactor depth;
-- files changed or planned;
-- validation result, or reason validation was not run;
-- missing confirmations or maintainer decisions;
-- next concrete action.
-
-When editing files, distinguish files actually changed from sample files or proposed fixtures.
-
-## Machine Contracts
-
-Keep these invariants in the body unless the local validator supports frontmatter `contracts:`:
-
-```yaml
-contracts:
-  - grep: "SkillWorkRequest"
-  - grep: "RefactorDepth"
-  - grep: "ProcessProtocol"
-  - grep: "selectRefactorDepth"
-  - grep: "selectProcessProtocol"
-  - grep: "FullProtocolRefactor"
-  - grep: "MinimalHardeningPatch"
-  - grep: "Target Skill Preflight"
-  - grep: "Output Contract"
-  - not-grep: "read `.codestable/attention.md` just to author"
-```
+Report rewrites with the section-by-section structure in `references/cs-skill-spec-standard.md` (Review Report Template). If the output is not a full protocol refactor, explicitly name which required sections are missing and why. Keep unrelated product changes out of the skill rewrite unless the user explicitly asks for them.

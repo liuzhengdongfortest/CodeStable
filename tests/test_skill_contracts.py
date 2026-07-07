@@ -19,6 +19,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "plugins/codestable/skills"
+# 工具 skill（authoring/eval，不随插件交付）也纳入 contracts 护栏
+LOCAL_SKILLS = ROOT / ".claude/skills"
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.S)
 
@@ -40,10 +42,11 @@ def _split_frontmatter(text: str) -> tuple[str | None, str]:
 
 def _skills_with_contracts() -> list[Path]:
     found: list[Path] = []
-    for path in sorted(SKILLS.glob("*/SKILL.md")):
-        frontmatter, _ = _split_frontmatter(path.read_text(encoding="utf-8"))
-        if frontmatter and "contracts:" in frontmatter:
-            found.append(path)
+    for root in (SKILLS, LOCAL_SKILLS):
+        for path in sorted(root.glob("*/SKILL.md")):
+            frontmatter, _ = _split_frontmatter(path.read_text(encoding="utf-8"))
+            if frontmatter and "contracts:" in frontmatter:
+                found.append(path)
     return found
 
 
