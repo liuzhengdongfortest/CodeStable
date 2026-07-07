@@ -22,6 +22,7 @@ class ExperimentConfig:
     fixture_classes: list[str] = field(default_factory=lambda: ["planted-defect"])
     budget_usd: float = 50.0
     judge_model: str | None = None              # llm_judge 用，需独立于被测 model
+    inject_context: bool = False                # True=prompt 里补齐 onboard 上下文，公平测「主路径」而非 bare-input
     raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -31,7 +32,7 @@ class ExperimentConfig:
                 raise ValueError(f"config.json 缺字段 {key}")
         known = {
             "name", "skill_under_test", "variants", "model_list", "k", "harnesses",
-            "scorers", "fixture_classes", "budget_usd", "judge_model",
+            "scorers", "fixture_classes", "budget_usd", "judge_model", "inject_context",
         }
         return cls(
             name=data["name"],
@@ -44,6 +45,7 @@ class ExperimentConfig:
             fixture_classes=list(data.get("fixture_classes", ["planted-defect"])),
             budget_usd=float(data.get("budget_usd", 50.0)),
             judge_model=data.get("judge_model"),
+            inject_context=bool(data.get("inject_context", False)),
             raw={k: v for k, v in data.items() if k not in known},
         )
 

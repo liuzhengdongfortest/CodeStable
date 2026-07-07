@@ -14,11 +14,28 @@ _INTRO = (
     "请**仅**依据这些指令处理随后的任务，产出该 skill 规定的结构化结果。\n"
 )
 
+# 补齐 skill 设计所依赖的 onboard 运行环境，公平测「主路径」而非 bare-input。
+# （回应「haiku 拒审是否因缺 cs-onboard 上下文」：inject 后 preflight 满足，模型不应再拒绝）
+_CONTEXT_BLOCK = (
+    "\n## 已就绪的 CodeStable 上下文（preflight 已满足——请直接执行本轮任务，"
+    "不要因缺 attention.md / 来源 spec / git 环境而拒绝或退回 onboard）\n"
+    "- `.codestable/attention.md`：本仓已 onboard；报告语言=中文；无特殊命令陷阱或路径约定。\n"
+    "- 来源/范围已确认：本轮任务的目标与范围 = 下方给定内容（等价于用户已确认的 spec/范围）。\n"
+    "- 环境限制：独立 reviewer / OCR / gate / 外部工具在本评测环境不可用；按 protocol 记录跳过原因即可，不要因此 `blocked` 或退回。\n"
+)
 
-def build_prompt(fixture: Fixture, variant_text: str) -> str:
+
+def build_prompt(fixture: Fixture, variant_text: str, inject_context: bool = False) -> str:
     kind = (fixture.task or {}).get("kind", "review")
     builder = _BUILDERS.get(kind, build_review_prompt)
-    return builder(fixture, variant_text)
+    prompt = builder(fixture, variant_text)
+    if inject_context:
+        marker = "===== SKILL.md 结束 ====="
+        idx = prompt.find(marker)
+        if idx != -1:
+            at = prompt.find("\n", idx) + 1
+            prompt = prompt[:at] + _CONTEXT_BLOCK + prompt[at:]
+    return prompt
 
 
 def build_review_prompt(fixture: Fixture, variant_text: str) -> str:

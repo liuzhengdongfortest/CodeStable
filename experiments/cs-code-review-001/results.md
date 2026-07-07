@@ -13,7 +13,7 @@
 | baseline | judge_quality | 0.48 [soft: mean over n=15] |
 | baseline | recall | 0.6667 [measured: mean over n=15] |
 | baseline | cost_usd | 0.0 [soft: mean n=15] |
-| baseline | input_tokens | 2229.73 [soft: mean n=15] |
+| baseline | input_tokens | 2171.93 [soft: mean n=15] |
 | baseline | output_tokens | 32.07 [soft: mean n=15] |
 | baseline | turns | 1 [measured: mean n=15] |
 | baseline | wall_ms | 0 [measured: mean n=15] |

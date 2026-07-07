@@ -13,7 +13,7 @@
 | baseline | judge_quality | 0.4 [soft: mean over n=3] |
 | baseline | recall | 1.0 [measured: mean over n=3] |
 | baseline | cost_usd | 0.0 [soft: mean n=3] |
-| baseline | input_tokens | 935.33 [soft: mean n=3] |
+| baseline | input_tokens | 1010.67 [soft: mean n=3] |
 | baseline | output_tokens | 17.33 [soft: mean n=3] |
 | baseline | turns | 1 [measured: mean n=3] |
 | baseline | wall_ms | 0 [measured: mean n=3] |

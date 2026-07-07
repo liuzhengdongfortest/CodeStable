@@ -1,65 +1,33 @@
 # Results — cs-code-review-robustness-001
 
-首个真实模型 `[measured]` 跨模型实验 + optimize 闭环，经 cs-skill 框架。
+真实模型评测中发现并纠正了一个**评测效度硬伤**。经 cs-skill-lab 框架，经 sub2global 网关（api harness）。
 
-## 发现
+## 发现（含纠错）
 
-cs-code-review 在 **bare-input**（只给 diff、无 `.codestable/` 上下文、无来源 spec）下**不是 model-agnostic**：
-- **claude-haiku-4-5** 严格照「启动检查」四项前置，**拒绝审查**、退回要求补 attention.md/spec/完整 git diff——对明显的 `eval(payload)` 都没审。
-- **claude-sonnet-4-6** 照常审，全中。
+初测：cs-code-review 在**裸 diff、无 `.codestable/` 上下文**下，claude-haiku-4-5 recall=**0.31**、claude-sonnet-4-6=**1.00**。一度误读为「haiku 通用健壮性 gap」。
 
-手工核查 haiku 原始输出确认是**前置 gating 导致的拒审**，非模型识别不了缺陷；打分器由 sonnet 13/13 反证无误。单一 recall 数字会掩盖这点，分模型才暴露。
+手工核查 haiku 原始输出：它严格照「启动检查」四项前置，因缺 attention.md / 来源 spec / 完整 git diff 而**拒绝审查**——这是**正确行为**（preconditions 不满足就退回）。问题在评测：cs skills 为已 onboard 的 `.codestable/` 仓库设计，评测却把 skill 拉出设计环境喂裸输入。
 
-## 方法
+## 对照实验（原始 skill，无 fast-path，haiku，13 例）
 
-- fixtures：13 例 planted-defect（8 关键词可检 + 5 需推理），`planted_defect` 召回 oracle（[measured]）。
-- harness：`api`（直连 sub2global 网关，Anthropic 协议 + Bearer）。models：sonnet-4-6 + haiku-4-5。
-- 干预（单一变量）：SKILL.md 顶部加「Ad-hoc / bare-input 快速通道」，见下。
+| 条件 | haiku recall |
+|---|---|
+| 裸 diff、零上下文 | 0.31 [measured] |
+| **补 onboard 上下文**（attention 就位 + 来源/范围确认，preflight 满足） | **0.92 [measured]** |
 
-## 结果（k=1，13 例/模型）
+**结论：haiku 的低分 ~90% 是「缺 cs-onboard 上下文」造成的评测假象，不是模型/skill 缺陷。** 补上设计所依赖的环境后 haiku≈0.92，逼近 sonnet。真实 haiku↔sonnet 审查能力差 ≈ 0.08（小）。
 
-| 模型 | baseline recall | + fast-path recall | Δ |
-|---|---|---|---|
-| claude-haiku-4-5 | 0.31 [measured] | **1.00 [measured]** | **+0.69** |
-| claude-sonnet-4-6 | 1.00 [measured] | 1.00 [measured] | +0.00 |
+## 纠正动作
 
-- **H-haiku-recovery: CONFIRMED** — 1.00 ≥ 0.85。
-- **H-no-regression: CONFIRMED** — sonnet 1.00 ≥ 0.95。
+1. **回退**先前 land 到 cs-code-review 的「ad-hoc/bare-input fast-path」——它治标（教 gate 在裸输入下别拒绝），且有弱化这个刻意做重的 gate 的风险。真修复是评测/使用补齐 onboard 上下文。
+2. 框架加 `inject_context`（config 字段 + buildprompt 注入 onboard 上下文块），并把它设为**核心 skill 评测的标准条件**，公平测「主路径」而非 bare-input。
 
-## 结果（k=5 haiku 复测，稳定性）
+## Caveats
 
-未完成（后台任务随会话结束被终止，未产出）。可复现：
-`runner.py --experiment <13例目录, model=haiku, k=5> --variant baseline` 与 `--variant iter-1`。
-k=1 效应量（从拒审 0.31 到满召回 1.00）已足够明确；k=5 仅用于估方差，不改方向。
+- k=1、13 例、单网关；haiku 拒审有概率性（bare 时仍审对 4/13）。效应量（0.31↔0.92）足够明确。
+- 原始 LLM 响应在 `/tmp`（未入库）。本文件为可公开证据摘要。
+- 「ad-hoc/bare-input 容错」作为**产品选择**仍可另议（skill 文档确有 ad-hoc 来源行），但不应以「修复通用 gap」为由，也不在本次范围。
 
-## 干预内容（已 land 到 SKILL.md）
+## 教训（写进方法论）
 
-```markdown
-## Ad-hoc / bare-input 快速通道（最先判断）
-只给一段 diff/代码、无 .codestable 上下文/来源 spec 时：不要拒绝、不要退回、
-不要因缺 attention.md/spec 中止。直接按标准逐条审，输出 Findings；
-reviewer 记 self，scope 标 ad-hoc-diff，residual-risk 说明缺上下文。
-只有既无 diff 也无可审代码时才退回补范围。
-```
-
-## Caveats（认知诚实）
-
-- k=1 → 严格按 BAIME 功效标准为 `[underpowered]`；但效应量（从拒审到满召回）极大、方向无歧义。k=5 haiku 复测见上。
-- 单一 fixture 集、单一网关；haiku 拒审可能有概率性（baseline 曾审对 4/13）。
-- 原始 LLM 响应在 `/tmp/real-eval`（未入库，含脱敏前内容）；本文件为可公开证据摘要。
-
-## evidence_pointer / 复现
-
-```bash
-# 被测 skill 快照注入、隔离宿主；需网关鉴权 env
-source <env>   # ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN
-python3 <cs-skill>/scripts/runner.py --experiment <exp> --dry-run   # 估成本
-python3 <cs-skill>/scripts/runner.py --experiment <exp>             # baseline
-python3 <cs-skill>/scripts/runner.py --experiment <exp> --variant iter-1  # + fast-path
-```
-
-## Landed
-
-fast-path 已并入 `plugins/codestable/skills/cs-code-review/SKILL.md`（顶部，additive，不改标准 gating）。
-**未 bump 插件版本**——版本/release 是 owner 的独立决定（bump 会连带更新 doctor 测试里硬编码的版本）；
-`cs-skill/scripts/bump_version.py` 已 dogfood 验证可用，真正发版时再执行。
+评测 skill 必须复现它设计所依赖的运行环境（onboard 上下文）；否则测到的是「skill 在错误环境下的反应」，而非其真实能力。分模型看 + 手工核查原始输出，才没把假象当结论。

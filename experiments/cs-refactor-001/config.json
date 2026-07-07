@@ -1,12 +1,24 @@
 {
   "name": "cs-refactor-001",
   "skill_under_test": "cs-refactor",
-  "variants": ["baseline"],
-  "model_list": ["mock-model"],
+  "variants": [
+    "baseline"
+  ],
+  "model_list": [
+    "mock-model"
+  ],
   "k": 1,
-  "harnesses": ["mock"],
-  "scorers": ["planted_defect", "llm_judge"],
-  "fixture_classes": ["planted-defect"],
+  "harnesses": [
+    "mock"
+  ],
+  "scorers": [
+    "planted_defect",
+    "llm_judge"
+  ],
+  "fixture_classes": [
+    "planted-defect"
+  ],
   "budget_usd": 50.0,
-  "judge_model": null
+  "judge_model": null,
+  "inject_context": true
 }

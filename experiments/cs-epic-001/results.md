@@ -13,7 +13,7 @@
 | baseline | judge_quality | 0.4 [soft: mean over n=8] |
 | baseline | recall | 0.0 [measured: mean over n=8] |
 | baseline | cost_usd | 0.0 [soft: mean n=8] |
-| baseline | input_tokens | 1098.5 [soft: mean n=8] |
+| baseline | input_tokens | 1174.25 [soft: mean n=8] |
 | baseline | output_tokens | 40 [soft: mean n=8] |
 | baseline | turns | 1 [measured: mean n=8] |
 | baseline | wall_ms | 0 [measured: mean n=8] |

@@ -10,16 +10,6 @@ argument-hint: "[--range <git-range>] [scope]"
 
 动作前先跑 CodeStable preflight：读 `.codestable/attention.md`（缺失先 `cs-onboard`）；不要用 `AGENTS.md`/`CLAUDE.md` 等外部入口代替它；细则见 `.codestable/reference/execution-conventions.md`。
 
-## Ad-hoc / bare-input 快速通道（最先判断）
-
-如果本次调用**只给了一段 diff / 代码片段**，没有 `.codestable/` 上下文、没有来源 spec 产物、也没有完整 git 环境（常见于 pre-merge、外部工具调用、直接粘贴 diff）：**不要拒绝、不要退回来源技能、不要因缺 `attention.md` 或 spec 而中止审查**。直接对给定的 diff / 代码做 best-effort 只读 review：
-
-- 按下方「整体审查」「行级审查」「严重度」对给定改动逐条找问题，输出 **Findings**（每条 `- [file:line] 简述`，按 severity 分组）。
-- 跳过 attention / spec 定稿 / gate / 独立 reviewer 等前置；`reviewer` 记 `self`，报告标注 `scope: ad-hoc-diff`，并在 `residual-risk` 说明“缺完整上下文，仅基于所给 diff”。
-- 只有在**既没有 diff 也没有任何可审代码**时，才退回请用户补范围。
-
-有完整 CodeStable 上下文时，仍走下面的标准流程。
-
 本技能是**横切代码审查 gate**：任何流程实现完成后、commit / QA / 验收前，对当前改动做独立只读 review。它只读代码和产物，只写 `{slug}-review.md`，不直接修代码、不更新 checklist、不改 spec、不替代 QA 或 acceptance。
 
 审查目标不是追求完美代码，而是确认本次改动没有降低系统代码健康，并且确实朝对应 spec（design / fix-note / refactor-design / 用户确认范围）的目标前进。能自动格式化或 lint 的问题不要手工阻塞；会影响正确性、维护性、安全、性能、可测试性、需求满足或后续验收可信度的问题必须指出。

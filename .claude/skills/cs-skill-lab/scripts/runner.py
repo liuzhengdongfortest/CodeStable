@@ -69,7 +69,7 @@ def dry_run(config: ExperimentConfig, fixtures, cells, k: int, exp_dir: Path | N
         text = resolve_variant_text(config, variant, repo_root(), exp_dir)
         cell_cost = 0.0
         for fx in fixtures:
-            prompt = build_prompt(fx, text)
+            prompt = build_prompt(fx, text, config.inject_context)
             cell_cost += metrics.estimate_cost(prompt, model) * k
         per_cell.append({"variant": variant, "harness": h, "model": model, "est_usd": round(cell_cost, 4)})
         total += cell_cost
@@ -84,7 +84,7 @@ def run(config: ExperimentConfig, fixtures, cells, scorer_names, k: int, exp_dir
         text = resolve_variant_text(config, variant, root, exp_dir)
         harness = harness_pkg.get_harness(h)
         for fx in fixtures:
-            prompt = build_prompt(fx, text)
+            prompt = build_prompt(fx, text, config.inject_context)
             for ki in range(k):
                 with tempfile.TemporaryDirectory(prefix="cs-eval-") as tmp:
                     hr = harness.invoke(prompt, model, Path(tmp), timeout_s=600)

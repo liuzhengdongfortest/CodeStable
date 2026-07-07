@@ -28,6 +28,7 @@
 ```
 
 - `variants`：`baseline`=当前仓库被测 skill 的 SKILL.md；其余=optimize 产出的 `experiments/{name}/variants/<v>.md`。
+- `inject_context`（**效度关键，默认 true**）：cs skills 为已 onboard 的 `.codestable/` 仓库设计（启动检查要 attention.md / 来源 spec / git diff）。评测须在 prompt 里补齐这套 onboard 上下文，否则测到的是「skill 在错误环境下拒绝执行」的假象而非真实能力（实测：cs-code-review haiku bare=0.31 → 补上下文=0.92）。设 `false` 只用于专门测「bare-input/ad-hoc 健壮性」。
 - `model_list` ≥2（跨模型一致性，BAIME 硬约束）。`judge_model` 须独立于被测 model。
 
 ## 2. 作 fixtures

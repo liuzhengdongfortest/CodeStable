@@ -1,13 +1,11 @@
 # Hypotheses — cs-code-review-robustness-001
 
-背景：cs-code-review 在 bare-input（只给 diff、无 CodeStable 上下文）下，弱模型会因「启动检查」前置未满足而**拒绝审查**（haiku 实测退回要求补 attention.md/spec/完整 git diff，未审明显的 `eval(payload)`）。强模型（sonnet）照审。
+背景：cs-code-review 在 bare-input（只给 diff、无 `.codestable/` 上下文）下，haiku 因「启动检查」前置未满足而拒审（0.31），sonnet 照跑（1.00）。核心问题：这是模型/skill 缺陷，还是评测没给 skill 设计所依赖的 onboard 环境？
 
-干预（单一变量）：在 SKILL.md 顶部加「Ad-hoc / bare-input 快速通道」，明确「只给 diff 时不拒绝、直接 best-effort 审、reviewer=self、scope=ad-hoc-diff」。
+oracle：`planted_defect` 召回（[measured]），13 例，harness=api，经 sub2global 网关。
 
-oracle：`planted_defect` 召回（[measured]），13 例 planted-defect，harness=api，经 sub2global 网关。
+- **H-context-recovers**: 用**原始 skill**（无 fast-path）+ 补齐 onboard 上下文后，haiku recall ≥ 0.85（bare ≈ 0.31）。
+  - 结果：**CONFIRMED**，haiku=0.92 → 低分是缺上下文的评测假象，非模型缺陷。
+- 推论：真实 haiku↔sonnet 审查能力差很小（≈0.08）。
 
-- **H-haiku-recovery**: 加 fast-path 后，haiku 在 bare-diff 上的 recall ≥ 0.85（baseline ≈ 0.31）。
-- **H-no-regression**: sonnet 的 recall 保持 ≥ 0.95（baseline = 1.00）。
-
-功效：首轮 k=1（效应量极大，方向明确）；k=5 haiku 复测确认稳定性（见 results.md）。
-provenance 说明：本实验为真实 harness 探索，hypotheses 在观察到现象后成文，非严格 pre-register；结论 tag 据实标注。
+功效：k=1、13 例（效应量 0.31↔0.92 极大，方向无歧义）。provenance：真实 harness 探索，据实标注。
