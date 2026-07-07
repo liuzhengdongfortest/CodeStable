@@ -19,6 +19,23 @@
        + 隐藏验收测试（hidden tests：模型不可见，跑完后取出判分）
 ```
 
+### 种子仓库：自建，不 fork 开源项目（已决策，2026-07-07）
+
+- **数据污染**是 outcome eval 的头号效度杀手：知名 repo 在模型训练语料里，测出来的是记忆
+  不是能力（SWE-bench 的已知问题）。自建新代码零污染。
+- cs skills 的设计环境是 onboarded `.codestable/` 仓库——自建才能原生满足（效度教训：
+  bare-input 0.31 vs 带环境 0.92）。
+- 成本可控：seed 须千行级、测试秒级、零第三方依赖；真实项目的体量/依赖树在沙箱里失控。
+- 自建的两个风险及化解：①太干净不像真的 → **演进式构建 + 刻意做旧**（多阶段提交历史、
+  风格漂移、TODO/废弃模块、测试覆盖不均）；②作者偏差（建 repo/种 bug/出题同一人）→
+  bug 取自真实模式库 + hidden test 先写后种 + **L2 对照对两组同等作用，相对差仍有效**。
+- 入库形态：**构建脚本 + 阶段快照**（`experiments/seeds/<name>/build-seed.py` 逐 commit
+  构建到 tmp，固定日期确定性输出）——避免嵌套 git repo，可 diff review。
+- 种 bug 铁律：**注入点必须落在 seed 自带测试的暗角**（注入后自带回归仍绿）——否则
+  agent 一跑测试就看到失败点，难度骤降且不真实；做旧的"覆盖不均"正是为此准备。
+- fork 的唯一合理变体：用 owner 自己的**私有**真实项目快照（模型没见过、可真 onboard），
+  作为后期补充轨道。
+
 执行：真 agent harness（`claude-headless` / `codex-cli`，eval-cs-skill 已有适配器）在沙箱
 worktree 里按 skill 完整跑流程——不是单次问答。
 
