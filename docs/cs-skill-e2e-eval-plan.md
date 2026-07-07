@@ -1,0 +1,105 @@
+# cs skills 端到端效果评测方案（e2e outcome eval）
+
+状态：方案（未实施）。作者：eval-cs-skill 闭环 campaign（2026-07-07）收口时整理。
+前置阅读：`experiments/cs-issue-routing-001/results.md`（routing 层 verdict 与方法学）、
+`.claude/skills/build-cs-skill/references/cs-skill-quality-gates.md`（Measured Rules）。
+
+## 动机
+
+已完成的 routing eval 证明的是**代理指标**：模型能读懂 skill 文档、在给定仓库状态下走对下一步
+（七 skill 均值 original 0.807 → 重构后 0.965，[measured]）。它**不能证明**"最终干出来的活更好"。
+软件研发 skill（cs-issue / cs-feat / cs-epic）有个天然优势：产出可以用测试机械判定——
+这是把评测升级到 outcome 层的抓手（对标 SWE-bench 思路）。
+
+## 总体设计
+
+```text
+场景包 = 种子仓库（真实小项目：有代码、有测试、有提交历史、已 onboard .codestable/）
+       + 一个任务（bug 报告 / feature 需求 / 大需求，用户口吻）
+       + 隐藏验收测试（hidden tests：模型不可见，跑完后取出判分）
+```
+
+执行：真 agent harness（`claude-headless` / `codex-cli`，eval-cs-skill 已有适配器）在沙箱
+worktree 里按 skill 完整跑流程——不是单次问答。
+
+打分（全机械 [measured]）：
+
+| 指标 | 判法 |
+|---|---|
+| 活干成没有（主指标） | 隐藏验收测试 红→绿 通过率 |
+| 有没有干坏别的 | 种子仓库既有测试套件仍全绿（回归） |
+| 过程守没守规矩 | 产物契约（fix-note / design / checklist 存在且合规，复用 dod_gate scorer）；该停的 checkpoint 停了没（从产物状态判） |
+| 成本 | tokens / turns / wall time（metrics.py 现成） |
+
+## 三个 skill 的场景设计
+
+### cs-issue（P0，最先做）
+
+- 种真 bug 三档：单行逻辑错（易）/ 跨函数状态错（中）/ 需读多文件推理根因（难）。
+- 验收：hidden test 红→绿 + 回归绿 + `fix-note.md` 根因正确（关键词/judge 双轨）。
+- **陷阱场景**：bug 报告实为新需求 → 正确动作是转 `cs-feat` 而非硬修（防"无脑往前冲"）。
+
+### cs-feat（P1）
+
+- 需求含显式验收标准 + **隐含边界**（如"导出 CSV"隐含空数据/逗号转义）；hidden tests
+  覆盖隐含项——design 阶段认真挖需求才会过。
+- 测 checkpoint 遵守：design-review passed 后是否停等确认（headless 下判产物状态：
+  design 保持 draft + 输出含等待确认，而非自批准进实现）。
+
+### cs-epic（P2/P3）
+
+- P2 便宜版：只评**拆解质量**——items.yaml 与专家拆解对比（覆盖度/依赖顺序）+
+  各 child design 验收标准质量。
+- P3 全程版：3-4 child 小 epic 跑到底，集成测试判定 + 过程合规（批量 design、
+  统一确认、不逐个停）。做前单独确认预算。
+
+## 对照组（决定"证明了什么"）
+
+| 对照 | 回答的问题 |
+|---|---|
+| L1：重构前 vs 重构后 skill 文档 | 本轮 prompt-as-code 重构在 outcome 层是否仍有增益 |
+| **L2：有 skill vs 裸 agent 同任务** | **skill 本身值不值得存在**（最有说服力，此前从未测过） |
+| L3：便宜模型+skill vs 贵模型裸奔 | 性价比：skill 能否让便宜模型达到贵模型水平 |
+
+## 效度铁律（承接 routing campaign 的教训）
+
+1. **hidden tests 模型不可见**——可见即应试。
+2. **种子仓库要像真的**：提交历史 + 既有测试 + `.codestable/`。已验证教训：把 skill
+   拉出设计环境测，测出的全是假象（bare-input 0.31 vs 补上下文 0.92）。
+3. **出题先自证可解**：每个场景先用参考实现跑通 hidden tests（oracle 校准的事前版）。
+4. **必须含"该停/该拒绝"场景**：全是"往前冲得分"的题会把 skill 优化成莽夫。
+5. **分诊纪律**：分数异常先看 transcript / 产物，分类 oracle 问题 vs fixture 缺陷 vs
+   skill 真缺陷 vs 模型行为差异；live 优化两轮为限；受影响变体重跑统一口径。
+6. 认知诚实标注不变：[measured]/[soft]/[underpowered]；hypotheses 先于运行注册。
+
+## 框架衔接（复用现有 eval-cs-skill）
+
+- 已有可复用：harness 注册表（claude-headless/codex-cli/api）、dod_gate scorer、
+  checkpoint/resume + 分段、per-cell 容错 + 重试、`--dry-run` 成本护栏、认知诚实 tag。
+- 需新建：
+  - `fixtures/e2e/`：每场景一个目录（seed-repo/ + hidden-tests/ + scenario.json）；
+    新 answerType `e2e-outcome`。
+  - runner 的 e2e 模式：workdir=解压 seed → agent harness 跑 skill → 执行 hidden tests
+    与回归套件 → 收集产物/transcript。
+  - `e2e_outcome` scorer：测试通过率 + 回归 + 产物契约合成。
+- 沙箱隔离：每 cell 独立 tmp workdir（既有约定），不触宿主仓库。
+
+## 成本与分期
+
+| 期 | 内容 | 估算 | 前置 |
+|---|---|---|---|
+| P0 | cs-issue ×8 场景、单模型、k=3 | ~$10-20 | 无 |
+| P1 | cs-feat ×6 + 裸 agent 对照（L2） | ~$30-50 | P0 管线 |
+| P2 | cs-epic 拆解质量版 | ~$10 | P0 |
+| P3 | cs-epic 全程版 | $50+ | 单独确认预算 |
+
+单次 cs-feat 全流程 50-200k tokens，比 routing 选择题贵 50-100 倍——P0 先跑通管线，
+后续只是换场景。统计功效：每 skill ≥6 场景 × k≥3；hidden tests 为二元判定，方差低于
+LLM judge，所需样本量小于 soft 指标。
+
+## 风险与开放项
+
+- headless harness 的 checkpoint 交互：等确认类场景需注入"用户确认"脚本或以
+  "停在正确状态"为判分点——实施时定。
+- 种子仓库维护成本：每场景一个可跑项目，优先共享 1-2 个 seed（同仓库种不同 bug/需求）。
+- cs-epic 全程版的长时执行受环境 kill 影响——依赖既有 resume 机制，必要时分 child 分段。
