@@ -5,7 +5,9 @@
 
 ## CodeStable Preflight
 
-任何 CodeStable skill 在判断或动作前先执行 preflight：
+任何 CodeStable skill 在判断或动作前先执行 preflight。
+
+**上下文幂等（首次做、已做复用）**：同一会话首次 preflight 成功后，attention 内容与 onboard / runtime 结论已在上下文内；后续 skill 直接复用，不重读 `.codestable/attention.md`、不重复 onboard / runtime 检查——除非上一轮 preflight 报告过缺失 / 不一致，或期间改动了 attention / runtime 资产。首次 preflight（或需重新确认时）执行：
 
 1. 读 `.codestable/attention.md`。
 2. 缺 `.codestable/attention.md` 时视为骨架不完整，提示补齐或运行 `cs-onboard`。

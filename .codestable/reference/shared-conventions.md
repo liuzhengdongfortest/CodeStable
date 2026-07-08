@@ -224,9 +224,9 @@ acceptance / issue-fix 走完后把本次产物提交为一个 commit：
 
 ## 5. 归档检索规则
 
-feature-design / issue-analyze / issue-fix 动手前到 `.codestable/compound/` 搜已有沉淀：
+feature-design / issue-analyze / issue-fix 动手前到 `.codestable/compound/` 搜已有沉淀，遵守上下文幂等（首次读、已载复用）：
 
-- 总是先搜 `requirements/CONTEXT.md`、`requirements/adrs/`、`compound/`
+- **首次进入该工作项**时搜 `requirements/CONTEXT.md`、`requirements/adrs/`、`compound/`（防术语冲突、防违反已拍板决策）；若本会话/本阶段已加载过这些全局输入，则复用已读摘要，不重复 Glob+Read。`epic_child_batch: true` 时这些全局输入已由 `cs-epic` 在批量开始时统一加载，子 feature 直接复用、不重扫
 - `compound/` 直接 `grep -r "关键词" .codestable/compound/`（纯 markdown，无 schema）
 - 搜到的结果只作参考输入，不盲目套用——可能已过时或不适合当前上下文
 - 搜到和当前方向冲突的决策类沉淀 → **必须**正面回应"为什么仍然这么做"或调整方向

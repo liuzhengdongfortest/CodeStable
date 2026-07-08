@@ -74,7 +74,7 @@
 
 ### Phase 2：读取材料
 
-**共同必读**：`.codestable/attention.md` + 用户素材 + `roadmap/` 其他 roadmap（防重复）+ `requirements/` 相关 req + `requirements/CONTEXT.md` + `requirements/adrs/` 相关 ADR。
+**共同必读（上下文幂等：首次读、已载复用）**：`.codestable/attention.md` + 用户素材 + `roadmap/` 其他 roadmap（防重复）+ `requirements/` 相关 req + `requirements/CONTEXT.md` + `requirements/adrs/` 相关 ADR。**若本会话已加载过 CONTEXT / adrs / 相关 roadmap，则复用已读内容，不重复 Glob+Read**；epic planning 是子 feature 批量的全局输入加载点，加载一次供后续子 feature design 复用（见 `cs-feat` design 阶段 `epic_child_batch`）。
 
 **按情况读**：
 - 相关 compound 沉淀：`grep -r "{大需求关键词}" .codestable/compound/`

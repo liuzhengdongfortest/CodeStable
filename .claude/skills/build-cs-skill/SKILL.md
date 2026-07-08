@@ -214,6 +214,8 @@ Use this wording when relevant:
 Load exactly one stage protocol before acting, plus only the support files that protocol requests.
 ```
 
+When a skill also loads project facts (`CONTEXT.md`, ADR, compound) across stages or batch fan-out, apply the **Idempotent Context Loading Gate** (`references/cs-skill-quality-gates.md`): reuse facts already loaded in-session instead of unconditional re-reads, and drive batch skips with a structural flag (e.g. reuse `epic_child_batch`), not wording.
+
 ### 8. Add machine contracts
 
 If the local validation system supports frontmatter contracts, add `contracts:`. If it does not, still include a `## Machine Contracts` section so the invariants are explicit and can later be wired into validation.

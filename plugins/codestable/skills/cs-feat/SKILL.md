@@ -8,6 +8,7 @@ contracts:
   - grep: "must not auto-approve design"
   - grep: "独立 Task agent reviewer"
   - grep: "design-review passed"
+  - grep: "不重复读取这些全局输入"
   - not-grep: "git push"
   - not-grep: "read all references"
 ---
@@ -158,7 +159,7 @@ implementation / code review / QA / acceptance 的普通阻塞优先由 goal dri
 
 ## Epic 子 Feature 批量上下文
 
-`cs-epic` 批量生成子 feature design 时以内部上下文 `epicChildBatch: true` 调用（非公开参数，不写入 argument-hint）。此时：design-review passed 后 design 保持 `draft`、**不执行单 feature 的人工整体 review checkpoint**、不改 approved；design-review passed 但未 approved 时**不在这里停，回到 `cs-epic` 继续下一个子 feature**，等所有 design 统一确认；回写 design/checklist/design-review/items.yaml 后返回 `cs-epic`，**不得用 final answer 要用户确认单个 child**；退出前运行 `python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --epic-child-batch --json`，若输出 `final_answer_allowed: false` 按 `next_action` 交回 `cs-epic`。单独调用 `cs-feat` 或无该上下文时，仍按普通 checkpoint 停。
+`cs-epic` 批量生成子 feature design 时以内部上下文 `epicChildBatch: true` 调用（非公开参数，不写入 argument-hint）。**该上下文还表示 CONTEXT / adrs / compound 等全局输入已由 `cs-epic` 在批量开始时统一加载，design 阶段复用、不重复读取这些全局输入**（幂等，省掉 N 个子 feature 各扫一遍）。此时：design-review passed 后 design 保持 `draft`、**不执行单 feature 的人工整体 review checkpoint**、不改 approved；design-review passed 但未 approved 时**不在这里停，回到 `cs-epic` 继续下一个子 feature**，等所有 design 统一确认；回写 design/checklist/design-review/items.yaml 后返回 `cs-epic`，**不得用 final answer 要用户确认单个 child**；退出前运行 `python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --epic-child-batch --json`，若输出 `final_answer_allowed: false` 按 `next_action` 交回 `cs-epic`。单独调用 `cs-feat` 或无该上下文时，仍按普通 checkpoint 停。
 
 ## 兼容入口
 

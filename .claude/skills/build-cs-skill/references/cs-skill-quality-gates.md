@@ -46,6 +46,29 @@ Good wording:
 Load exactly one stage protocol before acting, plus only the support files that protocol requests.
 ```
 
+## Idempotent Context Loading Gate
+
+Progressive loading answers *which* reference a stage loads; this gate answers *whether a project fact already in context must be re-read*. They are complementary — stage granularity vs session granularity.
+
+Project facts (`attention.md`, `CONTEXT.md`, `adrs/`, `compound/`, prior `features/` designs) are read to load project conventions and prevent term conflicts / ADR violations. That value is real on the first read in a fresh context, but re-reading the same fact later in one session (per-skill preflight re-reading `attention.md`, brainstorm→design, multi-round design, or epic×N children) only burns tokens. Startup steps worded as "必读 / 总是先搜 / 共同必读 / 先跑 preflight" encode unconditional re-reads.
+
+For any startup step that loads project facts, check:
+
+- does it say to reuse already-loaded facts instead of unconditionally re-Glob+Read?
+- is the first-read value (term-conflict / ADR check) preserved, not deleted?
+- for batch fan-out (epic → child designs), is the skip driven by a **structural flag**, not wording?
+
+Good wording (soft guard, single-session continuation):
+
+```text
+首次进入该工作项时读 CONTEXT.md / adrs / compound（防术语冲突、防违反已拍板决策）；
+若本会话/本阶段已加载过这些全局输入，则复用已读摘要，不重复 Glob+Read。
+```
+
+Batch fan-out needs a structural flag, not wording — a soft "reuse if already read" cannot be relied on across N dispatched child stages, because the model has no durable signal that a sibling already loaded the fact. Thread an internal flag (reuse an existing one such as `epic_child_batch` rather than inventing a new state field) so the parent loads global inputs once and children skip explicitly. This mirrors **Measured Rules 6**: batch repetition is a structural gap, not a wording problem.
+
+**Fixture note (why this gate ships contract-only).** The current `routing_decision` scorer compares only the final decision JSON; the api harness is single-turn, tool-less, and hands repo facts in as pre-recovered text. "Did not re-read a file" is therefore inexpressible and unscorable today. Guard this gate with a frontmatter contract (anchor the skip sentence in a SKILL.md body) + `test_skill_contracts.py` + the structural flag, not with a measured fixture. A measured fixture is future work needing a multi-turn, tool-enabled harness or an action-assertion scorer; a routing eval run here is a no-regression check on existing decisions only, never validation of this guard.
+
 ## Contract Gate
 
 Contracts protect the skeleton of the skill. They do not prove the agent will make the right decision.
@@ -111,7 +134,8 @@ Fix these before adding more prose:
 - implementation details appear before routing rules;
 - reference files are loaded eagerly;
 - failure path says only "ask user" without current artifact and next action;
-- skill can continue past a human checkpoint without explicit confirmation.
+- skill can continue past a human checkpoint without explicit confirmation;
+- unconditionally re-reads project facts (CONTEXT/ADR/compound) already loaded earlier in the same session or batch.
 
 ## Review Output
 

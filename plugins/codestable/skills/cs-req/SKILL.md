@@ -5,6 +5,7 @@ contracts:
   - grep: "backfill"
   - grep: "变更日志"
   - grep: "status: draft"
+  - grep: "首次进入本 req 会话必读"
   - not-grep: "git push"
   - not-grep: "多份 req"
 ---
@@ -131,7 +132,7 @@ selectReqAction(s, r)
 
 ### Phase 2：读取材料
 
-**共同必读**：`VISION.md`（需求中心索引）+ `requirements/` 下其他 req（判断要不要互引、有没有重复）+ 用户素材（口述 / 产品想法 / 用户反馈 / 已有 feature 散落需求描述）。
+**共同必读（上下文幂等：首次读、已载复用）**：`VISION.md`（需求中心索引，首次进入本 req 会话必读）+ 用户素材（口述 / 产品想法 / 用户反馈 / 已有 feature 散落需求描述）。`requirements/` 下其他 req 改按需 grep-by-slug（判断互引 / 重复时再读对应文件）；**若本会话已加载过 VISION / 相关 req，则复用，不重复 Glob+Read**。
 
 **按情况读**：可能承载这能力的 architecture doc（用于 `implemented_by`）；相关已有 feature 方案；compound 沉淀（`grep -r "{能力关键词}" .codestable/compound/`）。
 

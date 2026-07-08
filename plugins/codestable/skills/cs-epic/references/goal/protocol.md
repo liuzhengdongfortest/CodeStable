@@ -69,7 +69,7 @@
 
 ### 第二次确认：所有 feature design
 
-对 roadmap items 里的每个 planned 子 feature，按依赖顺序逐个完成 `cs-feat` design 阶段的候选设计阶段。调用 `cs-feat` 时必须带内部上下文 `epic_child_batch: true`，表示这是 `cs-epic` 批量子设计流程，不是普通单 feature 流程：
+对 roadmap items 里的每个 planned 子 feature，按依赖顺序逐个完成 `cs-feat` design 阶段的候选设计阶段。调用 `cs-feat` 时必须带内部上下文 `epic_child_batch: true`，表示这是 `cs-epic` 批量子设计流程，不是普通单 feature 流程。**该标志同时表示 CONTEXT / adrs / compound 等全局输入已在 planning 阶段统一加载**，子 feature design 复用、不各自重扫（见 `cs-feat` design 阶段"扫 .codestable 全局输入"）：
 
 - 创建 feature 目录。
 - 写 `{feature-slug}-design.md`，frontmatter 带 `roadmap` / `roadmap_item`，正文按 `.codestable/attention.md` 的报告语言落盘（默认中文）。
