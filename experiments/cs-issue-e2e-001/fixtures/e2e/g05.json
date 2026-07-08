@@ -1,0 +1,11 @@
+{
+  "id": "g05",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "bug_id": "g05",
+    "issue_report": "用 API 把任务标记 done 后，返回的 completedAt 客户端解析不了；页面只显示空完成时间。看起来像接口字段坏了。",
+    "hidden_tests": ["hidden/g05/test_g05_completed_at_api_format.py"]
+  }
+}

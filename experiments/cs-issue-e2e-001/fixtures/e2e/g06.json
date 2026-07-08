@@ -1,0 +1,11 @@
+{
+  "id": "g06",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "bug_id": "g06",
+    "issue_report": "搜索框里只输入 deploy、不选任何标签时，结果列表是空的；同样的关键字在不打开标签筛选面板时又能搜到。",
+    "hidden_tests": ["hidden/g06/test_g06_empty_tags_search.py"]
+  }
+}

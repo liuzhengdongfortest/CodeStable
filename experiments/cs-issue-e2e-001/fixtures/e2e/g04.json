@@ -1,0 +1,11 @@
+{
+  "id": "g04",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "bug_id": "g04",
+    "issue_report": "导入和批量改期时有人传了 03/04/2030 这种日期，系统居然收下了。之后列表里看起来有到期日，但过期判断和排序都变得不可信。",
+    "hidden_tests": ["hidden/g04/test_g04_due_date_validation.py"]
+  }
+}

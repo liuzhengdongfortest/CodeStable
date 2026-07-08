@@ -1,12 +1,24 @@
 {
   "name": "cs-issue-e2e-001",
   "skill_under_test": "cs-issue",
-  "variants": ["baseline"],
-  "model_list": ["claude-sonnet-4-6"],
-  "k": 1,
-  "harnesses": ["claude-headless"],
-  "scorers": ["e2e_outcome"],
-  "fixture_classes": ["e2e"],
-  "budget_usd": 10.0,
+  "variants": [
+    "baseline",
+    "bare"
+  ],
+  "model_list": [
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5"
+  ],
+  "k": 3,
+  "harnesses": [
+    "claude-headless"
+  ],
+  "scorers": [
+    "e2e_outcome"
+  ],
+  "fixture_classes": [
+    "e2e"
+  ],
+  "budget_usd": 30.0,
   "inject_context": false
 }
