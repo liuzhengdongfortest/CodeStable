@@ -1,0 +1,1 @@
+chore: onboard CodeStable workflow skeleton

@@ -109,7 +109,12 @@ def score(fixture, result, config=None, root=None) -> dict[str, Any]:
                 fix_note_found = True
                 break
     artifact_ok_val = 1.0 if fix_note_found else 0.0
-    evidence_parts.append({"artifact_ok": fix_note_found})
+    # 留 .codestable/ 文件树快照：workdir 用后即删，无快照则 artifact=0 无法事后分诊
+    # （真没写 vs 写错路径被 glob 漏判——P1 曾靠手动复现才定位，见 results.md）
+    cs_root = repo / ".codestable"
+    cs_tree = sorted(str(p.relative_to(repo)) for p in cs_root.rglob("*") if p.is_file()) \
+        if cs_root.is_dir() else []
+    evidence_parts.append({"artifact_ok": fix_note_found, "codestable_tree": cs_tree[:40]})
 
     # --- 合成 ---
     e2e_ok_val = round(
