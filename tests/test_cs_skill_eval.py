@@ -419,11 +419,15 @@ def test_e2e_fixture_validation_missing_scenario():
 
 
 def test_e2e_fixture_validation_missing_scenario_fields():
-    for missing_key in ("seed", "bug_id", "issue_report", "hidden_tests"):
+    for missing_key in ("seed", "issue_report", "hidden_tests"):
         d = _e2e_fixture_dict()
         del d["scenario"][missing_key]
         problems = fx_mod.validate_fixture_dict(d)
         assert any(missing_key in p for p in problems), f"未检测到缺 {missing_key!r}"
+    # bug_id 可选（feature 场景无 bug 注入），缺失不报问题
+    d = _e2e_fixture_dict()
+    del d["scenario"]["bug_id"]
+    assert fx_mod.validate_fixture_dict(d) == []
 
 
 def test_e2e_fixture_validation_wrong_kind():
@@ -444,7 +448,7 @@ def test_build_e2e_prompt_contains_issue_and_skill(tmp_path):
     prompt = build_prompt(fx, "SKILL_BODY_HERE", False)
     assert "SKILL_BODY_HERE" in prompt
     assert "接口返回 NullPointerException" in prompt
-    assert "Issue 报告" in prompt
+    assert "用户请求" in prompt   # feature/issue 通用的中性标题
     # P0 L2 教训：共享模板不得含过程要求（fix-note/跑回归），否则泄题给无 skill 对照组；
     # 过程契约由 skill 文本自身规定（见 cs-issue-e2e-001/results.md 方法学缺陷节）
     assert "fix-note" not in prompt

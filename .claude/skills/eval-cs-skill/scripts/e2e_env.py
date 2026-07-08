@@ -23,7 +23,7 @@ def prepare_e2e_workdir(fixture, tmp: str, exp_dir: Path) -> Path:
     """
     scenario = (fixture.raw or {}).get("scenario") or {}
     seed = scenario["seed"]
-    bug_id = scenario["bug_id"]
+    bug_id = scenario.get("bug_id")  # feature 场景无 bug 注入
 
     repo = Path(tmp) / "repo"
     build_script = Path("experiments") / "seeds" / seed / "build-seed.py"
@@ -37,8 +37,8 @@ def prepare_e2e_workdir(fixture, tmp: str, exp_dir: Path) -> Path:
             f"build-seed.py 失败 (seed={seed}):\n{result.stderr[:500]}"
         )
 
-    inject_script = exp_dir / "bugs" / bug_id / "inject.py"
-    if inject_script.exists():
+    inject_script = (exp_dir / "bugs" / bug_id / "inject.py") if bug_id else None
+    if inject_script and inject_script.exists():
         result2 = subprocess.run(
             [sys.executable, str(inject_script), str(repo)],
             capture_output=True, text=True,

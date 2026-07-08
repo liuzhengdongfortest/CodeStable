@@ -48,7 +48,8 @@ def validate_fixture_dict(data: dict) -> list[str]:
         if not isinstance(scenario, dict):
             problems.append("e2e-outcome 必须有 scenario dict")
         else:
-            for key in ("seed", "bug_id", "issue_report", "hidden_tests"):
+            # bug_id 可选：bug 修复场景用它定位 inject；feature 场景无 bug 注入
+            for key in ("seed", "issue_report", "hidden_tests"):
                 if key not in scenario:
                     problems.append(f"e2e-outcome scenario 缺 {key!r}")
             if "hidden_tests" in scenario and not isinstance(scenario["hidden_tests"], list):

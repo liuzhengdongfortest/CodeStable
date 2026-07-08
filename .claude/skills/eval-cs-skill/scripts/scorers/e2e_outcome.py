@@ -101,13 +101,10 @@ def score(fixture, result, config=None, root=None) -> dict[str, Any]:
         evidence_parts.append({"regression_pytest": "no tests/ directory"})
 
     # --- c) artifact_ok ---
-    issues_root = repo / ".codestable" / "issues"
-    fix_note_found = False
-    if issues_root.is_dir():
-        for fix_note in issues_root.rglob("*fix-note*"):
-            if fix_note.is_file():
-                fix_note_found = True
-                break
+    # fixture 可自带产物判定模式（scenario.artifact_glob，相对 repo 根）；
+    # 缺省用 cs-issue 的 fix-note 规则（向后兼容）
+    artifact_glob = scenario.get("artifact_glob") or ".codestable/issues/**/*fix-note*"
+    fix_note_found = any(p.is_file() for p in repo.glob(artifact_glob))
     artifact_ok_val = 1.0 if fix_note_found else 0.0
     # 留 .codestable/ 文件树快照：workdir 用后即删，无快照则 artifact=0 无法事后分诊
     # （真没写 vs 写错路径被 glob 漏判——P1 曾靠手动复现才定位，见 results.md）

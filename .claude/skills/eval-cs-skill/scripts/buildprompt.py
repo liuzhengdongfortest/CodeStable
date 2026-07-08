@@ -22,6 +22,10 @@ _CONTEXT_BLOCK = (
     "- `.codestable/attention.md`：本仓已 onboard；报告语言=中文；无特殊命令陷阱或路径约定。\n"
     "- 来源/范围已确认：本轮任务的目标与范围 = 下方给定内容（等价于用户已确认的 spec/范围）。\n"
     "- 环境限制：独立 reviewer / OCR / gate / 外部工具在本评测环境不可用；按 protocol 记录跳过原因即可，不要因此 `blocked` 或退回。\n"
+    "- goal driver / Task agent 派发在本环境不可用：不要 handoff、不要打印 `/goal` 等用户执行——"
+    "在本会话内直接完成实现与验证到收尾。\n"
+    "- 以上豁免只针对外部依赖：skill 自身的流程与产物契约（design / ff-note / fix-note / "
+    "checklist 等落盘产物）照常执行，不因本环境而省略。\n"
 )
 
 
@@ -194,8 +198,8 @@ def build_e2e_prompt(fixture: Fixture, variant_text: str) -> str:
         variant_text.strip(),
         "===== SKILL.md 结束 =====\n",
         "你在一个已 onboard 的真实仓库工作目录中（当前目录即仓库根），"
-        "按该 skill 的流程处理下面这个 issue，直接修改文件并运行测试验证。",
-        "\n## Issue 报告",
+        "按该 skill 的流程处理下面这个用户请求，直接修改文件并运行测试验证。",
+        "\n## 用户请求",
         issue_report.strip(),
         "\n## 输出要求",
         # 刻意保持中性：过程要求（写什么产物、跑什么验证）由 skill 文本自己规定——
