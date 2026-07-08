@@ -1,0 +1,29 @@
+{
+  "id": "e02",
+  "answerType": "findings-recall",
+  "answer": [
+    "项目角色模型与成员权限配置",
+    "任务读取创建更新归档的权限校验",
+    "HTTP API 鉴权中间件与当前用户解析",
+    "CLI 操作的用户身份传递",
+    "审计日志记录操作者动作对象和时间",
+    "越权拒绝事件的安全审计留痕",
+    "审计历史查询和按项目过滤"
+  ],
+  "task": {
+    "kind": "design",
+    "spec": "taskhub 现在适合小团队自用，但我们准备给多个项目团队一起用，需要补上审计与权限能力。不同项目里的成员职责不同，不能让任何人随便改任务；出了问题时也要能追溯谁在什么时候做过什么。请把这个大需求拆成后续可以逐步实现的子功能。",
+    "context": "taskhub 现状：已有 tasks/projects/workflow/scheduling/http/search，snake_case 内部字段 + camelCase HTTP API，sqlite 存储。"
+  },
+  "_meta": {
+    "e02_子任务标注": {
+      "项目角色模型与成员权限配置": "obvious",
+      "任务读取创建更新归档的权限校验": "obvious",
+      "HTTP API 鉴权中间件与当前用户解析": "obvious",
+      "CLI 操作的用户身份传递": "edge",
+      "审计日志记录操作者动作对象和时间": "obvious",
+      "越权拒绝事件的安全审计留痕": "edge",
+      "审计历史查询和按项目过滤": "edge"
+    }
+  }
+}

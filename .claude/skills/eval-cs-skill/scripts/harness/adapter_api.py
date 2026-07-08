@@ -19,6 +19,9 @@ from .base import HarnessError, HarnessResult, register
 
 
 _RETRY_CODES = {429, 500, 502, 503, 504}  # 暂时性：限流/网关超时/上游不可用
+# max_tokens 是上限非固定成本（按实际 output 计费）；生成型/e2e 产 roadmap/diff 时
+# 2048 会截断产物、污染覆盖率评测。默认给足 headroom，可用 CS_EVAL_MAX_TOKENS 覆盖。
+_MAX_TOKENS = int(os.environ.get("CS_EVAL_MAX_TOKENS", "8192"))
 
 
 def _post(url: str, headers: dict, payload: dict, timeout_s: int, retries: int = 3) -> dict:
@@ -67,7 +70,7 @@ class ApiHarness:
         data = _post(
             f"{base}/v1/messages",
             headers,
-            {"model": model, "max_tokens": 2048, "messages": [{"role": "user", "content": prompt}]},
+            {"model": model, "max_tokens": _MAX_TOKENS, "messages": [{"role": "user", "content": prompt}]},
             timeout_s,
         )
         text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")

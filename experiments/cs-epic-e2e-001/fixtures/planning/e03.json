@@ -1,0 +1,29 @@
+{
+  "id": "e03",
+  "answerType": "findings-recall",
+  "answer": [
+    "CSV 和 JSON 批量导入解析",
+    "导入字段格式校验与错误报告",
+    "批量导出任务数据和项目范围筛选",
+    "跨项目任务迁移流程",
+    "导入冲突检测与冲突解决策略",
+    "批量操作 dry-run 预览变更",
+    "部分失败回滚和任务 id 重映射"
+  ],
+  "task": {
+    "kind": "design",
+    "spec": "我们需要把 taskhub 从单个团队的小工具升级成能承接历史数据迁移的工具。用户要能从外部文件批量导入任务，也要能把任务批量导出，还要支持把一批任务从一个项目迁到另一个项目。数据量可能不小，来源也不完全干净。请把这个大需求拆成后续可以逐步实现的子功能。",
+    "context": "taskhub 现状：已有 tasks/projects/workflow/scheduling/http/search，snake_case 内部字段 + camelCase HTTP API，sqlite 存储。"
+  },
+  "_meta": {
+    "e03_子任务标注": {
+      "CSV 和 JSON 批量导入解析": "obvious",
+      "导入字段格式校验与错误报告": "obvious",
+      "批量导出任务数据和项目范围筛选": "obvious",
+      "跨项目任务迁移流程": "obvious",
+      "导入冲突检测与冲突解决策略": "edge",
+      "批量操作 dry-run 预览变更": "edge",
+      "部分失败回滚和任务 id 重映射": "edge"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "e01",
+  "answerType": "findings-recall",
+  "answer": [
+    "到期任务的定时扫描与通知触发",
+    "任务指派事件的通知生成",
+    "任务状态变更事件的通知生成",
+    "邮件和 Webhook 等通知渠道发送适配",
+    "用户通知偏好与免打扰设置",
+    "通知去重和幂等投递避免重复打扰",
+    "通知历史记录与送达状态查询"
+  ],
+  "task": {
+    "kind": "design",
+    "spec": "我们想给 taskhub 加一套通知能力。用户希望任务快到期、被分配给自己、状态有关键变化时能收到提醒；不同团队可能想用不同的通知方式，也希望以后能查到系统到底发过哪些提醒。请把这个大需求拆成后续可以逐步实现的子功能。",
+    "context": "taskhub 现状：已有 tasks/projects/workflow/scheduling/http/search，snake_case 内部字段 + camelCase HTTP API，sqlite 存储。"
+  },
+  "_meta": {
+    "e01_子任务标注": {
+      "到期任务的定时扫描与通知触发": "obvious",
+      "任务指派事件的通知生成": "obvious",
+      "任务状态变更事件的通知生成": "obvious",
+      "邮件和 Webhook 等通知渠道发送适配": "obvious",
+      "用户通知偏好与免打扰设置": "edge",
+      "通知去重和幂等投递避免重复打扰": "edge",
+      "通知历史记录与送达状态查询": "edge"
+    }
+  }
+}

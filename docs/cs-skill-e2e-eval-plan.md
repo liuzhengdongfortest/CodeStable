@@ -107,7 +107,15 @@ worktree 里按 skill 完整跑流程——不是单次问答。
    Task agent goal driver 派发——headless 无 driver 时 agent 守规矩 handoff 退出（design
    完打印 /goal），实现零落地。inject_context 豁免块须显式覆盖"driver 不可用：本会话
    内直接完成"，否则测出的是环境缺失不是 skill 能力。
-6. 认知诚实标注不变：[measured]/[soft]/[underpowered]；hypotheses 先于运行注册。
+8. **生成型/拆解型 eval 必须校验 output 未撞 `max_tokens` 上限**（2026-07-08 cs-epic 实证）：
+   36/36 撞 2048 时覆盖率测成"上限内塞得下多少文本"，冗长格式（roadmap 含阶段/依赖/验收）
+   被砍更狠，差点误导出 H4 NULL。修 `adapter_api.py`（默认 8192 + `CS_EVAL_MAX_TOKENS` 覆盖）
+   后 edge 优势才现。**撞上限的批次数据作废，须重跑**。
+9. **拆解/生成型覆盖度只能用语义 judge，token recall 不可作 measured 下界**（同日）：
+   planted_defect（token）对自然语言拆解系统性低估 32pp（0.49 vs opus judge 0.81）；决定性
+   案例同一 roadmap planted=0.43（漏 4 项含 obvious）vs judge=1.0（7 项全覆盖）。措辞自由度高
+   token 匹配必漏。diff-based 缺陷召回仍可用 token（缺陷文本相对固定），自然语言拆解不行。
+10. 认知诚实标注不变：[measured]/[soft]/[underpowered]；hypotheses 先于运行注册。
 
 ## 框架衔接（复用现有 eval-cs-skill）
 

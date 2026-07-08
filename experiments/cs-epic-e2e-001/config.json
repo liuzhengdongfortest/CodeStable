@@ -1,0 +1,13 @@
+{
+  "name": "cs-epic-e2e-001",
+  "skill_under_test": "cs-epic",
+  "variants": ["baseline", "bare"],
+  "model_list": ["claude-sonnet-4-6", "claude-haiku-4-5"],
+  "k": 3,
+  "harnesses": ["api"],
+  "scorers": ["planted_defect", "recall_judge"],
+  "fixture_classes": ["planning"],
+  "budget_usd": 15.0,
+  "judge_model": "claude-opus-4-8",
+  "inject_context": true
+}
