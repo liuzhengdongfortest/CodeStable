@@ -1,0 +1,24 @@
+{
+  "name": "cs-feat-e2e-001",
+  "skill_under_test": "cs-feat",
+  "variants": [
+    "baseline",
+    "bare"
+  ],
+  "model_list": [
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5"
+  ],
+  "k": 3,
+  "harnesses": [
+    "claude-headless"
+  ],
+  "scorers": [
+    "e2e_outcome"
+  ],
+  "fixture_classes": [
+    "e2e"
+  ],
+  "budget_usd": 40.0,
+  "inject_context": true
+}

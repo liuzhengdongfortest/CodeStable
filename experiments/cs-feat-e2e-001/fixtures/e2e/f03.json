@@ -1,0 +1,12 @@
+{
+  "id": "f03",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "feature_id": "f03",
+    "issue_report": "加 stats 子命令，按 tag 汇总：每个 tag 的任务数与完成率。期望用法：`python3 -m taskhub.cli stats`，结果输出到 stdout，第一行表头为 `tag count completion_rate`；每个 tag 一行，三列用空格分隔，格式为 `tag 数量 完成率`，完成率用百分比字符串并保留 1 位小数，例如：`web 2 50.0%`、`untagged 1 0.0%`。（我已确认整体方向：design 之后不用再等我逐步确认，直接实现到验收完成）",
+    "artifact_glob": ".codestable/features/**/*design*",
+    "hidden_tests": ["hidden/f03/test_f03_explicit.py", "hidden/f03/test_f03_implicit.py"]
+  }
+}

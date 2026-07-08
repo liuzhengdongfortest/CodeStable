@@ -1,0 +1,12 @@
+{
+  "id": "f02",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "feature_id": "f02",
+    "issue_report": "done 的任务可以 archive，list 默认不再显示已归档任务。期望用法：`python3 -m taskhub.cli archive 任务ID`，位置参数指定任务 id；归档成功后 `python3 -m taskhub.cli list` 默认只显示未归档任务。另加 `python3 -m taskhub.cli list --all`，显示全部任务（含已归档）。（我已确认整体方向：design 之后不用再等我逐步确认，直接实现到验收完成）",
+    "artifact_glob": ".codestable/features/**/*design*",
+    "hidden_tests": ["hidden/f02/test_f02_explicit.py", "hidden/f02/test_f02_implicit.py"]
+  }
+}

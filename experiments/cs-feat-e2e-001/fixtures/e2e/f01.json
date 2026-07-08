@@ -1,0 +1,12 @@
+{
+  "id": "f01",
+  "answerType": "e2e-outcome",
+  "task": {"kind": "e2e"},
+  "scenario": {
+    "seed": "task-api",
+    "feature_id": "f01",
+    "issue_report": "加 export CLI 子命令，把任务导出成 CSV。期望用法：`python3 -m taskhub.cli export 输出文件.csv`，位置参数指定输出文件，不需要同时打印到 stdout。CSV 第一行表头固定为 `id,title,status,assignee,dueDate`，后续每行按这个顺序输出任务；字段名用 `dueDate`。（我已确认整体方向：design 之后不用再等我逐步确认，直接实现到验收完成）",
+    "artifact_glob": ".codestable/features/**/*design*",
+    "hidden_tests": ["hidden/f01/test_f01_explicit.py", "hidden/f01/test_f01_implicit.py"]
+  }
+}
