@@ -444,8 +444,11 @@ def test_build_e2e_prompt_contains_issue_and_skill(tmp_path):
     prompt = build_prompt(fx, "SKILL_BODY_HERE", False)
     assert "SKILL_BODY_HERE" in prompt
     assert "接口返回 NullPointerException" in prompt
-    assert "fix-note" in prompt          # 产物契约提示
     assert "Issue 报告" in prompt
+    # P0 L2 教训：共享模板不得含过程要求（fix-note/跑回归），否则泄题给无 skill 对照组；
+    # 过程契约由 skill 文本自身规定（见 cs-issue-e2e-001/results.md 方法学缺陷节）
+    assert "fix-note" not in prompt
+    assert "pytest" not in prompt
 
 
 # ---- e2e_outcome scorer（全离线，构造假 repo）----

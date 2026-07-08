@@ -198,10 +198,10 @@ def build_e2e_prompt(fixture: Fixture, variant_text: str) -> str:
         "\n## Issue 报告",
         issue_report.strip(),
         "\n## 输出要求",
-        "- 修复代码直接落盘到仓库文件（不要只输出 diff）。",
-        "- 按 skill 契约生成产物（如 `.codestable/issues/<issue-id>/fix-note.md` 记录根因与修改说明）。",
-        "- 运行仓库已有测试（`python3 -m pytest tests -q`）确认回归绿色。",
-        "- 最后用一段话总结：改了哪些文件、根因是什么、验证结果如何。",
+        # 刻意保持中性：过程要求（写什么产物、跑什么验证）由 skill 文本自己规定——
+        # 共享模板写入过程要求会泄题给无 skill 的对照组（P0 L2 教训，见 cs-issue-e2e-001/results.md）
+        "- 修复直接落盘到仓库文件（不要只输出 diff）。",
+        "- 最后用一段话总结：改了哪些文件、根因是什么、如何验证的。",
     ]
     return "\n".join(parts)
 
