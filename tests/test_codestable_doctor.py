@@ -156,6 +156,24 @@ def test_runtime_version_mismatch_is_blocked_with_sync_hint(tmp_path: Path) -> N
     assert "runtime sync" in runtime["hint"]
 
 
+def test_runtime_manifest_without_version_is_treated_as_needing_sync(tmp_path: Path) -> None:
+    # 老项目：version 探测引入前的 manifest 没有 plugin_version 字段 → installed=None。
+    # 必须默认判定需同步（None != expected），不能被当成 ok 漏过。
+    repo = init_repo(tmp_path)
+    manifest = repo / ".codestable/runtime-manifest.json"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    data.pop("plugin_version", None)
+    manifest.write_text(json.dumps(data) + "\n", encoding="utf-8")
+
+    report = doctor.diagnose(repo)
+
+    runtime = report["tooling"]["runtime"]
+    assert runtime["status"] == "version-mismatch"
+    assert runtime["installed_plugin_version"] is None
+    assert runtime["expected_plugin_version"] == CURRENT_PLUGIN_VERSION
+    assert "runtime sync" in runtime["hint"]
+
+
 def test_runtime_sync_refreshes_managed_assets_manifest_and_preserves_legacy_assets(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     for legacy in [

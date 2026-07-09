@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "plugin": "codestable",
-  "plugin_version": "1.0.1",
-  "runtime_version": "1.0.1",
+  "plugin_version": "1.0.2",
+  "runtime_version": "1.0.2",
   "tool_runtime": "skill-global",
   "managed_paths": [
     ".codestable/gates",
