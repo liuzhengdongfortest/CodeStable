@@ -804,3 +804,60 @@ def test_compatibility_entry_scenarios_delegate_without_rerun(entry: str, expect
     assert "不要要求用户重新调用" in text
     assert "不维护独立流程规则" in text
     assert "../" not in text
+
+
+def test_solution_depth_prepass_is_authoritative_and_reachable() -> None:
+    # 权威源:方案深度 pre-pass 单一定义(防降本默认偏置:最小闭环/fake/正则),
+    # 硬约束 = 采用降级必须显式论证 + 转正条件。
+    assert_doc_contains(
+        "cs-onboard",
+        "references/solution-depth-conventions.md",
+        "方案深度 pre-pass",
+        "场景适配",
+        "最小闭环",
+        "fake",
+        "转正条件",
+        "不接受",
+    )
+    # 有 design 的选型阶段必须触达权威源(现状缺触达路径,指针不可删)。
+    assert_doc_contains("cs-feat", "references/design/protocol.md", "solution-depth-conventions", "方案深度")
+    assert_doc_contains("cs-epic", "references/planning/protocol.md", "solution-depth-conventions", "方案深度")
+    assert_doc_contains("cs-goal", "SKILL.md", "solution-depth-conventions", "方案深度 pre-pass")
+    # 快速路径(fastforward / fix)最易"够跑就行",同样必须触达(codex review imp-3)。
+    assert_doc_contains("cs-feat", "references/fastforward/protocol.md", "solution-depth-conventions")
+    assert_doc_contains("cs-issue", "references/fix/protocol.md", "solution-depth-conventions")
+    assert_doc_contains("cs-refactor", "references/fastforward/protocol.md", "solution-depth-conventions")
+    # shared-conventions 第 7 节结构反射检查与选型层降级互补,交叉引用不可断。
+    assert_doc_contains("cs-onboard", "references/shared-conventions.md", "solution-depth-conventions")
+
+
+def test_readonly_task_agent_mode_is_provider_aware_and_reachable() -> None:
+    # 权威源:只读隔离 Task agent 用 provider 的 plan/read-only 等价 mode,不硬编码 mode 名
+    # (codex 无 plan mode 的实测反例,codex review imp-1);Goal driver 例外。
+    assert_doc_contains(
+        "cs-onboard",
+        "references/agent-conventions.md",
+        "read-only 等价 mode",
+        "provider capability",
+        "未必有同名 mode",
+        "Goal driver 例外",
+    )
+    # 三个 reviewer 派发点 provider-aware,不留裸"plan mode 启动"硬编码。
+    for skill, path in (
+        ("cs-feat", "references/design-review/protocol.md"),
+        ("cs-epic", "references/review/protocol.md"),
+        ("cs-code-review", "references/independent-review/protocol.md"),
+    ):
+        assert_doc_contains(skill, path, "read-only 等价 mode", "provider capability")
+    # QA runner / acceptance auditor / goal 功能验收 三个启动点也须触达 mode 规则(codex review imp-2)。
+    assert_doc_contains("cs-feat", "references/qa/protocol.md", "read-only 等价 mode")
+    assert_doc_contains("cs-feat", "references/acceptance/protocol.md", "read-only 等价 mode")
+    assert_doc_contains("cs-goal", "SKILL.md", "read-only 等价 mode")
+
+
+def test_runtime_reference_copies_match_templates() -> None:
+    # 模板(cs-onboard/references/)与项目副本(.codestable/reference/)必须逐字一致(codex review imp-4)。
+    for name in ("shared-conventions.md", "agent-conventions.md", "solution-depth-conventions.md"):
+        src = (SKILLS / "cs-onboard" / "references" / name).read_text(encoding="utf-8")
+        copy = (ROOT / ".codestable" / "reference" / name).read_text(encoding="utf-8")
+        assert src == copy, f"{name}: 模板与项目副本不一致，需 sync"

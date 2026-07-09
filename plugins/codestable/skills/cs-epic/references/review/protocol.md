@@ -47,7 +47,7 @@
 
 一旦本轮应该启动或已经启动独立 Task agent reviewer，它就是本轮 review gate 的输入。主 agent 可以先做本地审查草稿，但不能在 reviewer 返回前定稿 `{slug}-roadmap-review.md`、不能给出 `passed`、不能把 roadmap 交给用户确认。reviewer 卡住、失败、权限阻塞或耗时过长时，只能把本轮标成 `blocked` / `independent-review-pending`，让用户决定继续等待、重试 reviewer，或明确降级为 local-only review。
 
-**检测由主 agent 在运行时自检自己的工具**，不靠脚本猜环境——主 agent 最清楚自己手上有哪些工具。按 Task agent 选择规则启动独立 Task agent reviewer（优先 Paseo subagent，否则当前宿主原生 Codex/Claude Task/Agent）：
+**检测由主 agent 在运行时自检自己的工具**，不靠脚本猜环境——主 agent 最清楚自己手上有哪些工具。按 Task agent 选择规则启动独立 Task agent reviewer（**plan / read-only 等价 mode 只读启动**，mode 名按 provider capability 发现、一步到位不要先默认 mode 再重起，细则见 agent-conventions「启动 mode」；优先 Paseo subagent，否则当前宿主原生 Codex/Claude Task/Agent）：
 
 1. **有 `mcp__paseo__create_agent` 工具**：必须优先用 Paseo subagent 做只读独立审查（首选：能换 provider，做到真正异构审查）。启动前先加载 / 读取 `paseo` skill 的当前说明，并遵守它的规则：读取 `~/.paseo/orchestration-preferences.json`，使用 `providers.audit`，不要硬编码 Claude 或 Codex。不要无限轮询运行中的 agent；如果 reviewer 已启动但结果未返回，停止在 review gate，记录 pending/blocked，等待通知或用户决定。
 2. **否则有当前宿主原生 Codex/Claude Task/Agent 工具**：用原生 Task agent 做独立上下文审查。如属同类 agent，在报告里记录降级和残余风险。

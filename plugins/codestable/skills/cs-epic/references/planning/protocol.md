@@ -22,6 +22,8 @@
 
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md`。主文档和 items 完整模板看同目录 `reference.md`。
 
+**方案深度原则**：给 roadmap 定最小闭环、各条 feature 的实现深度、或替身 / fake 策略前，先做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass——最小闭环要是"最窄端到端路径"而非"最容易那条"，简化 / 替身策略在 roadmap 显式论证场景适配与转正条件。
+
 ---
 
 ## 适用场景

@@ -171,6 +171,8 @@ unresolved assumptions 和 next action。保持简洁，只在 goal 边界或状
 
 一次 iteration 是一次连贯的实现 / 验证尝试，不是一条命令。
 
+选实现方案（缩范围、fake / mock / 正则 / 占位、实现深度）时，先做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass：goal 自主迭代最易滑向"够跑就行"，按场景论证深度，采用降级 / 替身时在 iteration 报告显式写候选、理由和转正条件，不因省事默认最小。
+
 当 `state: active` 时循环：
 
 1. 从 `state.yaml` 选择最小有用的下一次尝试。
@@ -196,7 +198,9 @@ unresolved assumptions 和 next action。保持简洁，只在 goal 边界或状
 
 1. 用 fresh evidence 跑正常验证。
 2. 按 `.codestable/reference/agent-conventions.md` 的 Task agent 选择规则启动附近
-   **可见 Task agent**，对记录的 owner acceptance criteria 和实际产品 / 产物行为做功能验收。
+   **可见 Task agent**（按 agent-conventions「启动 mode」用 plan / read-only 等价 mode 只读
+   启动，一步到位不要先默认 mode 再重起），对记录的 owner acceptance criteria 和实际产品 /
+   产物行为做功能验收。
 3. 把结果写入 `functional-acceptance.md`，包括 reviewer、scope、acceptance checks、
    functional evidence、verdict、residual risks 和 follow-up。
 4. 结果被写入并引用后，按 Task agent 生命周期关闭该验收 agent；关闭失败只记录 warning。

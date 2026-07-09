@@ -47,6 +47,8 @@ design / implement 的硬约束在 fastforward 的精简版。没 design doc 不
 
 先做 `.codestable/reference/shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为、不可破约束、最小充分改动、必须不写的东西。下面每条都用这四项压住发散。
 
+快速路径最容易"够跑就行"：缩范围、用 fake / mock / 正则凑、降实现深度前，做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass，按场景论证，不因省事默认降级。
+
 ### 先想"放在哪儿"再写
 
 30 秒回答：**这次要加的东西在项目结构里属于哪儿？**

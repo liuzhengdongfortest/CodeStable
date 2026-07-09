@@ -14,7 +14,7 @@ CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的
 
 ## 入场 3 条硬检查（不过就退完整流程）
 
-先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为必须不变，不可破约束是公开接口和现有测试，最小充分改动必须能对应到经典重构方法；无法从这些推出的"顺手优化"都不做。
+先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为必须不变，不可破约束是公开接口和现有测试，最小充分改动必须能对应到经典重构方法；无法从这些推出的"顺手优化"都不做。若重写涉及实现手段选择（正则替代结构化处理等），做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass，按场景论证不图省事。
 
 任一不过就退到 `cs-refactor`：
 

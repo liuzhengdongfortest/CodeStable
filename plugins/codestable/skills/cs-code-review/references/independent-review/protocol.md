@@ -13,7 +13,7 @@ code review 是**双环节 review**，两个环节互补：
 
 ## 环节 A：独立 Task agent review（gate 必需）
 
-主 agent 按 Task agent 选择规则启动独立 reviewer（优先 Paseo subagent，否则当前宿主原生 Codex/Claude Task/Agent；都不可用时按 local-only fallback 处理）：
+主 agent 按 Task agent 选择规则启动独立 reviewer（**plan / read-only 等价 mode 只读启动**，mode 名按 provider capability 发现、一步到位不要先默认 mode 再重起，细则见 agent-conventions「启动 mode」；优先 Paseo subagent，否则当前宿主原生 Codex/Claude Task/Agent；都不可用时按 local-only fallback 处理）：
 
 1. **有 `mcp__paseo__create_agent` 工具** → 用 Paseo subagent（首选：能换 provider，做到真正异构审查）。
    先加载 / 读取 `paseo` skill 的当前说明并遵守其规则：读取 `~/.paseo/orchestration-preferences.json`，使用 `providers.audit`，不要硬编码 provider；文件缺失时用合理默认并在报告说明。

@@ -247,7 +247,7 @@ feature-design / issue-analyze / issue-fix 动手前到 `.codestable/compound/` 
 
 ## 7. 写代码时的反射检查
 
-`cs-feat` implementation / fastforward、`cs-issue` fix、`cs-refactor` apply / fastforward 共用。AI 默认会往"大函数 / 大文件 / god class / 处处特殊分支"漂，这一节把漂移截在发生那一刻。
+`cs-feat` implementation / fastforward、`cs-issue` fix、`cs-refactor` apply / fastforward 共用。AI 默认会往"大函数 / 大文件 / god class / 处处特殊分支"漂，这一节把漂移截在发生那一刻。（这里截"往复杂漂"的结构膨胀；选型层"往省事漂"的实现降级——最小闭环 / fake / 正则凑——见 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass。）
 
 ### 第一性原则 pre-pass
 

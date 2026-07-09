@@ -37,7 +37,7 @@ CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的
 
 ## 实现期间的约束
 
-先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为就是"复现路径不再失败"，约束来自 report / analysis / fix 方案，最小充分改动只服务根因；从这三项推不出的抽象、兜底和顺手重构都不写。
+先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为就是"复现路径不再失败"，约束来自 report / analysis / fix 方案，最小充分改动只服务根因；从这三项推不出的抽象、兜底和顺手重构都不写。修复若要用 fake / 正则凑或"够跑就行"绕过根因，先做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass，按场景论证不默认降级。
 
 ### 只改 analysis 里声明的文件
 
