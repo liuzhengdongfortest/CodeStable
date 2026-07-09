@@ -19,7 +19,7 @@
 ## 阅读路径
 
 - 想理解本 epic 的需求和架构考量：读 `spec.md`
-- 想开始或继续拆 issue：读 `plan.md`
+- 想理解当前推进批次、issue 列表和阻碍：读 `plan.md`
 
 ## Issues
 

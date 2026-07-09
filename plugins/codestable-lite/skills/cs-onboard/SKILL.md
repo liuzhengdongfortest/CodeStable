@@ -27,7 +27,7 @@ python scripts/init_codestable.py --project .
 
 初始化后确认 `.cs/facts.md` 和 `.cs/spec/index.md` 存在，并确认基础实体目录已创建或保留。
 
-如果项目已有旧文档，只指出下一步可以用 `cs-talk`、`cs-spec`、`cs-plan`、`cs-note`、`cs-maketools` 或 `cs-close` 逐步沉淀，不在 onboard 里强迁移。
+如果项目已有旧文档，只指出下一步可以用 `cs-talk`、`cs-spec`、`cs-note`、`cs-maketools` 或 `cs-close` 逐步沉淀，不在 onboard 里强迁移。
 
 ## 产物契约
 
@@ -44,7 +44,7 @@ python scripts/init_codestable.py --project .
 
 ## 收尾汇报
 
-告诉用户创建或补齐了哪些目录和文件、哪些已存在所以保留、下一步该用哪个技能：想法模糊用 `cs-talk`，需要维护 project/epic spec 用 `cs-spec`，已有讨论或 epic spec 本轮可计划范围用 `cs-plan`，要记知识用 `cs-note`，内部流程未知用 `cs-maketools`。
+告诉用户创建或补齐了哪些目录和文件、哪些已存在所以保留、下一步该用哪个技能：想法模糊或需要初步规划用 `cs-talk`，需要维护 project/epic spec 用 `cs-spec`，要记知识用 `cs-note`，内部流程未知用 `cs-maketools`。
 
 ## 应用场景
 

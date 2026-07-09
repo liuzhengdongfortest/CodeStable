@@ -16,19 +16,18 @@ CodeStable 编排的是软件生命周期，不是 Agent。人在环负责整体
 当前主轴是：
 
 ```text
-talk → spec → plan → design/test/do → close
+talk → project/epic spec → issues → design/do → close
 ```
 
-但它不是强制流水线。小 bug、小功能可以直接进入独立 issue；大需求进入 epic spec 后分批切 issue；行为跑偏走投诉通道。
+但它不是强制流水线。`cs-talk` 是产品/PL 入口，负责把开放想法聊清楚并做初步规划；小 bug、小功能可以直接进入独立 issue；大需求进入 epic spec，在有边界的活规格里分批演进；行为跑偏走投诉通道。
 
 ## 该用哪个技能
 
 | 场景 | 用哪个 |
 |---|---|
 | 第一次接入项目，创建 `.cs/` 骨架 | `cs-onboard` |
-| 想法还模糊，用户心里有感觉但没说清 | `cs-talk` |
-| 维护项目主线规格或大需求规格 | `cs-spec` |
-| 把已明确范围先商量成计划草案，确认后变成 issue / epic | `cs-plan` |
+| 想法还模糊、需要讨论清楚或初步规划 issue / epic | `cs-talk` |
+| 维护项目主线规格或 epic 活规格 | `cs-spec` |
 | 系统行为不符合预期、debug、修 bug | `cs-complain` |
 | 摸清系统未知，把 project spec 缺口写成探索型 issue | `cs-spec-explore` |
 | 为明确 issue 写实现设计 | `cs-design` |
@@ -40,9 +39,9 @@ talk → spec → plan → design/test/do → close
 ## 判断口诀
 
 - **想不清**：`cs-talk`
-- **规格要整理**：`cs-spec`
+- **要初步安排**：`cs-talk`
+- **规格或 epic 要整理**：`cs-spec`
 - **规格缺口要调查**：`cs-spec-explore`
-- **要切事项**：`cs-plan`
 - **坏了**：`cs-complain`
 - **要写代码**：先看是否需要 `cs-design`，再 `cs-do`
 - **做完了**：`cs-close`
