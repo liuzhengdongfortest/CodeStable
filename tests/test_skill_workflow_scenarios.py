@@ -590,14 +590,13 @@ def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_pat
         "完成某一个 child 的 design + design-review `passed` 只是内部进度",
         "不得 final answer",
         "本轮必须继续调用 `cs-feat`",
+        "取下一个 planned / in-progress 且缺 design、checklist",
     )
+    # batch loop 纪律唯一权威在 SKILL.md；goal protocol 只保留 workflow-next hook 引用
     assert_doc_contains(
         "cs-epic",
         "references/goal/protocol.md",
-        "单个 child 完成不是本阶段退出条件",
-        "不能用 final answer",
         "codestable-workflow-next.py epic",
-        "继续 batch loop",
     )
 
     repo = init_isolated_repo(tmp_path)
@@ -647,12 +646,12 @@ def test_workflow_runtime_details_are_centralized_in_preflight() -> None:
         "cs-epic",
         "SKILL.md",
         "codestable-workflow-next.py epic",
+        "若 preflight 刚完成 runtime 同步，从仓库事实恢复 batch loop",
     )
     assert_doc_contains(
         "cs-epic",
         "references/goal/protocol.md",
         "codestable-workflow-next.py epic",
-        "若 preflight 刚完成 runtime 同步，从仓库事实恢复 batch loop",
     )
 
 

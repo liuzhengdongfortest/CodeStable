@@ -430,10 +430,9 @@ def test_epic_defers_child_design_approval_to_batch_checkpoint() -> None:
     assert "codestable-workflow-next.py feature" in feat_skill
     assert "`epic_child_batch: true` 时不要停用户" in feat_design
     assert "codestable-workflow-next.py feature --epic-child-batch" in feat_design
-    assert "继续处理下一个 planned / in-progress 子 feature" in epic_goal
-    assert "不要停下来要求用户确认该单个 design" in epic_goal
-    assert "单个 child 完成不是本阶段退出条件" in epic_goal
-    assert "不能用 final answer" in epic_goal
+    # batch loop 纪律唯一权威在 cs-epic SKILL.md 的「Child design batch loop」；goal protocol 只保留 hook 引用
+    assert "取下一个 planned / in-progress 且缺 design、checklist" in epic_skill
+    assert "不得要求用户确认该 child" in epic_skill
     assert "codestable-workflow-next.py epic" in epic_goal
     assert "`next_action`、`must_continue` 和 `final_answer_allowed`" in tools_doc
 

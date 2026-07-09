@@ -100,13 +100,20 @@ restoreEpicStage(s, intent)
 
 主执行主线（每次调用按序走；planning/review/goal 的厚规则见对应 protocol，本节只定顺序与边界）：
 
-1. **`preflight`** — 读 `.codestable/attention.md`；缺失则 `route to cs-onboard`；不得用 `AGENTS.md`/`CLAUDE.md` 代替 CodeStable attention。
-2. **`parseEntryIntent`** — 优先级 `flag > compat-preset > utterance`；`repoFacts override requestedStage`；空参不推断 stage。
-3. **`restoreEpicStage`** — 扫 `.codestable/roadmap/` + 子 features/ + goal 包恢复 `EpicState`，选 next stage。
-4. **`loadStageProtocol`** — progressive reference loading：进某 stage 才加载该 stage 一个 protocol，禁止 eager 读全部 references。
-5. **`ChildDesignBatch` loop** — roadmap 确认后进入连续 batch loop，逐个子 feature 经 `cs-feat`（`epic_child_batch: true`）推进 design/design-review；推进与退出纪律以下方「Child design batch loop」一节为唯一权威。
-6. **`HumanCheckpoint` / `GoalHandoff`** — 所有 child design-review passed 后停下让用户统一确认所有 design，确认后逐份标 approved；再生成 goal 包，经可见 Task agent goal driver 派发，派发失败则输出可粘贴 `/goal`。
-7. **`exitRecoverable`** — artifact 已落盘、next stage 明确、或 checkpoint reason 明确，任一即可让下次调用从 `repoFacts` 恢复。
+```haskell
+workflow :: EpicRequest -> EpicOutcome
+workflow = preflight >=> parseEntryIntent >=> restoreEpicStage
+       >=> loadStageProtocol >=> executeStage >=> exitRecoverable
+
+preflight        -- 读 .codestable/attention.md；缺失 -> route to cs-onboard；不得用 AGENTS.md/CLAUDE.md 代替
+parseEntryIntent -- flag > compat-preset > utterance；repoFacts override requestedStage；空参不推断 stage
+restoreEpicStage -- 扫 .codestable/roadmap/ + 子 features/ + goal 包恢复 EpicState，选 next stage（见 Spec）
+loadStageProtocol -- 「Reference 加载」映射；进 stage 才加载该 stage 一个 protocol，禁止 eager 读全部 references
+executeStage     -- ChildDesignBatch 走连续 batch loop（下节为唯一权威）；
+                 -- 全部 child passed 后 HumanCheckpoint 统一确认所有 design，确认后逐份标 approved；
+                 -- 再生成 goal 包经可见 Task agent goal driver 派发，派发失败输出可粘贴 /goal
+exitRecoverable  -- artifact 已落盘 / next stage 明确 / checkpoint reason 明确，任一即可让下次调用从 repoFacts 恢复
+```
 
 ---
 
@@ -132,45 +139,72 @@ restoreEpicStage(s, intent)
 
 roadmap 已确认后，子 feature design 阶段是一个连续 batch loop，不是单次子任务：
 
-- 每轮开始、每个 child design-review 后、以及准备 final answer 前，先运行
-  `python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic --roadmap .codestable/roadmap/{slug} --json`。
-- hook 输出 `must_continue: true` 或 `final_answer_allowed: false` 时，必须按 `next_action` 继续；不得结束本轮。hook 返回 `user_gate` / `blocked` 时停在对应 checkpoint。若 preflight 刚完成 runtime 同步，从仓库事实恢复 batch loop，不靠对话记忆。
-- 每轮先扫描 `{slug}-items.yaml`，找出下一个 `planned` / `in-progress` 且缺 design、checklist 或 `passed` design-review 的 item。
+```haskell
+childDesignBatch :: Slug -> Loop
+childDesignBatch slug = loop
+  where
+    loop = do
+      -- 每轮开始、每个 child design-review 后、以及准备 final answer 前都先跑 hook：
+      next <- run "python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic \
+                  \--roadmap .codestable/roadmap/{slug} --json"
+      case next of
+        _ | next.must_continue || not next.final_answer_allowed   -- 即 hook 输出 must_continue: true 或 final_answer_allowed: false
+            -> step next.next_action >> loop        -- 必须按 next_action 继续，不得结束本轮
+        _ | next.status in [user_gate, blocked]
+            -> stopAt checkpoint                    -- 停在对应 checkpoint
+      -- 每轮先扫 {slug}-items.yaml：取下一个 planned / in-progress 且缺 design、checklist
+      -- 或 passed design-review 的 item，调用 cs-feat（epic_child_batch: true）推进
+```
+
 - 完成某一个 child 的 design + design-review `passed` 只是内部进度；不得 final answer、不得要求用户确认该 child、不得进入实现。
-- 只有 items.yaml 里所有未 dropped child 都已有 design + checklist + `passed` design-review，才允许触发“所有 design 统一确认”的人工 checkpoint。
-- 若下一条 child 可继续推进，本轮必须继续调用 `cs-feat`，而不是用“下一步继续处理下一个 child”作为结束汇报。
+- 只有 items.yaml 里所有未 dropped child 都已有 design + checklist + `passed` design-review，才允许触发"所有 design 统一确认"的人工 checkpoint。
+- 若下一条 child 可继续推进，本轮必须继续调用 `cs-feat`，而不是用"下一步继续处理下一个 child"作为结束汇报。
+- 若 preflight 刚完成 runtime 同步，从仓库事实恢复 batch loop，不靠对话记忆。
 
 ---
 
 ## Reference 加载
 
-- planning：`references/planning/protocol.md`，必要时 `references/planning/reference.md`、`references/planning/support/codebase-design.md`
-- review：`references/review/protocol.md`。**gate 必需独立 Task agent reviewer**：主 agent 本地
-  审查不得定稿、不得给 `passed`；roadmap 修订后的**每一轮重审同样适用**，降级须
-  approval-report + 用户明确授权（细则见 protocol）。子 feature design-review 经 `cs-feat`
-  同受此约束。
-- goal-package：`references/goal/protocol.md`，并复制 `references/goal/support/protocol*.md` 和 `references/goal/support/goal-command-template.md`
-- goal driver：`.codestable/reference/agent-conventions.md` 的 Goal driver 派发规则
-- child feature：通过 `cs-feat` 主入口推进，不直接调用旧阶段技能；调用时带内部上下文 `epic_child_batch: true`，让单 feature 人工 checkpoint 推迟到 `cs-epic` 的批量确认
+```haskell
+stageProtocol :: Stage -> Protocol
+stageProtocol Planning         = "references/planning/protocol.md"   -- 必要时 reference.md、support/codebase-design.md
+stageProtocol Review           = "references/review/protocol.md"     -- gate 纪律见下
+stageProtocol GoalPackage      = "references/goal/protocol.md"       -- 并复制 support/protocol*.md 和 support/goal-command-template.md
+stageProtocol ChildDesignBatch = skill "cs-feat" (epic_child_batch: true)
+  -- 子 feature 通过 cs-feat 主入口推进，不直接调用旧阶段技能；
+  -- 内部上下文让单 feature 人工 checkpoint 推迟到 cs-epic 的批量确认
+
+-- goal driver 派发规则见 .codestable/reference/agent-conventions.md 的 Goal driver 一节
+```
+
+review **gate 必需独立 Task agent reviewer**：主 agent 本地审查不得定稿、不得给 `passed`；roadmap 修订后的**每一轮重审同样适用**，降级须 approval-report + 用户明确授权（细则见 protocol）。子 feature design-review 经 `cs-feat` 同受此约束。
 
 ---
 
 ## 人工 checkpoint
 
-1. roadmap/epic planning review passed 后，用户确认规划。
-2. 所有子 feature design-review passed 后，用户统一确认 design。
-3. goal driver 不可见、派发失败或返回 `CS_ROADMAP_GOAL_HANDOFF` 时，把 `/goal` 指令或 handoff 原因交给用户。
+触发时机以 Spec 的 `restoreEpicStage` 为唯一权威；本节只定义停下后的行为：
 
-不要在第一个或任一单独子 feature design-review passed 后停下来要求用户确认执行；那是
-`cs-feat` 普通单 feature 行为，在 `cs-epic` 子流程里必须延后到所有子 feature 都完成
-design-review 后统一处理。
+```haskell
+onCheckpoint :: CheckpointReason -> Action
+onCheckpoint ConfirmRoadmap        = 停等用户确认 epic 规划            -- roadmap/epic planning review passed 后
+onCheckpoint ConfirmAllChildDesign = 停等用户统一确认所有 design，确认后逐份标 approved
+onCheckpoint GoalDriverUnavailable = 把可粘贴 /goal 指令或 handoff 原因交给用户
+  -- goal driver 不可见、派发失败或返回 CS_ROADMAP_GOAL_HANDOFF 时触发
+onCheckpoint AmbiguousEpicTarget   = NeedsHuman "which epic?"
+```
+
+不要在第一个或任一单独子 feature design-review passed 后停下来要求用户确认执行；那是 `cs-feat` 普通单 feature 行为，在 `cs-epic` 子流程里必须延后到所有子 feature 都完成 design-review 后统一处理。
 
 ---
 
 ## 退出条件
 
-- child design batch loop 只在全部 child design-review passed、遇到 blocking / pending / 授权问题、或用户明确要求停止时才可结束。
-- 若 `codestable-workflow-next.py` 返回 `final_answer_allowed: false`，当前 run 不能退出。
-- 规划、审查、子 feature design 和 goal 包状态能从仓库事实恢复。
-- 历史 `roadmap` 命名只作为内部兼容说明出现；用户主路径称为 epic。
-- 需要同步文档或记忆时提示 `cs-docs-neat`。
+```haskell
+mayExit :: State -> Bool
+mayExit s = workflowNext(s).final_answer_allowed        -- codestable-workflow-next.py 返回 final_answer_allowed: false 时当前 run 不能退出
+         && batchLoopSettled s   -- child design batch loop 只在全部 child design-review passed、遇到 blocking / pending / 授权问题、或用户明确要求停止时才可结束
+         && stateRecoverable s   -- 规划、审查、子 feature design 和 goal 包状态能从仓库事实恢复
+```
+
+历史 `roadmap` 命名只作为内部兼容说明出现；用户主路径称为 epic。需要同步文档或记忆时提示 `cs-docs-neat`。

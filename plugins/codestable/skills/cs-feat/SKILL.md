@@ -102,12 +102,19 @@ restoreFeatureStage(s, intent)
 
 主执行主线（每次调用按序走；各 stage "怎么做" 的厚规则见对应 protocol，本节只定顺序与边界）：
 
-1. **`preflight`** — 读 `.codestable/attention.md`；缺失则 `route to cs-onboard`；不得用 `AGENTS.md`/`CLAUDE.md` 代替 CodeStable attention。
-2. **`parseEntryIntent`** — 优先级 `flag > compat-preset > utterance`；`repoFacts override requestedStage`；空参不推断 stage。
-3. **`restoreFeatureStage`** — 扫 `.codestable/features/` + artifact + `git diff` 恢复 `FeatureState`，选 next stage。
-4. **`loadStageProtocol`** — progressive reference loading：进某 stage 才加载该 stage 一个 protocol，禁止 eager 读全部 references。
-5. **`executeOrRoute`** — authoring stage（design/design-review/goal-package）落盘 artifact；implementation/QA/review loop 可不打断用户继续；遇 `HumanCheckpoint` 必停。
-6. **`exitRecoverable`** — artifact 已落盘、next stage 明确、或 checkpoint reason 明确，任一即可让下次调用从 `repoFacts` 恢复。
+```haskell
+workflow :: FeatureRequest -> FeatureOutcome
+workflow = preflight >=> parseEntryIntent >=> restoreFeatureStage
+       >=> loadStageProtocol >=> executeOrRoute >=> exitRecoverable
+
+preflight           -- 读 .codestable/attention.md；缺失 -> route to cs-onboard；不得用 AGENTS.md/CLAUDE.md 代替
+parseEntryIntent    -- flag > compat-preset > utterance；repoFacts override requestedStage；空参不推断 stage
+restoreFeatureStage -- 扫 .codestable/features/ + artifact + git diff 恢复 FeatureState，选 next stage（见 Spec）
+loadStageProtocol   -- stageProtocol 映射（见下节）；进 stage 才加载该 stage 一个 protocol
+executeOrRoute      -- authoring stage（design/design-review/goal-package）落盘 artifact；
+                    -- implementation/QA/review loop 可不打断用户继续；遇 HumanCheckpoint 必停
+exitRecoverable     -- artifact 已落盘 / next stage 明确 / checkpoint reason 明确，任一即可让下次调用从 repoFacts 恢复
+```
 
 ## 文件放哪儿
 
@@ -124,34 +131,52 @@ restoreFeatureStage(s, intent)
 
 ## Progressive Reference Loading
 
-进入某阶段才加载**该阶段一个 protocol**，不在启动时读全部（progressive reference loading）：
+```haskell
+stageProtocol :: Stage -> Protocol
+stageProtocol Design         = "references/design/protocol.md"          -- 必要时 support/intent-template.md、codebase-design.md
+stageProtocol DesignReview   = "references/design-review/protocol.md"   -- gate 纪律见下
+stageProtocol GoalPackage    = "references/goal/protocol.md"
+stageProtocol Implementation = "references/implementation/protocol.md"  -- 必要时 support/reference.md、tdd.md
+stageProtocol CodeReview     = skill "cs-code-review"                   -- 公开横切 skill
+stageProtocol QA             = "references/qa/protocol.md"
+stageProtocol Acceptance     = "references/acceptance/protocol.md"
+stageProtocol FastForward    = "references/fastforward/protocol.md"
 
-- design → `references/design/protocol.md`（必要时 support/intent-template.md、codebase-design.md）
-- design-review → `references/design-review/protocol.md`。**gate 必需独立 Task agent reviewer**：
-  主 agent 本地审查不得定稿 review、不得给 `passed`；design 修订后的**每一轮重审同样适用**
-  （round 2+ 不得以"本地重审"代替），降级须 approval-report + 用户明确授权（细则见 protocol）。
-- goal-package → `references/goal/protocol.md`
-- implementation → `references/implementation/protocol.md`（必要时 support/reference.md、tdd.md）
-- code review → 公开横切 skill `cs-code-review`
-- qa → `references/qa/protocol.md`
-- acceptance → `references/acceptance/protocol.md`
-- fastforward → `references/fastforward/protocol.md`
+-- 惰性加载（progressive reference loading）：进入某阶段才加载该阶段一个 protocol，不在启动时读全部
+-- 禁止：启动即读全部 references；用 implementation 协议做 design；code review 未过就进 QA
+```
 
-禁止：启动即读全部 references；用 implementation 协议做 design；code review 未过就进 QA。
+design-review **gate 必需独立 Task agent reviewer**：主 agent 本地审查不得定稿 review、不得给 `passed`；design 修订后的**每一轮重审同样适用**（round 2+ 不得以"本地重审"代替），降级须 approval-report + 用户明确授权（细则见 protocol）。
 
 ## Human Checkpoints
 
-必须停下等用户明确确认（`HumanCheckpoint`）：
+触发时机以 Spec 的 `restoreFeatureStage` 为唯一权威；本节只定义停下后的行为：
 
-1. `ConfirmDesign`：design-review passed 后的 design 整体确认（**must not auto-approve design**，不得直接进 GoalPackage）。
-2. `GoalDriverUnavailable`：goal driver 不可见 / 派发失败 / 返回 handoff 时，把 `/goal` 指令或 handoff 原因交给用户。
-3. `ConfirmScopeChange`：仅长程执行中（design 已 approved 后）要改 approved design、feature 范围或公开契约时；入口阶段的 fastforward 不合格 / 大范围需求不触发本 checkpoint，直接 `RoutedTo Design`。
+```haskell
+onCheckpoint :: CheckpointReason -> Action
+onCheckpoint ConfirmDesign          = 停等用户对 design 整体确认   -- must not auto-approve design，不得直接进 GoalPackage
+onCheckpoint GoalDriverUnavailable  = 把可粘贴 /goal 指令或 handoff 原因交给用户   -- driver 不可见 / 派发失败 / 返回 handoff 时触发
+onCheckpoint ConfirmScopeChange     = 停等用户确认范围变更
+  -- 仅长程执行中（design 已 approved 后）要改 approved design、feature 范围或公开契约时触发；
+  -- 入口阶段的 fastforward 不合格 / 大范围需求不触发本 checkpoint，直接 RoutedTo Design
+onCheckpoint AmbiguousFeatureTarget = NeedsHuman "which feature?"
+```
 
 implementation / code review / QA / acceptance 的普通阻塞优先由 goal driver 按协议循环修复，不在每个阶段默认打断用户。
 
 ## Failure Behavior
 
-返回 `NeedsHuman` 当：`.codestable/attention.md` 缺失（→ `cs-onboard`）；无可恢复 feature 目标；feature 范围模糊；requested stage 与仓库事实冲突；approved design 需要变更；goal driver 派发失败且无可见 Task agent。报告：当前 feature 目录、阻塞原因、下一步用户动作、已写文件、是否可安全重试。
+```haskell
+needsHuman :: Situation -> Bool
+needsHuman s = attentionMissing s        -- .codestable/attention.md 缺失 -> 先 cs-onboard
+            || noRecoverableFeature s    -- 无可恢复 feature 目标
+            || ambiguousScope s          -- feature 范围模糊
+            || stageConflictsRepoFacts s -- requested stage 与仓库事实冲突
+            || approvedDesignChange s    -- approved design 需要变更
+            || dispatchFailedNoAgent s   -- goal driver 派发失败且无可见 Task agent
+```
+
+报告：当前 feature 目录、阻塞原因、下一步用户动作、已写文件、是否可安全重试。
 
 ## Fastforward
 
@@ -167,10 +192,16 @@ implementation / code review / QA / acceptance 的普通阻塞优先由 goal dri
 
 ## 退出条件
 
-- 当前阶段产物已落盘，状态可由仓库事实恢复（`restoreFeatureStage`）。
-- 阻塞项、`HumanCheckpoint` 或下一阶段已明确说明。
-- 标准流程最终需 design approved、review passed、QA passed、acceptance passed。
-- 需要外部文档提示 `cs-docs`；阶段收尾/记忆同步提示 `cs-docs-neat`。
+```haskell
+mayExit :: State -> Bool
+mayExit s = artifactPersistedAndRecoverable s   -- 当前阶段产物已落盘，状态可由 restoreFeatureStage 从仓库事实恢复
+         && nextClearlyStated s                 -- 阻塞项、HumanCheckpoint 或下一阶段已明确说明
+
+fullyDone :: FeatureState -> Bool               -- 标准流程最终门槛
+fullyDone s = designApproved s && reviewPassed s && qaPassed s && acceptancePassed s
+```
+
+需要外部文档提示 `cs-docs`；阶段收尾/记忆同步提示 `cs-docs-neat`。
 
 ## 相关入口
 
