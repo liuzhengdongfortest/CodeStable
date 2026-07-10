@@ -100,6 +100,19 @@ For each important branch, ask:
 
 If a branch cannot be tested directly, at least document the expected input state and output outcome.
 
+## Runtime Alignment Gate
+
+`SKILL.md` remains the sole prompt routing truth. When a deterministic router, hook, or persisted state schema also exists, it is executable enforcement of that Spec and must be semantically identical.
+
+Check all four surfaces together:
+
+- Spec fields and enums map explicitly to persisted artifact fields/values;
+- guard order and terminal-state precedence match runtime code;
+- outcomes distinguish continue, dispatch, report, handoff, completion, and invalid/unknown state;
+- fixtures use the current Spec field names and cover risky runtime branches.
+
+Conformance tests must invoke the real runtime router where one exists. A separately hand-written "test router" can test a desired story while both prompt and production runtime drift, so it is not alignment evidence. Also add static assertions for deprecated fixture keys and critical Spec/runtime outcome names. Any state-schema change invalidates affected historical routing results until the updated fixtures are rerun.
+
 ## Refactor Completeness Gate
 
 Label the depth before judging quality:
@@ -107,13 +120,13 @@ Label the depth before judging quality:
 - `minimal hardening patch`: only tightens trigger, adds a small Spec, adds contracts, or fixes one local rule.
 - `full protocol refactor`: rewrites the active skill body into a complete recoverable protocol.
 
-A full protocol refactor must include trigger contract, Spec, process protocol appropriate to the skill kind, state restoration or branch selection, decision rules when needed, progressive loading when references exist, human checkpoints when applicable, failure behavior, output contract, machine contracts, and fixture recommendations. A proposal that only adds three sections is useful hardening, but it is not a full refactor.
+A full protocol refactor must include trigger contract, Spec, process protocol appropriate to the skill kind, state restoration or branch selection, decision rules when needed, progressive loading when references exist, human checkpoints when applicable, failure behavior, output contract, machine contracts, runtime alignment when applicable, and fixture recommendations. A proposal that only adds three sections is useful hardening, but it is not a full refactor.
 
-## Measured Rules（routing eval 2026-07，5 skill × 3 模型 × k3，[measured]）
+## Measured Rules（routing eval 2026-07，7 skill × 3 模型 × k3，[measured]）
 
 以下规则有量化依据（evidence: `experiments/cs-issue-routing-001/results.md`）：
 
-1. **Spec 必须是唯一路由真相，不与散文状态机表格并列**。并列冗余接近装饰甚至有害：cs-epic 上「表格+Spec 并列」(0.833) 低于重构前只有表格的原版 (0.867)；替代后 0.989。
+1. **Spec 必须是唯一的 prompt 路由真相，不与散文状态机表格并列**。确定性 runtime 只能作为同一 Spec 的可执行 enforcement，并须通过 Runtime Alignment Gate。并列冗余接近装饰甚至有害：cs-epic 上「表格+Spec 并列」(0.833) 低于重构前只有表格的原版 (0.867)；替代后 0.989。
 2. **Spec 的行为增益与原规则含混度成正比**（cs-docs +0.43 > refactor +0.22 > epic +0.12 > feat +0.10 > issue ±0）。规则本就简单清晰的 skill 不必为形式重写。
 3. **增益集中在非顶级模型与复杂/嵌套分支**（epic 批量上下文、fastforward 资格、多产物状态恢复）。顶级模型对表达形式不敏感。
 4. **给中小模型的分支澄清要显式排除错误选项**（负向澄清），只加正向描述可能引入新歧义：cs-feat ff 分支加「并说明」后 haiku 从全对变全错（答成 NeedsHuman），改为「结果是 RoutedTo Design（不是 NeedsHuman、不是 checkpoint）」后三模型全对。
@@ -129,6 +142,8 @@ Fix these before adding more prose:
 - workflow skill has no concise `## Workflow`, `## Protocol`, or `## Lifecycle`;
 - single-step operator has no `## Operation` or `## Algorithm`;
 - stage routing relies on chat history;
+- prompt Spec、persisted state、runtime router、fixtures 使用不同字段或终态优先级；
+- 测试复制一份手写 router，却不调用真实 runtime 做 alignment；
 - compatibility skill duplicates main rules;
 - fastforward mode has no rejection criteria;
 - implementation details appear before routing rules;

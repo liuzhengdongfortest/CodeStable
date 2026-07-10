@@ -1,19 +1,19 @@
 {
-  "id": "rt-f07",
+  "id": "rt-f13",
   "answerType": "routing-decision",
   "task": {
     "kind": "routing",
     "state": {
       "designStatus": "Approved",
       "designReviewStatus": "ReviewPassed",
-      "goalRunState": "GoalReviewReady"
+      "goalRunState": "GoalUnknown(stage=deploy, status=ready)"
     }
   },
   "expect": {
-    "result_type": "RoutedTo",
+    "result_type": "NeedsHuman",
     "target_any": [
-      "CodeReview",
-      "cs-code-review"
+      "unknown goal-state",
+      "inspect-feature-goal-state"
     ]
   }
 }

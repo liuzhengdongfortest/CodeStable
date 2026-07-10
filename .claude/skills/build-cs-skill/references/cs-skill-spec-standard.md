@@ -113,6 +113,24 @@ Also include a compact `## Workflow` before detailed decision rules. Good workfl
 
 This section is for human and agent orientation. Detailed branch logic belongs in state restoration and decision rules.
 
+## Runtime Alignment
+
+When a workflow also has a deterministic router/hook, define one explicit normalization from persisted facts to the Spec state:
+
+```text
+artifact fields -> Spec state -> outcome
+```
+
+Keep these aligned:
+
+- persisted field/value names and Spec constructors;
+- guard order, especially invalid-state and terminal-state precedence;
+- dispatch vs fallback handoff vs already-running driver;
+- completion/handoff behavior when stale driver metadata remains;
+- routing fixture inputs and expected outcomes.
+
+The runtime is executable enforcement of the Spec, not permission to leave a contradictory prompt state machine in `SKILL.md`. Tests should call the real router and reject deprecated fixture keys; do not rely only on a hand-written test model.
+
 ## Non-Workflow Operators
 
 For single-step operators, use `## Operation` or `## Algorithm` instead of forcing a workflow:
@@ -150,6 +168,7 @@ Trigger contract:
 Spec:
 Process protocol:
 State restoration:
+Runtime alignment:
 Stage routing / decision rules:
 Progressive reference loading:
 Human checkpoints:

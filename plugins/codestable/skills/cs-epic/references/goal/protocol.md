@@ -124,10 +124,12 @@ batch loop 的推进与退出纪律（每轮运行 `codestable-workflow-next.py 
 
 ```yaml
 roadmap: "{slug}"
-status: ready-to-dispatch
+status: ready-to-dispatch      # ready-to-dispatch|handoff|complete
 baseline_ref: "{git rev-parse HEAD 或 no-git}"
 driver_kind: none            # paseo|native|none，派发成功后写回
 driver_id: ""
+handoff_reason: ""           # status=handoff 时必填
+handoff_next: ""             # status=handoff 时必填
 current_feature_index: 0
 features:
   - slug: "{feature-slug}"
@@ -144,6 +146,8 @@ features:
 `current_feature_index` 是 **0-based**，指向 `features` 数组中下一个要处理的元素；第一个 feature 必须是 `0`。每个 feature accepted 后必须 scoped-commit 且确认工作树干净，再加 1。展示给用户的 `Feature: N/总数` 仍使用 1-based。roadmap item 若在执行前被标 `dropped`，不要写入 `goal-state.features`；已进入 `goal-state.features` 的条目必须走到 `accepted` 或回退修复。
 
 与单 feature goal 不同，epic goal 用 `current_feature_index` 表示跨 feature 进度，并用每个 `features[].status` 表示单个 feature 状态；单 feature 内部的 implementation / review / QA / acceptance 细粒度阶段仍由对应 feature 产物和 `goal-protocol-feature-loop.md` 核验，不在 epic 顶层 state 里再复制一套 `stage` 字段。
+
+终态优先于 driver 元数据：最终审计通过后写 `status: complete`；无法继续时在打印 `CS_ROADMAP_GOAL_HANDOFF` 前写 `status: handoff` + reason/next。即使 `driver_id` 仍保留，主流程也必须先识别 complete/handoff，不得误报为仍在运行。
 
 ### `goal-protocol*.md`
 
@@ -181,7 +185,7 @@ features:
 6. 每个 checklist step 是否可独立验证，且初始 `steps.status` 为 `pending`、`checks.status` 为 `pending`。
 7. 每个 feature 是否有必跑命令 / 基线风险 / 交付物 / 清洁度规则。
 8. 每个 goal-feature spec 是否写明 design-review / review / QA / acceptance 产物路径，以及 review blocking / QA failed 的返回路径。
-9. `goal-state.yaml` 是否能断点恢复，且 `current_feature_index` 使用 0-based 语义。
+9. `goal-state.yaml` 是否能断点恢复，且 `current_feature_index` 使用 0-based 语义；complete/handoff 是否已先于残留 driver 元数据判定。
 10. `goal-plan.md` 是否写明 roadmap 级核心验收路径、最终聚合测试命令、非功能性替代证据策略、DoD Policy、Gate Policy、Provider Policy。
 11. 用户是否已明确确认 roadmap 和所有 feature design。
 12. `goal-protocol*.md` 是否都低于 300 行，且没有把 roadmap slug 误替换进 feature 标记；`Feature:` 行必须使用 `<feature-slug>` 或真实当前 feature slug。

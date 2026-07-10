@@ -209,6 +209,8 @@ def write_feature_goal_state(repo: Path, slug: str, stage: str, status: str, dri
     write(directory / "goal-protocol.md", "# Goal Protocol\n")
 
 
+# Compact scenario model only. Production conformance is asserted by
+# test_codestable_workflow_next.py against codestable-workflow-next.py directly.
 def feature_next(repo: Path, slug: str) -> Action:
     directory = feature_dir(repo, slug)
     design = directory / f"{slug}-design.md"
@@ -219,20 +221,26 @@ def feature_next(repo: Path, slug: str) -> Action:
 
     design_status = frontmatter(design).get("status")
     review_status = frontmatter(review).get("status")
-    if design_status == "draft" and review_status != "passed":
-        return Action("load-reference", "cs-feat/references/design-review/protocol.md")
+    if design_status == "approved" and review_status != "passed":
+        return Action("blocked", "invalid-approved-design-review")
     if review_status in {"changes-requested", "blocked"}:
         return Action("load-reference", "cs-feat/references/design/protocol.md")
+    if design_status == "draft" and review_status != "passed":
+        return Action("load-reference", "cs-feat/references/design-review/protocol.md")
     if review_status == "passed" and design_status != "approved":
         return Action("user-checkpoint", "feature-design-confirmation")
     if design_status == "approved" and not goal_state.exists():
         return Action("load-reference", "cs-feat/references/goal/protocol.md")
 
     state = top_level_yaml(goal_state)
-    if state.get("driver_kind") in {"paseo", "native"} and state.get("driver_id"):
-        return Action("report-visible-driver", state["driver_id"])
     stage = state.get("stage")
     status = state.get("status")
+    if (stage, status) == ("complete", "passed"):
+        return Action("complete", "CS_FEATURE_GOAL_COMPLETE")
+    if (stage, status) == ("handoff", "blocked"):
+        return Action("user-checkpoint", "CS_FEATURE_GOAL_HANDOFF")
+    if state.get("driver_kind") in {"paseo", "native"} and state.get("driver_id"):
+        return Action("report-visible-driver", state["driver_id"])
     if (stage, status) == ("implementation", "ready-to-dispatch"):
         return Action("dispatch-goal-driver", "feature")
     if (stage, status) == ("implementation", "running"):
@@ -247,10 +255,6 @@ def feature_next(repo: Path, slug: str) -> Action:
         return Action("load-reference", "cs-feat/references/implementation/protocol.md#qa-fix")
     if (stage, status) == ("acceptance", "ready"):
         return Action("load-reference", "cs-feat/references/acceptance/protocol.md")
-    if (stage, status) == ("complete", "passed"):
-        return Action("complete", "CS_FEATURE_GOAL_COMPLETE")
-    if (stage, status) == ("handoff", "blocked"):
-        return Action("user-checkpoint", "CS_FEATURE_GOAL_HANDOFF")
     return Action("blocked", "unknown-feature-state")
 
 
@@ -298,6 +302,8 @@ def epic_next(repo: Path, slug: str) -> Action:
         return Action("load-reference", "cs-epic/references/planning/protocol.md")
     roadmap_status = frontmatter(roadmap).get("status")
     review_status = frontmatter(review).get("status")
+    if roadmap_status == "active" and review_status is None:
+        return Action("blocked", "invalid-active-roadmap-review")
     if review_status != "passed":
         return Action("load-reference", "cs-epic/references/review/protocol.md")
     if roadmap_status != "active":
@@ -327,12 +333,14 @@ def epic_next(repo: Path, slug: str) -> Action:
         return Action("load-reference", "cs-epic/references/goal/protocol.md")
 
     state = top_level_yaml(goal_state)
+    if state.get("status") in {"complete", "completed"}:
+        return Action("complete", "CS_ROADMAP_GOAL_COMPLETE")
+    if state.get("status") == "handoff":
+        return Action("user-checkpoint", "CS_ROADMAP_GOAL_HANDOFF")
     if state.get("driver_kind") in {"paseo", "native"} and state.get("driver_id"):
         return Action("report-visible-driver", state["driver_id"])
     if state.get("status") == "ready-to-dispatch":
         return Action("dispatch-goal-driver", "epic")
-    if state.get("status") == "complete":
-        return Action("complete", "CS_ROADMAP_GOAL_COMPLETE")
     return Action("blocked", "unknown-epic-state")
 
 
@@ -518,6 +526,16 @@ def test_feature_long_range_scenario_simulates_human_design_confirmation(tmp_pat
     assert feature_next(repo, slug) == Action("dispatch-goal-driver", "feature")
     write_feature_goal_state(repo, slug, "implementation", "running", driver="paseo")
     assert feature_next(repo, slug) == Action("report-visible-driver", "paseo-123")
+
+
+@pytest.mark.parametrize("review_status", ["changes-requested", "blocked"])
+def test_feature_design_review_failure_returns_to_design(tmp_path: Path, review_status: str) -> None:
+    repo = init_isolated_repo(tmp_path)
+    slug = "export-csv"
+    write_feature_design(repo, slug, status="draft")
+    write_feature_design_review(repo, slug, status=review_status)
+
+    assert feature_next(repo, slug) == Action("load-reference", "cs-feat/references/design/protocol.md")
 
 
 @pytest.mark.parametrize(

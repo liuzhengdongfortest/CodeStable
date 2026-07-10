@@ -71,6 +71,30 @@ def write_feature(repo: Path, slug: str, *, design_status: str = "draft", review
     return feature
 
 
+def write_goal_state(
+    directory: Path,
+    *,
+    status: str,
+    stage: str | None = None,
+    driver_kind: str = "none",
+    driver_id: str = "",
+    handoff_reason: str = "",
+    handoff_next: str = "",
+) -> None:
+    lines = [f"status: {status}"]
+    if stage is not None:
+        lines.append(f"stage: {stage}")
+    lines.extend(
+        [
+            f"driver_kind: {driver_kind}",
+            f'driver_id: "{driver_id}"',
+            f'handoff_reason: "{handoff_reason}"',
+            f'handoff_next: "{handoff_next}"',
+        ]
+    )
+    write(directory / "goal-state.yaml", "\n".join(lines) + "\n")
+
+
 def test_epic_continues_when_only_first_child_design_review_passed(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     roadmap = write_roadmap(repo)
@@ -142,6 +166,163 @@ def test_feature_single_mode_stops_at_design_confirmation(tmp_path: Path) -> Non
     assert result["next_action"] == "feature-design-confirmation"
     assert result["must_continue"] is False
     assert result["final_answer_allowed"] is True
+
+
+def test_feature_review_failure_returns_to_design(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+
+    for review_status in ("changes-requested", "blocked"):
+        feature = write_feature(repo, review_status, review_status=review_status)
+
+        result = workflow_next.feature_next(feature, epic_child_batch=False)
+
+        assert result["status"] == "continue"
+        assert result["next_action"] == "cs-feat design"
+        assert result["reason"] == f"design-review is {review_status}"
+
+
+def test_feature_approved_design_requires_passed_review_before_goal_state(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+
+    for review_status in ("missing", "changes-requested", "blocked"):
+        slug = f"invalid-{review_status}"
+        feature = write_feature(
+            repo,
+            slug,
+            design_status="approved",
+            review_status="passed" if review_status == "missing" else review_status,
+        )
+        if review_status == "missing":
+            (feature / f"{slug}-design-review.md").unlink()
+        write_goal_state(feature, stage="complete", status="passed")
+
+        result = workflow_next.feature_next(feature, epic_child_batch=False)
+
+        assert result["status"] == "blocked"
+        assert result["next_action"] == "fix-feature-design-review-state"
+        assert result["final_answer_allowed"] is True
+        assert result["blocking"] == [f"approved design has design-review status: {review_status}"]
+
+
+def test_feature_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(repo, "api-seed", design_status="approved")
+    write_goal_state(feature, stage="implementation", status="ready-to-dispatch")
+
+    dispatch = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert dispatch["status"] == "dispatch_goal"
+    assert dispatch["next_action"] == "dispatch-feature-goal-driver-or-print-goal"
+    assert dispatch["final_answer_allowed"] is False
+
+    write_goal_state(
+        feature,
+        stage="implementation",
+        status="running",
+        driver_kind="paseo",
+        driver_id="feature-run-123",
+    )
+    active = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert active["status"] == "report_driver"
+    assert active["evidence"]["driver_id"] == "feature-run-123"
+
+
+def test_feature_terminal_goal_states_override_stale_driver(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(repo, "api-seed", design_status="approved")
+    write_goal_state(
+        feature,
+        stage="complete",
+        status="passed",
+        driver_kind="paseo",
+        driver_id="feature-run-123",
+    )
+
+    complete = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert complete["status"] == "complete"
+    assert complete["next_action"] == "CS_FEATURE_GOAL_COMPLETE"
+
+    write_goal_state(
+        feature,
+        stage="handoff",
+        status="blocked",
+        driver_kind="paseo",
+        driver_id="feature-run-123",
+        handoff_reason="missing production credential",
+        handoff_next="provide credential",
+    )
+    handoff = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert handoff["status"] == "user_gate"
+    assert handoff["next_action"] == "CS_FEATURE_GOAL_HANDOFF"
+    assert handoff["reason"] == "missing production credential"
+    assert handoff["evidence"]["handoff_next"] == "provide credential"
+
+
+def test_epic_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved")
+    write_feature(repo, "ui-seed", design_status="approved")
+    write_goal_state(roadmap, status="ready-to-dispatch")
+
+    dispatch = workflow_next.epic_next(roadmap)
+    assert dispatch["status"] == "dispatch_goal"
+    assert dispatch["next_action"] == "dispatch-epic-goal-driver-or-print-goal"
+    assert dispatch["final_answer_allowed"] is False
+
+    write_goal_state(
+        roadmap,
+        status="ready-to-dispatch",
+        driver_kind="paseo",
+        driver_id="epic-run-123",
+    )
+    active = workflow_next.epic_next(roadmap)
+    assert active["status"] == "report_driver"
+    assert active["evidence"]["driver_id"] == "epic-run-123"
+
+
+def test_epic_active_roadmap_requires_review_artifact_before_goal_state(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    (roadmap / "billing-system-roadmap-review.md").unlink()
+    write_goal_state(roadmap, status="complete")
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "fix-roadmap-review-state"
+    assert result["final_answer_allowed"] is True
+    assert result["blocking"] == ["active roadmap has no roadmap review artifact"]
+
+
+def test_epic_terminal_goal_states_override_stale_driver(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved")
+    write_feature(repo, "ui-seed", design_status="approved")
+    write_goal_state(
+        roadmap,
+        status="complete",
+        driver_kind="paseo",
+        driver_id="epic-run-123",
+    )
+
+    complete = workflow_next.epic_next(roadmap)
+    assert complete["status"] == "complete"
+    assert complete["next_action"] == "CS_ROADMAP_GOAL_COMPLETE"
+
+    write_goal_state(
+        roadmap,
+        status="handoff",
+        driver_kind="paseo",
+        driver_id="epic-run-123",
+        handoff_reason="migration environment unavailable",
+        handoff_next="provision migration environment",
+    )
+    handoff = workflow_next.epic_next(roadmap)
+    assert handoff["status"] == "user_gate"
+    assert handoff["next_action"] == "CS_ROADMAP_GOAL_HANDOFF"
+    assert handoff["reason"] == "migration environment unavailable"
+    assert handoff["evidence"]["handoff_next"] == "provision migration environment"
 
 
 def test_cli_accepts_json_before_or_after_subcommand(tmp_path: Path) -> None:

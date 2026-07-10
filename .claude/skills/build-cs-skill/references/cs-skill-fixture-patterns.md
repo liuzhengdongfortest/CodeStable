@@ -60,6 +60,25 @@ expect:
   must_not_route_to: GoalPackage
 ```
 
+## Goal Driver Lifecycle Fixtures
+
+Keep dispatch, active-driver reporting, terminal completion, and fallback handoff distinct. Use the target Spec's current field names rather than legacy booleans such as `hasGoalPackage`:
+
+```yaml
+id: rt-goal-dispatch
+answerType: routing-decision
+task:
+  kind: routing
+  state:
+    goalRunState: GoalReadyToDispatch
+expect:
+  result_type: DispatchGoalDriver
+  target_any: [visible goal driver, /goal]
+  must_not_target: GoalHandoff
+```
+
+Add companion cases for `GoalDriverActive -> ReportDriver`, `GoalComplete -> Completed`, `GoalHandoffBlocked -> GoalHandoff`, and unknown state -> `NeedsHuman`. Terminal cases should include stale driver metadata when the runtime persists it, proving terminal-state precedence.
+
 ## Forbidden Action Fixture
 
 Use when a dangerous or out-of-scope action must not happen.

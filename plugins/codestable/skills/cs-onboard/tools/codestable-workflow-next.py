@@ -214,7 +214,22 @@ def epic_next(roadmap: Path) -> dict[str, Any]:
             missing_artifacts=[rel(root, roadmap / f"{roadmap.name}-roadmap.md") or f"{roadmap.name}-roadmap.md"],
         )
 
+    roadmap_status = status_of(roadmap_file)
     review_status = status_of(review_file)
+    if roadmap_status == "active" and review_status == "missing":
+        return decision(
+            workflow="epic",
+            status="blocked",
+            next_action="fix-roadmap-review-state",
+            reason="active roadmap lacks a passed roadmap review",
+            blocking=["active roadmap has no roadmap review artifact"],
+            evidence={
+                "roadmap": rel(root, roadmap_file),
+                "roadmap_status": roadmap_status,
+                "roadmap_review": rel(root, review_file),
+                "roadmap_review_status": review_status,
+            },
+        )
     if review_status != "passed":
         if review_status in {"blocking", "blocked", "changes-requested"}:
             return decision(
@@ -233,7 +248,6 @@ def epic_next(roadmap: Path) -> dict[str, Any]:
             evidence={"roadmap_review": rel(root, review_file), "roadmap_review_status": review_status},
         )
 
-    roadmap_status = status_of(roadmap_file)
     if roadmap_status != "active":
         return decision(
             workflow="epic",
@@ -313,6 +327,28 @@ def epic_next(roadmap: Path) -> dict[str, Any]:
 
     state = load_yaml(goal_state)
     state = state if isinstance(state, dict) else {}
+    state_status = state.get("status")
+    if state_status in {"complete", "completed"}:
+        return decision(
+            workflow="epic",
+            status="complete",
+            next_action="CS_ROADMAP_GOAL_COMPLETE",
+            reason="epic goal state is complete",
+            warnings=warnings,
+            evidence={"goal_state": rel(root, goal_state)},
+        )
+    if state_status == "handoff":
+        return decision(
+            workflow="epic",
+            status="user_gate",
+            next_action="CS_ROADMAP_GOAL_HANDOFF",
+            reason=str(state.get("handoff_reason") or "epic goal driver requested handoff"),
+            warnings=warnings,
+            evidence={
+                "goal_state": rel(root, goal_state),
+                "handoff_next": state.get("handoff_next"),
+            },
+        )
     driver_kind = state.get("driver_kind")
     driver_id = state.get("driver_id")
     if driver_kind in {"paseo", "native"} and driver_id:
@@ -324,21 +360,12 @@ def epic_next(roadmap: Path) -> dict[str, Any]:
             warnings=warnings,
             evidence={"goal_state": rel(root, goal_state), "driver_kind": driver_kind, "driver_id": driver_id},
         )
-    if state.get("status") == "ready-to-dispatch":
+    if state_status == "ready-to-dispatch":
         return decision(
             workflow="epic",
             status="dispatch_goal",
             next_action="dispatch-epic-goal-driver-or-print-goal",
             reason="epic goal package is ready to dispatch",
-            warnings=warnings,
-            evidence={"goal_state": rel(root, goal_state)},
-        )
-    if state.get("status") in {"complete", "completed"}:
-        return decision(
-            workflow="epic",
-            status="complete",
-            next_action="CS_ROADMAP_GOAL_COMPLETE",
-            reason="epic goal state is complete",
             warnings=warnings,
             evidence={"goal_state": rel(root, goal_state)},
         )
@@ -388,13 +415,13 @@ def feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
             missing_artifacts=[f"{feature_slug_from_dir(feature)}-design.md"],
             evidence=evidence,
         )
-    if design_status == "draft" and review_status != "passed":
+    if design_status == "approved" and review_status != "passed":
         return decision(
             workflow="feature",
-            status="continue",
-            next_action="cs-feat design-review",
-            reason="draft design still needs a passed design-review",
-            missing_artifacts=[] if review else [f"{feature_slug_from_dir(feature)}-design-review.md"],
+            status="blocked",
+            next_action="fix-feature-design-review-state",
+            reason="approved design lacks a passed design-review",
+            blocking=[f"approved design has design-review status: {review_status}"],
             evidence=evidence,
         )
     if review_status in {"changes-requested", "blocked"}:
@@ -403,6 +430,15 @@ def feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
             status="continue",
             next_action="cs-feat design",
             reason=f"design-review is {review_status}",
+            evidence=evidence,
+        )
+    if design_status == "draft" and review_status != "passed":
+        return decision(
+            workflow="feature",
+            status="continue",
+            next_action="cs-feat design-review",
+            reason="draft design still needs a passed design-review",
+            missing_artifacts=[] if review else [f"{feature_slug_from_dir(feature)}-design-review.md"],
             evidence=evidence,
         )
     if review_status == "passed" and design_status != "approved":
@@ -450,6 +486,24 @@ def feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
 
     state = load_yaml(goal_state) if goal_state else {}
     state = state if isinstance(state, dict) else {}
+    stage = state.get("stage")
+    status = state.get("status")
+    if (stage, status) == ("complete", "passed"):
+        return decision(
+            workflow="feature",
+            status="complete",
+            next_action="CS_FEATURE_GOAL_COMPLETE",
+            reason="feature goal-state stage=complete status=passed",
+            evidence=evidence,
+        )
+    if (stage, status) == ("handoff", "blocked"):
+        return decision(
+            workflow="feature",
+            status="user_gate",
+            next_action="CS_FEATURE_GOAL_HANDOFF",
+            reason=str(state.get("handoff_reason") or "feature goal driver requested handoff"),
+            evidence={**evidence, "handoff_next": state.get("handoff_next")},
+        )
     driver_kind = state.get("driver_kind")
     driver_id = state.get("driver_id")
     if driver_kind in {"paseo", "native"} and driver_id:
@@ -460,8 +514,6 @@ def feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
             reason="visible feature goal driver is already recorded",
             evidence={**evidence, "driver_kind": driver_kind, "driver_id": driver_id},
         )
-    stage = state.get("stage")
-    status = state.get("status")
     routes = {
         ("implementation", "ready-to-dispatch"): ("dispatch_goal", "dispatch-feature-goal-driver-or-print-goal"),
         ("implementation", "running"): ("continue", "cs-feat implementation"),
@@ -470,8 +522,6 @@ def feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
         ("qa", "ready"): ("continue", "cs-feat qa"),
         ("qa", "fixing"): ("continue", "cs-feat implementation qa-fix"),
         ("acceptance", "ready"): ("continue", "cs-feat acceptance"),
-        ("complete", "passed"): ("complete", "CS_FEATURE_GOAL_COMPLETE"),
-        ("handoff", "blocked"): ("user_gate", "CS_FEATURE_GOAL_HANDOFF"),
     }
     if (stage, status) in routes:
         next_status, next_action = routes[(stage, status)]

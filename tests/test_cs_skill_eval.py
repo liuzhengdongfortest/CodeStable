@@ -360,13 +360,16 @@ def test_routing_scorer_hit_miss_forbidden_parse():
 def test_build_routing_prompt_contains_state_and_json_contract():
     from buildprompt import build_prompt
     fx = _routing_fx({"result_type": "RoutedTo", "target": "Design"},
-                     state={"designStatus": "Missing", "reviewStatus": "Missing"},
+                     state={"designStatus": "Missing", "designReviewStatus": "ReviewMissing"},
                      intent={"requestedStage": "（无）"})
     prompt = build_prompt(fx, "SKILL BODY HERE", False)
     assert "SKILL BODY HERE" in prompt
     assert "designStatus: Missing" in prompt
+    assert "designReviewStatus: ReviewMissing" in prompt
     assert "只输出一个 JSON 对象" in prompt
     assert "result_type" in prompt
+    assert "DispatchGoalDriver" in prompt
+    assert "ReportDriver" in prompt
 
 
 def test_api_post_retries_on_504(monkeypatch):

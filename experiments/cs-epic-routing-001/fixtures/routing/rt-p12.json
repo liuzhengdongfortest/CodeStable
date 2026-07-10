@@ -1,17 +1,17 @@
 {
-  "id": "rt-f08",
+  "id": "rt-p12",
   "answerType": "routing-decision",
   "task": {
     "kind": "routing",
     "state": {
-      "designStatus": "Approved",
-      "designReviewStatus": "ReviewPassed",
+      "allDesignApproved": true,
       "goalRunState": "GoalComplete",
       "driver_kind": "paseo",
-      "driver_id": "run-123"
+      "driver_id": "run-epic-123"
     }
   },
   "expect": {
-    "result_type": "Completed"
+    "result_type": "Completed",
+    "must_not_target": "ReportDriver"
   }
 }

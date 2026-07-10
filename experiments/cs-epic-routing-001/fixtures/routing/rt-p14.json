@@ -1,0 +1,18 @@
+{
+  "id": "rt-p14",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "allDesignApproved": true,
+      "goalRunState": "GoalUnknown(status=paused)"
+    }
+  },
+  "expect": {
+    "result_type": "NeedsHuman",
+    "target_any": [
+      "unknown goal-state",
+      "inspect-epic-goal-state"
+    ]
+  }
+}

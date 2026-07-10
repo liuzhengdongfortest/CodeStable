@@ -1,17 +1,23 @@
 {
-  "id": "rt-f08",
+  "id": "rt-f12",
   "answerType": "routing-decision",
   "task": {
     "kind": "routing",
     "state": {
       "designStatus": "Approved",
       "designReviewStatus": "ReviewPassed",
-      "goalRunState": "GoalComplete",
+      "goalRunState": "GoalHandoffBlocked(缺少生产凭证)",
       "driver_kind": "paseo",
       "driver_id": "run-123"
     }
   },
   "expect": {
-    "result_type": "Completed"
+    "result_type": "GoalHandoff",
+    "target_any": [
+      "CS_FEATURE_GOAL_HANDOFF",
+      "handoff",
+      "/goal"
+    ],
+    "must_not_target": "ReportDriver"
   }
 }

@@ -10,6 +10,7 @@ contracts 只是声明；本测试让它们真正生效。
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -97,3 +98,73 @@ def test_not_grep_ignores_frontmatter_declaration() -> None:
     assert frontmatter is not None
     assert 'not-grep: "git push"' in frontmatter  # 声明确实在 frontmatter
     assert "git push" not in body  # 但 body 干净——not-grep 应通过
+
+
+def test_full_protocol_workflow_skills_keep_failure_and_output_contracts() -> None:
+    for skill in ("cs-feat", "cs-epic"):
+        body = (SKILLS / skill / "SKILL.md").read_text(encoding="utf-8")
+        assert "## Failure Behavior" in body, skill
+        assert "## Output Contract" in body, skill
+
+
+def test_feat_and_epic_specs_match_goal_runtime_vocabulary() -> None:
+    feat = (SKILLS / "cs-feat/SKILL.md").read_text(encoding="utf-8")
+    epic = (SKILLS / "cs-epic/SKILL.md").read_text(encoding="utf-8")
+
+    assert "designReviewStatus" in feat
+    assert "goalRunState" in feat
+    assert "reviewStatus     :" not in feat
+    assert "hasGoalPackage" not in feat
+    assert re.search(r"GoalReadyToDispatch\s+-> DispatchGoalDriver", feat)
+    assert re.search(r"GoalComplete\s+-> Completed", feat)
+    assert re.search(r"GoalHandoffBlocked reason\s+-> GoalHandoff", feat)
+
+    assert "roadmapReviewStatus" in epic
+    assert "goalRunState" in epic
+    assert "hasGoalPackage" not in epic
+    assert re.search(r"GoalReadyToDispatch\s+-> DispatchGoalDriver", epic)
+    assert re.search(r"GoalComplete\s+-> Completed", epic)
+    assert re.search(r"GoalHandoffBlocked reason\s+-> GoalHandoff", epic)
+
+    build = (LOCAL_SKILLS / "build-cs-skill/SKILL.md").read_text(encoding="utf-8")
+    assert "Runtime Alignment Gate" in build
+
+    feat_goal = (SKILLS / "cs-feat/references/goal/protocol.md").read_text(encoding="utf-8")
+    epic_goal = (SKILLS / "cs-epic/references/goal/protocol.md").read_text(encoding="utf-8")
+    epic_runtime = (SKILLS / "cs-epic/references/goal/support/protocol.md").read_text(encoding="utf-8")
+    assert "handoff_reason" in feat_goal and "handoff_next" in feat_goal
+    assert "终态" in feat_goal
+    assert "handoff_reason" in epic_goal and "handoff_next" in epic_goal
+    assert "status: complete" in epic_runtime and "status: handoff" in epic_runtime
+
+
+def _routing_fixture_states(experiment: str) -> dict[str, dict[str, object]]:
+    fixtures = ROOT / "experiments" / experiment / "fixtures/routing"
+    result: dict[str, dict[str, object]] = {}
+    for path in sorted(fixtures.glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        result[payload["id"]] = payload
+    return result
+
+
+def test_goal_routing_fixtures_use_current_state_schema() -> None:
+    feat = _routing_fixture_states("cs-feat-routing-001")
+    epic = _routing_fixture_states("cs-epic-routing-001")
+    deprecated = {"reviewStatus", "hasGoalPackage", "codeStatus", "qaStatus", "acceptanceStatus"}
+
+    for payload in [*feat.values(), *epic.values()]:
+        state = payload["task"].get("state", {})
+        assert deprecated.isdisjoint(state), payload["id"]
+        assert "终态优先" not in json.dumps(state, ensure_ascii=False), payload["id"]
+
+    assert feat["rt-f10"]["expect"]["result_type"] == "DispatchGoalDriver"
+    assert feat["rt-f11"]["expect"]["result_type"] == "ReportDriver"
+    assert feat["rt-f12"]["expect"]["result_type"] == "GoalHandoff"
+    assert feat["rt-f13"]["expect"]["result_type"] == "NeedsHuman"
+    assert feat["rt-f14"]["expect"]["result_type"] == "HumanCheckpoint"
+
+    assert epic["rt-p09"]["expect"]["result_type"] == "DispatchGoalDriver"
+    assert epic["rt-p11"]["expect"]["result_type"] == "ReportDriver"
+    assert epic["rt-p12"]["expect"]["result_type"] == "Completed"
+    assert epic["rt-p13"]["expect"]["result_type"] == "GoalHandoff"
+    assert epic["rt-p14"]["expect"]["result_type"] == "NeedsHuman"

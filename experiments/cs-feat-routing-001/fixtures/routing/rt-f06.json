@@ -5,7 +5,8 @@
     "kind": "routing",
     "state": {
       "designStatus": "Approved",
-      "hasGoalPackage": false
+      "designReviewStatus": "ReviewPassed",
+      "goalRunState": "GoalMissing"
     }
   },
   "expect": {

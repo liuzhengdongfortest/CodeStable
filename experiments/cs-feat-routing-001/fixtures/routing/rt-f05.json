@@ -5,7 +5,8 @@
     "kind": "routing",
     "state": {
       "designStatus": "Draft",
-      "reviewStatus": "Passed",
+      "designReviewStatus": "ReviewPassed",
+      "goalRunState": "GoalMissing",
       "epicChildBatch": true
     }
   },

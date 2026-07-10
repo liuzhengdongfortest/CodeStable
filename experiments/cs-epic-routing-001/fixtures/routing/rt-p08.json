@@ -6,7 +6,7 @@
     "state": {
       "childrenDesign": "AllPassed",
       "allDesignApproved": true,
-      "hasGoalPackage": false
+      "goalRunState": "GoalMissing"
     }
   },
   "expect": {

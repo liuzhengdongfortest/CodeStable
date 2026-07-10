@@ -1,8 +1,10 @@
-# Results — routing 三方 eval（六 skill 汇总）
+# Results — routing 三方 eval（七 skill 汇总）
 
 主实验文档；cs-feat/cs-epic/cs-docs/cs-refactor/cs-docs-neat 的 routing-001 实验共享本 verdict。
 评分：routing_ok [measured]（机械比对），oracle 经两轮校准（见 hypotheses.md 校准记录），全段离线统一重打分。
 n=每变体 72~90（fixtures × 3 模型 × k3）。
+
+> 历史快照：本表对应 2026-07 campaign 当时冻结的 fixtures。2026-07-10 起 `cs-feat` / `cs-epic` 增加 runtime-alignment 状态与终态优先级 fixtures；新用例重跑前，本表不作为当前 fixture 集的 verdict。
 
 ## Verdict
 

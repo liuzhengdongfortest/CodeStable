@@ -1,10 +1,11 @@
 {
-  "id": "rt-p09",
+  "id": "rt-f10",
   "answerType": "routing-decision",
   "task": {
     "kind": "routing",
     "state": {
-      "allDesignApproved": true,
+      "designStatus": "Approved",
+      "designReviewStatus": "ReviewPassed",
       "goalRunState": "GoalReadyToDispatch"
     }
   },
@@ -13,7 +14,7 @@
     "target_any": [
       "visible goal driver",
       "Task agent goal driver",
-      "dispatch-epic-goal-driver",
+      "dispatch-feature-goal-driver",
       "/goal"
     ],
     "must_not_target": "GoalHandoff"

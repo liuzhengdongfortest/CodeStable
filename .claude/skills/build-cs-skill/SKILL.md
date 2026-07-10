@@ -6,6 +6,7 @@ contracts:
   - grep: "selectProcessProtocol"
   - grep: "full protocol refactor"
   - grep: "minimal hardening patch"
+  - grep: "Runtime Alignment Gate"
   - grep: "Measured Rules"
   - grep: "eval-cs-skill"
   - not-grep: "read `.codestable/attention.md` just to author"
@@ -74,6 +75,7 @@ data SkillShape = SkillShape
   , refactorDepth  : RefactorDepth
   , process        : ProcessProtocol
   , stateModel     : Maybe StateMachine
+  , runtimeRouter  : Maybe RuntimeContract
   , outputContract : OutputContract
   , failureModes   : [FailureMode]
   , contracts      : [MachineContract]
@@ -139,7 +141,8 @@ A full protocol refactor must include all of these, even when behavior is unchan
 8. failure behavior;
 9. output contract;
 10. machine contracts or recommended frontmatter contracts;
-11. decision fixture recommendations.
+11. runtime alignment when a deterministic router / hook exists;
+12. decision fixture recommendations.
 
 ### 3. Classify the skill
 
@@ -156,35 +159,11 @@ If a skill mixes kinds, split the active operator protocol from reference materi
 
 ### 4. Tighten the trigger
 
-Rewrite `description` so it states:
-
-- what user requests should trigger this skill;
-- what adjacent requests should not trigger it;
-- the expected artifact or workflow boundary.
-
-Avoid broad verbs alone, such as "optimize", "improve", "analyze", or "help". Add exclusions when overlap exists with `cs-feat`, `cs-issue`, `cs-docs`, `cs-epic`, `cs-audit`, `cs-refactor`, or local authoring skills.
+Write `description` as trigger + expected artifact/workflow + adjacent-skill exclusions. Avoid broad verbs alone (`optimize`, `improve`, `analyze`, `help`); use `references/cs-skill-spec-standard.md` for the boundary pattern.
 
 ### 5. Write the operator protocol first
 
-Put execution-critical content in the first half of `SKILL.md`:
-
-1. target preflight when applicable;
-2. entry intent parsing;
-3. `## Spec` with types and the main function;
-4. process protocol appropriate to the skill kind;
-5. state restoration or branch selection;
-6. human checkpoints;
-7. failure behavior;
-8. output contract.
-
-Choose the process section by skill kind:
-
-| Skill kind | Required process section |
-|---|---|
-| `WorkflowSkill` | `## Workflow`, `## Protocol`, or `## Lifecycle` with the runtime path in 5-7 ordered steps |
-| `OperatorSkill` | `## Operation` or `## Algorithm` with the input -> action -> output path |
-| compatibility shim | no workflow required; state target skill and passed intent |
-| `ReferenceDoc` | no workflow required; state why it is reference material |
+Put execution-critical P1 content first: target preflight, entry intent, Spec, process, state restoration, checkpoints, failure, output. Workflow skills use a 5-7 step `Workflow` / `Protocol` / `Lifecycle`; operators use `Operation` / `Algorithm`; shims only pass intent; reference docs do not invent a workflow.
 
 For target skills, include a preflight step when the skill touches `.codestable/`, scans repo state, writes artifacts, dispatches agents, or depends on project initialization. For pure formatting, routing shims, or reference-only materials, a separate preflight step is usually unnecessary.
 
@@ -204,6 +183,10 @@ Every stage transition must leave durable evidence on disk, such as a status fie
 
 The routing function must cover the **complete lifecycle** from trigger to exit — including entry (grill/intake), rebuild/degrade branches, iteration, checkpoints, and completion. Guard order is priority order; an unreachable tail branch is a bug. Measured: a model that keeps picking "the nearest enum" on one branch usually signals a missing guard, not bad wording (cs-goal rt-g02: two wording rounds 0.33→0.33, one added entry guard →0.89 — see quality-gates Measured Rules 6).
 
+#### Runtime Alignment Gate
+
+When the target has a deterministic router, hook, or state file schema, treat it as executable enforcement of the prompt Spec, not an independent routing truth. Align state names, normalization, guard priority, terminal-state precedence, and outcomes across `SKILL.md`, runtime code, persisted artifacts, and decision fixtures. Add a mechanical conformance test; a green grep contract or a separately hand-written test router is not sufficient. Detailed checks live in `references/cs-skill-quality-gates.md`.
+
 ### 7. Add progressive reference loading
 
 State which reference file is loaded for each stage. The skill must not load all references at startup.
@@ -220,34 +203,13 @@ When a skill also loads project facts (`CONTEXT.md`, ADR, compound) across stage
 
 If the local validation system supports frontmatter contracts, add `contracts:`. If it does not, still include a `## Machine Contracts` section so the invariants are explicit and can later be wired into validation.
 
-Good contracts protect behavior, not documentation:
-
-```yaml
-contracts:
-  - grep: "restoreFeatureStage"            # the sole-routing-truth function name
-  - grep: "must not auto-approve design"   # behavioral invariant sentence
-  - grep: "progressive reference loading"
-  - not-grep: "git push"
-  - not-grep: "read all references"
-```
+Good contracts protect behavior, not documentation: routing function names, required checkpoint / artifact phrases, progressive loading, and forbidden actions.
 
 Do NOT anchor bare Spec type names (`FeatureState`, `HumanCheckpoint`, `CheckpointReason`) — they only prove the Spec block exists, not that any behavior is protected (measured; see quality-gates Contract Gate). Select terms that would be missing only if an important rule was lost. Avoid generic words like `quality`, `check`, `best`, or `review`.
 
 ### 9. Design decision fixtures
 
-For important branch logic, write fixtures in the runnable eval-cs-skill routing schema (`experiments/<skill>-routing-001/fixtures/routing/*.json`). A fixture should test one decision:
-
-```json
-{
-  "id": "rt-f02",
-  "answerType": "routing-decision",
-  "task": {"kind": "routing",
-           "state": {"designStatus": "Draft", "reviewStatus": "Passed"}},
-  "expect": {"result_type": "HumanCheckpoint",
-             "target_any": ["ConfirmDesign", "design 整体确认"],
-             "must_not_target": "GoalPackage"}
-}
-```
+For important branch logic, write one-decision fixtures in the runnable eval-cs-skill schema under `experiments/<skill>-routing-001/fixtures/routing/*.json`; use `references/cs-skill-fixture-patterns.md` for shapes.
 
 Oracle discipline: use `result_type_any` / `target_any` to accept semantically equivalent phrasings (older variants lack Spec vocabulary); spot-check observed answers before trusting a verdict.
 
@@ -255,24 +217,11 @@ Prioritize fixtures for: activation/routing; stage ordering; forbidden actions; 
 
 ### 10. Define failure behavior
 
-Every skill must say what happens when it cannot safely continue. A good failure result includes:
-
-- current artifact or directory;
-- blocking reason;
-- next user action;
-- files already written;
-- whether retry is safe.
+Every skill must say what happens when it cannot safely continue. A good failure result includes the current artifact, blocking reason, next user action, files already written, and whether retry is safe.
 
 Do not silently continue when approved scope, public contracts, data shape, or user-visible behavior would change.
 
-For `build-cs-skill` itself, return `NeedsHuman` when:
-
-- `targetSkill` is missing or ambiguous;
-- the requested output location is unclear;
-- the target file has unrelated user changes in sections that must be edited;
-- a full protocol refactor would require behavior changes but the user requested behavior-equivalent edits only;
-- the target skill references missing protocol files and the intended behavior cannot be inferred;
-- the user asks for measured evaluation rather than authoring/refactor; route to `eval-cs-skill` instead.
+For `build-cs-skill` itself, return `NeedsHuman` when the target/output is ambiguous, overlapping user edits cannot be preserved, behavior-equivalent constraints conflict with the required rewrite, or referenced protocols are missing. Route measured experiment requests to `eval-cs-skill`.
 
 ### 11. Keep the file small
 
@@ -282,7 +231,7 @@ Prefer a short `SKILL.md` plus references over a large always-loaded file. Rule 
 
 Structural tests are necessary but not sufficient. After refactoring a core workflow/operator skill:
 
-1. run the repo's structural tests and `git diff --check`;
+1. run structural tests, runtime-alignment conformance tests, and `git diff --check`;
 2. re-check routing behavior via `eval-cs-skill`: routing-decision fixtures per Spec branch, >=2 models, k>=3, against a frozen pre-change variant snapshot;
 3. triage failures in this order before blaming the skill: oracle too strict > fixture ambiguity > skill defect > model behavior difference;
 4. cap live wording fixes at two rounds per fixture; wording-resistant failures signal a structural gap in the Spec (see quality-gates Measured Rules 6);

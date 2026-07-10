@@ -56,13 +56,17 @@ Protocol: {roadmap-path}/goal-protocol.md
 
 ## 6. 完成标记
 
-只有最终审计通过后才能打印：
+只有最终审计通过后，先把 `goal-state.yaml` 顶层更新为 `status: complete`，再打印：
 
 ```text
 CS_ROADMAP_GOAL_COMPLETE
 ```
 
 如果无法继续：
+
+先把 `goal-state.yaml` 顶层更新为 `status: handoff`，并写入
+`handoff_reason` / `handoff_next`；保留 `current_feature_index`、features 和 driver
+字段，使主流程能从仓库事实恢复 handoff。然后打印：
 
 ```text
 CS_ROADMAP_GOAL_HANDOFF

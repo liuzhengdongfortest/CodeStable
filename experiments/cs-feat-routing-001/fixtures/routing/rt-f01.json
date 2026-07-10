@@ -6,7 +6,8 @@
     "state": {
       "featureDir": ".codestable/features/2026-07-07-oauth-login",
       "designStatus": "Missing",
-      "reviewStatus": "Missing"
+      "designReviewStatus": "ReviewMissing",
+      "goalRunState": "GoalMissing"
     }
   },
   "expect": {

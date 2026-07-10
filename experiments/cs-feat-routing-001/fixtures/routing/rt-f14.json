@@ -1,0 +1,25 @@
+{
+  "id": "rt-f14",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "designStatus": "Approved",
+      "designReviewStatus": "ReviewPassed",
+      "goalRunState": "GoalImplementationRunning"
+    },
+    "intent": {
+      "changesApprovedScope": true
+    },
+    "utterance": "实现中需要修改已批准 design 和公开 API"
+  },
+  "expect": {
+    "result_type": "HumanCheckpoint",
+    "target_any": [
+      "ConfirmScopeChange",
+      "确认范围变更",
+      "approved design change"
+    ],
+    "must_not_target": "Implementation"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "rt-p11",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "allDesignApproved": true,
+      "goalRunState": "GoalDriverActive(driver_kind=paseo, driver_id=run-epic-123)"
+    }
+  },
+  "expect": {
+    "result_type": "ReportDriver",
+    "target_any": [
+      "run-epic-123",
+      "report-visible-driver",
+      "visible driver"
+    ],
+    "must_not_target": "DispatchGoalDriver"
+  }
+}

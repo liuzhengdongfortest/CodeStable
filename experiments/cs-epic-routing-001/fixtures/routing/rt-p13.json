@@ -1,0 +1,22 @@
+{
+  "id": "rt-p13",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "allDesignApproved": true,
+      "goalRunState": "GoalHandoffBlocked(迁移环境不可用)",
+      "driver_kind": "paseo",
+      "driver_id": "run-epic-123"
+    }
+  },
+  "expect": {
+    "result_type": "GoalHandoff",
+    "target_any": [
+      "CS_ROADMAP_GOAL_HANDOFF",
+      "handoff",
+      "/goal"
+    ],
+    "must_not_target": "ReportDriver"
+  }
+}
