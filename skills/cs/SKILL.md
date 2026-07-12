@@ -1,6 +1,6 @@
 ---
 name: cs
-description: CodeStable LITE 的唯一技能入口，用 project spec、epic spec 与 issue 组织软件的当前真相、受控变化和可关闭行动，并负责接入、讨论规划、规格维护、系统探索、bug 诊断修复、issue 设计执行关闭、知识沉淀和未知流程学习。用户明确说 cs/CodeStable，或项目已有 `.cs/` 且正在处理需求、规格、bug、issue、实现、关闭或沉淀时使用；只有用户明确要求接入时才初始化 `.cs/`。
+description: CodeStable 用 project spec、epic spec 与 issue 组织软件的当前真相、受控变化和可关闭行动，并负责接入、讨论规划、规格维护、系统探索、bug 诊断修复、issue 设计执行关闭、知识沉淀和未知流程学习。用户明确说 cs/CodeStable，或项目已有 `.cs/` 且正在处理需求、规格、bug、issue、实现、关闭或沉淀时使用；只有用户明确要求接入时才初始化 `.cs/`。
 ---
 
 # cs — CodeStable
@@ -45,7 +45,7 @@ Epic spec 位于 `.cs/epics/YYYY/MM/DD/{短语}/spec.md`，回答：一个大变
 
 Epic 的价值是**隔离不确定性**。只有跨模块、会经历多轮反馈、需要分批 issue，或规格会在一个可圈住范围内反复演化的变化才进入 epic。它不是任务桶，也不是 project spec 的缩小副本。
 
-每个 epic 只有一个权威 `spec.md`。状态、当前方案、架构考量、统一语言、当前推进、issue 列表、阻碍、关闭条件和毕业候选都在其中维护；不要再创建重复这些职责的 `index.md`、`plan.md` 或 `changes.md`。材料复杂时可以增加按内容命名的相邻文档，但不能形成第二份状态或计划，并要由 `spec.md` 清楚指过去。
+每个 epic 只有一个权威 `spec.md`。状态、当前方案、架构考量、统一语言、当前推进、issue 列表、阻碍、关闭条件和毕业候选都在其中维护；材料复杂时可以增加按内容命名的相邻文档，但不能形成第二份状态或计划，并要由 `spec.md` 清楚指过去。
 
 ### Issue：可关闭的改变
 
