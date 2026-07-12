@@ -131,7 +131,7 @@ Issues under an epic close back into the epic spec first. Only when a human conf
 
 Small bugs, small features, and local chores do not need an epic; they can become independent issues directly. Large needs enter an epic, then get split from the epic spec in batches. An issue carries one verifiable change, not the whole requirement world.
 
-The close rule is simple: independent issue → project spec; exploratory issue → human-confirmed candidate articles merged into project spec according to spec rules; epic issue → epic spec; user-confirmed epic close → project spec.
+The close rule is simple: independent issue → project spec; exploratory issue → human-confirmed How-it-works knowledge merged progressively into project spec while change-specific impact analysis stays in the target issue; epic issue → epic spec; user-confirmed epic close → project spec.
 
 ---
 
@@ -146,7 +146,7 @@ The repository distributes one `cs` Skill. Users no longer choose among a catalo
 | Spec change | Maintain the project spec or the epic's single `spec.md` |
 | Behavior breaks expectations | Create a bug issue and use a feedback loop to diagnose, fix, and verify |
 | Clear issue | Design, implement, and verify as needed; close and commit only when the user asks for wrap-up |
-| Unknown system area | Develop candidate articles inside an exploratory issue, then graduate confirmed knowledge into the project spec |
+| How the system works is unclear | Trace trigger to result with lightweight Explore; promote to a full exploratory issue when complex or reusable |
 | Reusable knowledge | Write notes, agent instructions, or tools; learn unknown workflows under human guidance |
 
 Action rules and principles for code design, debugging, documentation, and skill design live under `cs/references/` and load only when the current situation needs them.
@@ -190,7 +190,7 @@ your-project/
 │   │
 │   ├── issues/               # Closeable work items, sharded by creation date
 │   │   ├── YYYY/MM/DD/{status}-{短语}.md   # ordinary issues
-│   │   └── YYYY/MM/DD/{status}-{短语}/     # exploratory issue workspaces
+│   │   └── YYYY/MM/DD/{status}-{短语}/     # full Explore: index + trigger-to-result path articles
 │   ├── epics/                # Large-change lines
 │   │   └── YYYY/MM/DD/{短语}/
 │   │       └── spec.md       # Single authority: spec, progress, issues, blockers, close conditions
@@ -208,7 +208,9 @@ your-project/
 - Specs, work items, and knowledge artifacts aggregate under `.cs/`, so "how did we handle that change last time" is three seconds away
 - `spec/` is the project spec, organizing mainline requirements, architecture considerations, shared language, and reading paths for a developer entering the project
 - `epics/` are large-change lines; each epic spec carries additions, changes, and reversals until the epic closes and graduates back into the project spec
-- `issues/` can carry exploratory work; candidate articles, user corrections, and evidence stay in the issue workspace for discussion, then merge into project spec according to spec rules after human-confirmed close
+- Before changing code, trace how a trigger produces its result; keep a compact `How it works` section and optional impact scope in the target issue, and promote to full Explore only when the model crosses unclear boundaries or deserves reuse
+- A full Explore `index.md` carries the one-sentence model, boundary, and reading path; path articles progressively reveal the main flow, responsibilities, data, state, relevant branches, and evidence
+- On close, stable How-it-works knowledge graduates progressively into project spec; change-specific impact stays in the target issue, while evidence and excluded interpretations remain in the Explore issue
 - Talks and notes default to `YYYY/MM/DD/{短语}.md` date shards, epics use `YYYY/MM/DD/{短语}/` workspaces, ordinary issues use `YYYY/MM/DD/{status}-{短语}.md`, and exploratory issues use `YYYY/MM/DD/{status}-{短语}/` workspaces; search recursively under each area
 - `notes/` is the knowledge notes area — plain markdown, no frontmatter, full-text searchable. `cs` decides whether daily "remember this" work belongs in notes or project agent instructions
 - Human-guided unknown workflows become `notes/`; add a one-line reference to `AGENTS.md` or `CLAUDE.md` only when the workflow is a stable prerequisite for related work, and produce `tools/` only when automation is stable

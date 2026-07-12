@@ -6,7 +6,7 @@
 
 CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录一次执行历史；epic spec 记录一条大需求活规格边界的当前理解；project spec 记录项目主线真相。
 
-独立 issue 关闭后，可以把稳定结论直接回写 project spec。探索型 issue 关闭时，把用户确认过的候选文章按 spec 规范合并进 project spec。epic issue 关闭后，先回写 epic spec。只有当用户确认整个 epic 完成，AI 才把 epic spec 中毕业的结论合并回 project spec。
+独立 issue 关闭后，可以把稳定结论直接回写 project spec。探索型 issue 关闭时，把用户确认过的 How it works 理解按 spec 规范合并进 project spec；与某次改动绑定的影响分析仍留在目标 issue。epic issue 关闭后，先回写 epic spec。只有当用户确认整个 epic 完成，AI 才把 epic spec 中毕业的结论合并回 project spec。
 
 ## 原则
 
@@ -22,7 +22,7 @@ CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录
 
 **先守组织，再写内容。** 回写 project spec 时先从 `.cs/spec/index.md` 找阅读路径。缺少合适位置时，先补入口或子层索引，再写内容，不要散落平级文件。
 
-**探索文章按 spec 规范毕业。** explore 工作区里的文章不是原样搬家。关闭时要按 Spec 结构调整为使用叙事、统一语言、树状入口和证据分层；再把文章放到合适目录，并更新对应 `index.md` 的阅读路径或结构落点。
+**探索文章按渐进式披露毕业。** Explore 工作区里的路径文章不是原样搬家。关闭时保留“一句话模型 → 主路径 → 关键分支与边界 → 证据”的认知顺序，再按 Spec 的使用叙事、统一语言和树状入口调整；只把稳定 How it works 理解放到合适目录，并更新对应 `index.md` 的阅读路径。
 
 ## 行动指南
 
@@ -37,12 +37,15 @@ CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录
 
 ### 关闭 issue
 
-检查目标、范围、执行记录和验证。缺少执行记录或验证时，切换到 Do 模式。
+先看 issue 类型：
+
+- 普通 issue：检查目标、范围、执行记录和验证；缺少执行记录或验证时，切换到 Do。
+- Explore issue：不要求业务代码执行记录。检查能否讲清触发、关键过程和可观察结果，相关责任、数据、状态和分支是否有证据，未知是否显式标出；存在具体变化时，还要确认影响已分成必须修改、需要验证和仍待调查。未达到“足够行动”就继续 Explore，不要切到 Do。
 
 按 issue 的 `epic` frontmatter 或“归属”判断回写层级：
 
 - `epic` 为空：把稳定需求、架构考量、统一语言或边界合并回 project spec。
-- `type: explore`：读取工作区 `index.md` 和候选文章，先确认用户认可 `ready-for-spec` 的文章；再按 Spec 结构合并到 `.cs/spec/` 的合适层级，更新对应 `index.md` 引用。错误讨论、代码证据、证据流水、已排除理解和仍未知问题留在 issue 工作区。
+- `type: explore`：读取工作区 `index.md` 和路径文章，确认现状模型已经足够行动且用户认可候选毕业内容；再把稳定 How it works 理解按渐进式披露与 Spec 结构合并到 `.cs/spec/`，更新对应 `index.md` 阅读路径。与具体变化绑定的影响分析写回或保留在 `related_issue` 指向的目标 issue；代码证据、调查过程、已排除理解和仍未知问题留在 Explore issue。
 - `epic` 指向目录：把完成结果、验证事实、当前推进变化和毕业候选写回该 epic 的 `spec.md`。
 
 再把坑点、操作经验、调试路径写入 notes；极少数启动必读规则写入已有 `AGENTS.md` 或 `CLAUDE.md`；稳定工具说明写入 tools。
@@ -73,9 +76,10 @@ CodeStable 的复利不在事项本身，而在关闭时的回写。issue 记录
 
 关闭探索型 issue 时还要：
 
-- 把确认过的候选文章合并或迁移到 `.cs/spec/`，必要时改写标题、章节和证据索引以符合 Spec 结构。
-- 更新目标层级的 `index.md`，让新文章进入使用路径、能力地图或结构落点。
-- 在 explore `index.md` 的 `## 关闭回写` 记录迁入的 spec 文章、更新的 spec index、留在 issue 的材料。
+- 把确认过的 How it works 理解合并或迁移到 `.cs/spec/`，必要时改写标题和层级，让读者可以从总览逐步进入主路径、关键分支和边界。
+- 更新目标层级的 `index.md`，说明为什么读、从哪条路径开始、什么时候需要继续深入。
+- 把变化特定的“必须修改 / 需要验证 / 仍待调查”留在目标 issue，不升级成项目长期真相。
+- 在 Explore `index.md` 的 `## 关闭回写` 记录迁入的 spec 内容、更新的 spec index、留在目标 issue 和 Explore issue 的材料。
 
 关闭 epic 时：
 

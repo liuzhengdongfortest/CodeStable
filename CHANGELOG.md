@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+- Repositioned Explore around **How it works**: trace a trigger through the current system to an observable result before designing a change.
+- Added lightweight issue-scoped Explore and full reusable Explore issues, with change-specific impact analysis only when a concrete change exists.
+- Made Explore artifacts progressively disclose a one-sentence model, main path, relevant branches, impact, unknowns, and evidence; Design now explains current behavior before proposing the future design.
+
 ## 0.4.0
 
 - Removed `.cs/facts.md` from the CodeStable entity model, initialization script, templates, and documentation.
