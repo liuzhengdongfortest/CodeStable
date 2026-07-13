@@ -281,7 +281,7 @@ CodeStable 会根据模型能力的发展进行调整。如果未来某个模型
 ---
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/chart?repos=codestable/CodeStable&type=date&legend=top-left)](https://www.star-history.com/?repos=codestable%2FCodeStable&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/chart?repos=liuzhengdongfortest/CodeStable&type=date&legend=top-left)](https://www.star-history.com/?repos=liuzhengdongfortest%2FCodeStable&type=date&legend=top-left)
 
 <div align="center">
 
