@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "plugins/codestable/skills"
+LOCAL_SKILLS = ROOT / ".claude/skills"
 
 COMPATIBILITY_ENTRIES = {
     "cs-feat-design": ("cs-feat", "requested_stage", "design"),
@@ -116,10 +117,11 @@ def load_codestable_common():
 
 def test_skill_markdown_files_stay_under_line_limit() -> None:
     oversized = []
-    for path in SKILLS.rglob("*.md"):
-        line_count = len(path.read_text(encoding="utf-8").splitlines())
-        if line_count > 300:
-            oversized.append((path.relative_to(ROOT).as_posix(), line_count))
+    for skill_root in (SKILLS, LOCAL_SKILLS):
+        for path in skill_root.rglob("*.md"):
+            line_count = len(path.read_text(encoding="utf-8").splitlines())
+            if line_count > 300:
+                oversized.append((path.relative_to(ROOT).as_posix(), line_count))
 
     assert oversized == []
 
@@ -198,6 +200,26 @@ MAIN_ENTRY_SKILLS = [
     "cs-docs-neat",
 ]
 
+RECOMMENDED_MAIN_SKILLS = [
+    "cs",
+    "cs-onboard",
+    "cs-req",
+    "cs-domain",
+    "cs-epic",
+    "cs-goal",
+    "cs-brainstorm",
+    "cs-feat",
+    "cs-issue",
+    "cs-refactor",
+    "cs-code-review",
+    "cs-audit",
+    "cs-feedback",
+    "cs-keep",
+    "cs-note",
+    "cs-docs",
+    "cs-docs-neat",
+]
+
 MAIN_ENTRY_ARGUMENT_HINTS = {
     "cs": "[request]",
     "cs-onboard": "[--mode refresh-runtime]",
@@ -214,6 +236,13 @@ MAIN_ENTRY_ARGUMENT_HINTS = {
 
 def frontmatter_of(text: str) -> str:
     return text.split("---", 2)[1]
+
+
+def test_recommended_main_skills_have_haskell_front_door_contracts() -> None:
+    for skill in RECOMMENDED_MAIN_SKILLS:
+        text = (SKILLS / skill / "SKILL.md").read_text(encoding="utf-8")
+        assert "## Spec" in text, skill
+        assert "```haskell" in text, skill
 
 
 def test_main_entries_declare_argument_hint_and_intent_fallback() -> None:
@@ -292,7 +321,8 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
 
     assert "--mode refresh-runtime" in onboard
     assert "可重复执行" in onboard
-    assert "只想刷新 runtime、不审计或迁移文档时，显式传 `--mode refresh-runtime`" in onboard
+    assert "selectOnboardPath RefreshRuntime Installed _  = Refresh" in onboard
+    assert "selectOnboardPath RefreshRuntime _ _          = NeedsHuman NotInstalled" in onboard
     assert "不重新审计 / 迁移文档" in onboard
     assert "不移动用户文件" in onboard
     assert "不改 `attention.md` 的实质内容" in onboard
@@ -306,10 +336,11 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     assert "Runtime 资产恢复" in conventions
     assert "runtime capability" in conventions
     assert ".codestable/runtime-manifest.json" in conventions
-    assert "用当前插件包里的\n`cs-onboard/tools/codestable-runtime-sync.py` 自动同步" in conventions
+    assert "recoverRuntime RuntimeIncomplete  = SyncRuntime" in conventions
+    assert "recoverRuntime ManagedPathsDirty  = Stop ManagedRuntimeDirty" in conventions
     assert "--check --json" in conventions
     assert "去掉 `--check`" in conventions
-    assert "不要用项目\n`.codestable/tools/` 里的旧副本做版本判定或新版工具入口" in conventions
+    assert "不要用项目 `.codestable/tools/` 里的旧副本\n做版本判定或新版工具入口" in conventions
     assert "skill_tool_paths" in conventions
     assert "managed-paths-dirty" in conventions
     assert "不自动覆盖" in conventions
@@ -355,7 +386,8 @@ def test_feat_and_epic_document_goal_driver_dispatch() -> None:
     assert "可见 driver 长程执行" in router
     assert "Goal Driver 派发" in agent_conventions
     assert "可见 Task agent" in agent_conventions
-    assert "派发失败" in feat_goal
+    assert "DispatchOrPrintLiteralGoal" in feat_goal
+    assert "启动失败时，不启动后台任务" in feat_goal
     assert "派发失败" in epic_goal
     assert "fenced `/goal`" in feat_goal
     assert "fenced `/goal`" in epic_goal
@@ -395,22 +427,25 @@ def test_goal_mode_overrides_stage_user_waits() -> None:
 
     # implementation 的"停等用户 review"必须有 goal 模式例外，否则 driver 长程会被打断。
     assert "Goal 模式例外" in impl
-    assert "Goal 模式汇报后不停等用户" in impl_reference
+    assert "Goal 模式也不停等用户" in impl_reference
     assert "按 goal 协议更新 `goal-state.yaml`" in impl_reference
+    assert "Standard / review-fix 汇报后直接进入 code review" in impl_reference
     # acceptance 的 goal 例外要同时覆盖单 feature goal 和 epic goal。
     assert "`cs-feat` / `cs-epic` 的 goal 协议" in accept
-    # 原生子 agent 当 driver 前必须确认它还能启动独立 reviewer；不能就回退打印 /goal。
-    assert "只有同时满足两条才可用" in agent_conventions
-    assert "不能靠 driver 自审" in agent_conventions
+    # host driver 必须同时可见且能启动独立 reviewer；否则打印 /goal。
+    assert "visibleHostDriver e && canSpawnReviewer e" in agent_conventions
+    assert "otherwise                                     = PrintGoal \"/goal\"" in agent_conventions
     # 自动 driver 也必须以 literal /goal 启动，不能退化成普通 implementation prompt。
     assert "literal `/goal` 指令作为 driver 初始任务" in agent_conventions
     assert "普通“执行/实现这个 feature”" in agent_conventions
     assert "driver 初始 prompt 必须是上面生成的同一条 literal `/goal` 指令" in feat_goal
     assert "literal `/goal` 指令作为 driver 初始任务启动 driver" in epic_goal
     # 单 feature goal 包必须带接管条款和 handoff 标记，与 epic goal 包对齐。
-    assert "合法状态机" in feat_goal
-    assert "| review | fixing |" in feat_goal
-    assert "| handoff | blocked |" in feat_goal
+    assert "transition ReviewFixing ReviewFixed         = Next ReviewReady" in feat_goal
+    assert "transition QAFixing QAFixed                 = Next ReviewReady" in feat_goal
+    assert "transition state event                      = Reject state event" in feat_goal
+    assert "`review/ready|fixing`" in feat_goal
+    assert "`handoff/blocked`" in feat_goal
     assert "Goal 模式接管" in feat_goal
     assert "CS_FEATURE_GOAL_HANDOFF" in feat_goal
     assert "goal 模式下改为写入报告" in epic_goal_support
@@ -665,6 +700,18 @@ def test_new_main_entries_are_registered() -> None:
     assert "cs-feedback" in common.KNOWN_SKILL_DIRS
     for skill in COMPATIBILITY_ENTRIES:
         assert skill in common.KNOWN_SKILL_DIRS
+
+
+def test_system_overview_declares_complete_entries_and_feature_goal_package() -> None:
+    overview = (SKILLS / "cs-onboard/references/system-overview.md").read_text(encoding="utf-8")
+    main_entries = overview.split("data MainEntry", 1)[1].split("data RouteOutcome", 1)[0]
+
+    assert "Onboard" in main_entries
+    assert "Audit" in main_entries
+    assert "featureWorkflow Quick" in overview
+    assert "featureWorkflow Standard" in overview
+    assert "featureWorkflow GoalLane" in overview
+    assert "workflow Feature  =" not in overview
 
 
 def test_feedback_skill_is_registered_and_uses_progressive_disclosure() -> None:

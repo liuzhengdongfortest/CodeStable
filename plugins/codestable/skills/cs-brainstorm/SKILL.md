@@ -17,20 +17,25 @@ brainstorm 是"讨论层"统一入口。
 
 ---
 
-## 分诊
+## Spec
 
-### 四种 case 速览
+```haskell
+data Readiness = Fuzzy | Clear | Ready
+data Idea = Bug | Refactor | Feature Readiness | Epic Readiness
+data Outcome = Discuss Idea | Handoff HandoffKind Skill
 
-| case | 规模 | 用户状态 | 产物 |
-|---|---|---|---|
-| **case 1：已经够清楚** | 不限 | 一句话能说清做什么 / 为谁 / 怎么算成功 / 不做什么 | 确认后同轮进 `cs-feat` design |
-| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | 落 feature brainstorm，确认后同轮进 `cs-feat` design |
-| **case 3：大需求，拆解 ready** | 多 feature | 心里已有大致模块划分，想直接做拆解和接口契约 | 不落盘，同轮进 `cs-epic` |
-| **case 4：大需求，想 grill** | 多 feature | 还不想拆——想先 grill、发散、产生想法存着 | 落 open brainstorm，确认后同轮进 `cs-epic` |
+route :: Idea -> Outcome
+route Bug             = Handoff ConfirmedExit "cs-issue"
+route Refactor        = Handoff ConfirmedExit "cs-refactor"
+route (Feature Fuzzy) = Discuss (Feature Fuzzy)
+route (Feature Clear) = Handoff PendingExit "cs-feat"
+route (Feature Ready) = Handoff ConfirmedExit "cs-feat"
+route (Epic Fuzzy)    = Discuss (Epic Fuzzy)
+route (Epic Clear)    = Handoff PendingExit "cs-epic"
+route (Epic Ready)    = Handoff ConfirmedExit "cs-epic"
+```
 
-判错 case 不是灾难——**允许升降级**。case 2 聊着发现范围越聊越大切 case 3/4，case 3 聊着发现需要先 grill 切 case 4，case 4 grill 完可以直接拆切 case 3，当场切换出口。
-
-出口语义：case 1 / case 2 / case 4 是待确认出口；case 3 的 ready 拆解表述本身视为确认，是已确认出口。
+`Clear` 表示内容足够进入下一阶段但 owner 尚未授权转交；`Ready` 只来自 owner 明确表示现在进入下一阶段。讨论产生新事实后重新构造 `Idea`，不调用绕过确认来源的独立 `confirmed` 函数。Feature / Epic 的 fuzzy 讨论需要落盘时仍按下方 case 规则处理。
 
 ### 开聊前检查
 
@@ -82,7 +87,7 @@ brainstorm 是"讨论层"统一入口。
 - **复述 + 反向追问问题**——把方案翻成"你想解决的问题是不是 P"
 - **评估并提替代**——看到方案有明显问题（解错了 / 过度工程 / 有现成更轻路径 / 踩 learning 坑），直接说出来，提 1-2 个明显不同的替代方向。**不要为了显得配合就闭嘴**
 
-评估完发现方案确实合理 → "我觉得这个方向 OK 建议直接进 design"，别为凑流程硬发散——当场升级 case 1。
+评估完发现方案确实合理 → "我觉得这个方向 OK，建议直接进 `cs-feat`"，由主入口选 lane；别为凑流程硬发散——当场升级 case 1。
 
 ### 对话节奏
 
@@ -153,11 +158,11 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 **信号**：一句话能说出做什么 / 为谁 / 怎么算成功 / 不做什么；聊两句核心行为 / 成功标准都对上。
 
 **处理**：
-1. 告诉用户"这块你已经想清楚了：{AI 一句话复述}。建议直接进 `cs-feat` design 阶段——brainstorm 对你没增量"
+1. 告诉用户"这块你已经想清楚了：{AI 一句话复述}。建议直接进 `cs-feat`，由主入口按仓库事实选择 Quick / Standard / Goal——brainstorm 对你没增量"
 2. **看聊过程有没有非琐碎技术决策**——讨论了具体库选型 / Schema / 接口形态 / 跨模块约定，落一份精简 brainstorm（只填"已敲定的设计点"那节）让 design 直接读到不必重讨；纯方向确认没聊技术细节就裸退不落盘
-3. 停下来确认是否进入 design；不替用户点头
+3. 停下来确认是否进入 feature 主流程；不替用户点头
 
-**退出**：用户确认后在当前 run 加载 `cs-feat`，从零写 design；轻量落盘时同时传递 `{路径}`，不要求用户重新调用或重述
+**退出**：用户确认后在当前 run 加载 `cs-feat`；轻量落盘时同时传递 `{路径}`，由主入口恢复事实并选择 lane，不要求用户重新调用或重述
 
 ---
 
@@ -178,11 +183,11 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 - slug：根据方向自拟英文小写连字符，写进 note 时告诉用户。design 阶段改名只 rename slug 部分日期别动
 - 目录不存在就创建；已存在回到开聊前检查的接续逻辑
 
-只在用户确认进 design 那一刻落盘——对话期间不写文件。`status` 固定 `confirmed`，没有 draft。
+只在用户确认进入 `cs-feat` 那一刻落盘——对话期间不写文件。`status` 固定 `confirmed`，没有 draft。
 
 文档模板见同目录 `reference.md` 的"feature brainstorm 模板"。frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conventions.md` 第 1 节。
 
-**退出**：如果只是轻确认，主动问"这块够清楚了可以进 design 吗？"；如果需要解释方案 / 代价 / 默认后果，先在 feature 目录写 `approval-report.md` 再让 owner 确认。确认后落盘，并在当前 run 加载 `cs-feat` design，传递 `{路径}` 与已敲定方向。如果愿景（用户故事 / 痛点 / 边界）已经聊透了，可先询问是否用 `cs-req draft` 落 requirement；这也是待确认出口，不能替用户改道
+**退出**：如果只是轻确认，主动问"这块够清楚了，可以进入 `cs-feat` 吗？"；如果需要解释方案 / 代价 / 默认后果，先在 feature 目录写 `approval-report.md` 再让 owner 确认。确认后落盘，并在当前 run 加载 `cs-feat`，传递 `{路径}` 与已敲定方向；由 `cs-feat` 自己选择 lane，不预设 design。愿景（用户故事 / 痛点 / 边界）已经聊透时，可先询问是否用 `cs-req draft` 落 requirement；这也是待确认出口，不能替用户改道
 
 ---
 
@@ -242,7 +247,7 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 3. **不落盘非 case 2 / case 4 产物**——case 1 / 3 不写文件
 4. **不处理 bug / 重构**
 5. **不在 case 1 / 3 启动 grill 档**——case 1 已清楚硬 grill 反人性，case 3 用户已 ready 拆解不需要 grill
-6. **确认前不启动 design 或 roadmap**——case 1 / 2 / 4 必须等用户点头，点头后同轮加载目标；case 3 的 ready 拆解已是确认，直接继续 `cs-epic`
+6. **确认前不启动下游主流程**——case 1 / 2 / 4 必须等用户点头，点头后同轮加载目标；case 3 的 ready 拆解已是确认，直接继续 `cs-epic`
 
 ---
 

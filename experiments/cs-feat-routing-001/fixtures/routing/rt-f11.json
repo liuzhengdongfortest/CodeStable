@@ -6,11 +6,11 @@
     "state": {
       "designStatus": "Approved",
       "designReviewStatus": "ReviewPassed",
-      "goalRunState": "GoalDriverActive(driver_kind=paseo, driver_id=run-123)"
+      "goalRunState": "GoalDriverActive(driver_kind=host-agent, driver_id=run-123)"
     }
   },
   "expect": {
-    "result_type": "ReportDriver",
+    "result_type": "Awaiting",
     "target_any": [
       "run-123",
       "report-visible-driver",

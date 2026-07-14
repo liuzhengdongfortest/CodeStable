@@ -5,7 +5,7 @@
     "kind": "routing",
     "state": {
       "roadmapStatus": "Draft（review passed 但用户尚未确认规划）",
-      "roadmapReviewStatus": "ReviewPassed",
+      "roadmapReviewState": "ReviewPassed",
       "goalRunState": "GoalMissing"
     }
   },

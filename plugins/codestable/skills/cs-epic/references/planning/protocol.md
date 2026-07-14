@@ -11,10 +11,7 @@
 当 roadmap 涉及跨模块 module interface、seam、adapter 或依赖替身策略时，按 `support/codebase-design.md` 做内嵌 deep-module 检查；这不是切换到独立 `codebase-design` skill。
 
 **为什么 roadmap 不直接写 ADR**：ADR（`requirements/adrs/`）记的是"已经拍板的稳定结构性决策"，roadmap 记的是"还没落地、可能还会变"的前瞻性接口契约。等子 feature 真正落地、对应接口稳定后，由 `cs-feat` acceptance 阶段盘点出来的领域影响触发 `cs-domain` 写 ADR——roadmap 完成过渡使命后归档。
-
 **为什么单独一层**：requirements 记"要什么 + 怎么定义术语 + 拍板了哪些决策"（愿景 + 领域），roadmap 记"怎么分步实现"（执行）。把执行规划塞进 requirements 会把"要什么"和"打算怎么实现"混起来。
-
-**为什么文件夹不是单文件**：拆解过程会产生草稿 / 调研 / 方案对比 / 白板转述，塞一份 md 会乱又舍不得删。每个 roadmap 一个子目录，主文档对外口径，旁边 `drafts/` 随便堆。
 
 **规划原则**：roadmap 不是"任务列表"，而是一次可执行路线设计。动笔前要先把目标、约束、风险、依赖、可验证完成信号想清楚；拆出来的每条子 feature 都要能独立验证；整份 roadmap 交给用户前必须先做一次自我批判，修掉含糊验收、错误依赖和被打包过大的条目。
 
@@ -37,20 +34,40 @@
 
 ---
 
-## 模式分流
+## Spec
 
-| 用户说什么 | 模式 |
-|---|---|
-| "拆一下 X 需求"、"开一份 X 的 roadmap"、"我想要一个 X 系统" | `new` |
-| "往 {已有 roadmap} 加子 feature"、"重排顺序"、"标 drop" | `update` |
+```haskell
+data PlanningMode = New | Update
+data Phase = LockTarget | LoadFacts | Draft | SelfCheck | IndependentReview | UserReview | Persist
+data PlanningCheckpoint
+  = SelectOneRoadmap | ReviewRoadmapDraft | ApprovePlanningReviewFallback Reason
+data PlanningResume
+  = RoadmapSelected Slug PlanningMode
+  | RoadmapApproved PlanningMode
+  | LocalReviewApproved PlanningMode
+data PlanningOutcome
+  = Run PlanningMode Phase | Awaiting WaitReason
+  | HumanCheckpoint PlanningCheckpoint | NeedsHuman Reason
+  | Blocked Reason | Completed Roadmap
 
-判断不出问用户。
+selectPlanning :: PlanningRequest -> RepoFacts -> PlanningOutcome
+selectPlanning request facts
+  | multipleTargets request       = HumanCheckpoint SelectOneRoadmap
+  | updateIntent request
+  , roadmapExists facts           = Run Update LockTarget
+  | newIntent request             = Run New LockTarget
+  | otherwise                     = NeedsHuman MissingPlanningIntent
 
----
+resumePlanning :: PlanningResume -> PlanningOutcome
+resumePlanning (RoadmapSelected _ mode)                 = Run mode LockTarget
+resumePlanning (RoadmapApproved mode)                   = Run mode Persist
+resumePlanning (LocalReviewApproved mode)               = Run mode IndependentReview
 
-## 单目标规则
+workflow :: [Phase]
+workflow = [LockTarget, LoadFacts, Draft, SelfCheck, IndependentReview, UserReview, Persist]
+```
 
-每次只动一份 roadmap。一次扔出"我想要 X 和 Y"先选一个，另一个下次。理由同 req / arch——一次吐多份用户 review 不过来。
+每次只动一份 roadmap；参数与仓库事实冲突时以事实为准。
 
 ---
 
@@ -152,17 +169,30 @@
 
 然后运行 `cs-epic` review 阶段：
 
-- `passed`：才能把 roadmap 交给用户 review。
-- `changes-requested`：按 finding 修 roadmap/items，重新校验并重跑 `cs-epic` review 阶段。
-- `blocked`：补齐输入、等待独立 Task agent reviewer，或让用户明确降级 local-only 后重跑。
+```haskell
+afterReview :: PlanningMode -> RoadmapReviewState -> PlanningOutcome
+afterReview mode ReviewPassed                         = HumanCheckpoint ReviewRoadmapDraft
+afterReview mode ReviewChangesRequested                = Run mode Draft
+afterReview mode (ReviewAwaiting agent)                = Awaiting (RoadmapReviewerRunning agent)
+afterReview mode (ReviewNeedsOwnerApproval reason)     = HumanCheckpoint (ApprovePlanningReviewFallback reason)
+afterReview _    (ReviewerFailed reason)               = Blocked reason
+afterReview _    (ReviewBlocked reason)                = Blocked reason
+afterReview mode ReviewMissing                         = Run mode IndependentReview
+```
 
 ### Phase 6：用户 review
 
-主文档 + items.yaml + `{slug}-roadmap-review.md` 完整贴给用户，并附上 Phase 4 自查结论、Top 3 风险与缓解、关键假设、review findings / residual risk。改到用户明确"可以了"。如果用户修改导致 roadmap/items 发生实质变化，回到 Phase 5 重跑 review gate。
+`HumanCheckpoint ReviewRoadmapDraft` 时把主文档 + items.yaml + `{slug}-roadmap-review.md` 完整贴给用户，并附上 Phase 4 自查结论、Top 3 风险与缓解、关键假设、review findings / residual risk。用户确认以 `RoadmapApproved mode` 恢复；若用户修改造成实质变化，回到 Phase 5 重跑 review gate。
 
 ### Phase 7：确认落盘
 
 用户确认后，new 模式把主文档 `status` 改为 `active`、`last_reviewed` 改为当天；update 模式更新 `last_reviewed` 当天。重新校验 yaml。
+
+```haskell
+afterPersist :: Roadmap -> Validation -> PlanningOutcome
+afterPersist roadmap Valid = Completed roadmap
+afterPersist _ invalid      = Blocked (InvalidRoadmapPersistence invalid)
+```
 
 **不改 requirements / architecture**——roadmap 是规划层，那两层只描述现状。拆解过程发现 req / 架构过时，在主文档"观察项"记一句给用户，不顺手改。
 

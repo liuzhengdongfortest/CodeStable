@@ -1,5 +1,31 @@
 # Goal Feature Loop
 
+```haskell
+data FeatureStage = Implementation | Review | QA | Acceptance
+data FailureCause = ImplementationDefect | StageEvidenceDefect
+data StageResult
+  = Passed | Failed FailureCause | Awaiting ExternalRef
+  | NeedsHuman Reason | Blocked Reason
+data FeatureStep
+  = Run FeatureStage | Remediate FeatureStage FeatureStage
+  | WaitFor FeatureStage ExternalRef | RequestHuman FeatureStage Reason
+  | HandoffStage FeatureStage Reason | Accepted
+
+advance :: FeatureStage -> StageResult -> FeatureStep
+advance Implementation Passed = Run Review
+advance Review Passed         = Run QA
+advance QA Passed             = Run Acceptance
+advance Acceptance Passed     = Accepted
+advance Implementation (Failed _)                       = Remediate Implementation Implementation
+advance Review (Failed _)                               = Remediate Implementation Review
+advance QA (Failed _)                                   = Remediate Implementation Review
+advance Acceptance (Failed ImplementationDefect)        = Remediate Implementation Review
+advance Acceptance (Failed StageEvidenceDefect)         = Remediate Acceptance Acceptance
+advance stage (Awaiting ref)                            = WaitFor stage ref
+advance stage (NeedsHuman reason)                       = RequestHuman stage reason
+advance stage (Blocked reason)                          = HandoffStage stage reason
+```
+
 ## 1. 进入 Feature
 
 读取：
@@ -55,7 +81,7 @@ CS_STAGE_START feature=<feature-slug> stage=implementation skill=cs-feat
 - review 必须解释 gate warnings 和 provider warnings。
 - review 的 Test And QA Focus 交给 QA。
 
-如果有 blocking findings，打印 `CS_ROADMAP_GOAL_REVIEW_FIX`，修复后必须重跑 code review。
+`advance Review` 返回 `Remediate Implementation Review` 时打印 `CS_ROADMAP_GOAL_REVIEW_FIX`。
 
 ## 4. QA 阶段
 
@@ -68,7 +94,9 @@ CS_STAGE_START feature=<feature-slug> stage=implementation skill=cs-feat
 - 功能性核心路径必须有实际运行证据。
 - 非功能性 feature 必须写明替代证据理由。
 
-如果 QA failed / blocked，打印 `CS_ROADMAP_GOAL_QA_FIX`；qa-fix 后必须重跑 review 和 QA。
+`advance QA (Failed _)` 返回 `Remediate Implementation Review` 时打印 `CS_ROADMAP_GOAL_QA_FIX`；
+`Awaiting` 只等待已启动工作，`NeedsHuman` 请求缺失输入，`Blocked` 直接持久化 handoff；三者都不进入 review-fix 循环。
+`WaitFor` 保留 external ref；`RequestHuman` / `HandoffStage` 退出前写 `goal-state.yaml` 的 `status: handoff`、reason 与 next。
 
 ## 5. Acceptance 阶段
 
@@ -81,6 +109,8 @@ CS_STAGE_START feature=<feature-slug> stage=implementation skill=cs-feat
 - 把 checklist checks 从 `pending` 改为 `passed`。
 - 按 design 第 4 节处理 reference / architecture / requirement 回写。
 - 按 roadmap / roadmap_item 回写 items.yaml 和 roadmap 主文档。
+
+Acceptance 失败必须先归因：实现行为不满足验收是 `ImplementationDefect`，回 implementation 修复后重跑 review / QA / acceptance；仅报告、checklist 或证据落盘缺口是 `StageEvidenceDefect`，只修 acceptance 后重验。
 
 ## 6. Feature 完成
 

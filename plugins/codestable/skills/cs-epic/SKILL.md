@@ -41,18 +41,27 @@ contracts:
 ## Spec
 
 ```haskell
-csEpic :: EpicRequest -> EpicOutcome
+csEpic :: EpicInput -> EpicOutcome
+csEpic = workflow
+
+data EpicInput
+  = Start EpicRequest | Resume RepoFacts
+  | ConfirmRoadmapInput | ConfirmAllChildDesignInput
+  | ApproveLocalReviewInput
 
 data EpicRequest = EpicRequest
-  { requestedStage : Maybe Stage         -- planning | review | goal-package
+  { requestedStage : Maybe EntryStage    -- planning | review | goal-package
   , userGoal       : Maybe Text
   , repoFacts      : RepoFacts           -- 优先于 args / 聊天历史
   }
 
+data EntryStage = PlanningEntry | ReviewEntry | GoalPackageEntry
 data Stage = Planning | Review | ChildDesignBatch | GoalPackage
 
-data RoadmapReviewStatus = ReviewMissing | ReviewPassed | ReviewBlocking | ReviewBlocked
-  -- persisted status: changes-requested 归一为 ReviewBlocking
+data RoadmapReviewState
+  = ReviewMissing | ReviewPassed | ReviewChangesRequested
+  | ReviewAwaiting AgentRef | ReviewNeedsOwnerApproval Reason
+  | ReviewerFailed Reason | ReviewBlocked Reason
 
 data EpicGoalRunState                     -- 从 goal-state.yaml status/driver 字段恢复
   = GoalMissing
@@ -64,7 +73,7 @@ data EpicGoalRunState                     -- 从 goal-state.yaml status/driver �
 
 data EpicState = EpicState                -- 从 .codestable/roadmap/{slug}/ 与子 features/ 恢复
   { roadmapStatus       : Missing | Draft | Confirmed  -- frontmatter status: active 归一为 Confirmed
-  , roadmapReviewStatus : RoadmapReviewStatus
+  , roadmapReviewState  : RoadmapReviewState           -- 从 roadmap-review review_state 恢复
   , childrenDesign      : AllPassed | Pending          -- 未 dropped child 均有 design+checklist+passed review
   , allDesignApproved   : Bool
   , goalRunState        : EpicGoalRunState
@@ -72,39 +81,56 @@ data EpicState = EpicState                -- 从 .codestable/roadmap/{slug}/ 与
 
 data EpicOutcome
   = RoutedTo Stage
-  | ChildDesignBatch                     -- 逐项进入 cs-feat（epic_child_batch: true），不逐个停用户
+  | Awaiting WaitReason
   | HumanCheckpoint CheckpointReason
   | DispatchGoalDriver Command            -- 先尝试可见 Task agent；失败才降级为 GoalHandoff
   | GoalHandoff Command
-  | ReportDriver DriverInfo              -- goal-state 已记录可见 driver：报告状态，不重复派发
   | Completed EpicSummary
   | NeedsHuman Reason
+  | Blocked Reason
 
-data CheckpointReason = ConfirmRoadmap | ConfirmAllChildDesign
+data WaitReason = RoadmapReviewerRunning AgentRef | GoalDriverRunning DriverInfo | WorkflowWait Text
+data CheckpointReason
+  = ConfirmRoadmap | ConfirmAllChildDesign | ApproveReviewFallback Reason
+data CheckpointResume
+  = PersistRoadmapConfirmed | PersistAllDesignsApproved
+  | RerunReview OwnerApproval | RejectResume Reason
+
+resumeCheckpoint :: EpicInput -> CheckpointResume
+resumeCheckpoint ConfirmRoadmapInput                = PersistRoadmapConfirmed
+resumeCheckpoint ConfirmAllChildDesignInput         = PersistAllDesignsApproved
+resumeCheckpoint ApproveLocalReviewInput             = RerunReview ApproveLocalOnly
+resumeCheckpoint _                                  = RejectResume InvalidCheckpointResume
 ```
 
 ```haskell
-restoreEpicStage :: EpicState -> Intent -> EpicOutcome
-restoreEpicStage(s, intent)
-  | ambiguousTarget(s, intent)                              -> NeedsHuman "which epic?"
+restoreEpicStage :: EpicState -> EpicRequest -> EpicOutcome
+restoreEpicStage(s, request)
+  | ambiguousTarget(s, request)                             -> NeedsHuman "which epic?"
+  | noRecoverableEpic s && isNothing request.userGoal      -> NeedsHuman "which epic?"
   | s.roadmapStatus == Missing                              -> RoutedTo Planning      -- 大需求未拆解
-  | s.roadmapReviewStatus in [ReviewBlocking, ReviewBlocked] -> RoutedTo Planning     -- 修订后重跑 review
-  | s.roadmapStatus == Draft && s.roadmapReviewStatus == ReviewMissing -> RoutedTo Review
-  | s.roadmapReviewStatus == ReviewPassed && s.roadmapStatus /= Confirmed
+  | s.roadmapReviewState == ReviewChangesRequested          -> RoutedTo Planning
+  | s.roadmapReviewState is ReviewAwaiting agent            -> Awaiting (RoadmapReviewerRunning agent)
+  | s.roadmapReviewState is ReviewNeedsOwnerApproval reason -> HumanCheckpoint (ApproveReviewFallback reason)
+  | s.roadmapReviewState is ReviewerFailed reason           -> Blocked reason
+  | s.roadmapReviewState is ReviewBlocked reason            -> Blocked reason
+  | s.roadmapStatus == Draft && s.roadmapReviewState == ReviewMissing -> RoutedTo Review
+  | s.roadmapReviewState == ReviewPassed && s.roadmapStatus /= Confirmed
       -> HumanCheckpoint ConfirmRoadmap        -- roadmap review passed 但用户未确认：停下让用户确认 epic 规划
-  | s.roadmapStatus == Confirmed && s.roadmapReviewStatus /= ReviewPassed
-      -> NeedsHuman "confirmed roadmap lacks passed review"
+  | s.roadmapStatus == Confirmed && s.roadmapReviewState /= ReviewPassed
+      -> Blocked "confirmed roadmap lacks passed review"
   | s.roadmapStatus == Confirmed && s.childrenDesign == Pending
-      -> ChildDesignBatch                      -- 逐项进 cs-feat（epic_child_batch: true）；design 保持 `draft`，不逐个让用户确认
+      -> RoutedTo ChildDesignBatch             -- 逐项进 cs-feat（epic_child_batch: true）；design 保持 `draft`，不逐个让用户确认
                                                -- 仍有子 feature 未完成 design-review 就继续下一个，不停用户
   | s.childrenDesign == AllPassed && not s.allDesignApproved
       -> HumanCheckpoint ConfirmAllChildDesign -- 停下让用户统一确认所有 design，确认后逐份标 approved
   | s.allDesignApproved && s.goalRunState == GoalMissing     -> RoutedTo GoalPackage
   | s.goalRunState == GoalComplete                           -> Completed EpicSummary
   | s.goalRunState is GoalHandoffBlocked reason              -> GoalHandoff (handoffCommand reason)
-  | s.goalRunState is GoalDriverActive driver                -> ReportDriver driver
+  | s.goalRunState is GoalDriverActive driver                -> Awaiting (GoalDriverRunning driver)
   | s.goalRunState == GoalReadyToDispatch                    -> DispatchGoalDriver "/goal"
-  | s.goalRunState is GoalUnknown raw                        -> NeedsHuman ("unknown goal-state: " <> raw)
+  | s.goalRunState is GoalUnknown raw                        -> Blocked ("unknown goal-state: " <> raw)
+  | otherwise                                                -> Blocked InvalidEpicState
 ```
 
 `restoreEpicStage` 是唯一路由真相：扫 `.codestable/roadmap/{slug}/` 与子 features/ 恢复 `EpicState`，按上方分支选下一步；各 stage 加载哪个 protocol 见「Reference 加载」。子 design 阶段是连续 `ChildDesignBatch` loop（见「Child design batch loop」），在 `ConfirmAllChildDesign`（统一确认所有 design）之前不得 final answer。`HumanCheckpoint` 三点见下方「人工 checkpoint」。
@@ -118,7 +144,7 @@ restoreEpicStage(s, intent)
 主执行主线（每次调用按序走；planning/review/goal 的厚规则见对应 protocol，本节只定顺序与边界）：
 
 ```haskell
-workflow :: EpicRequest -> EpicOutcome
+workflow :: EpicInput -> EpicOutcome
 workflow = preflight >=> parseEntryIntent >=> restoreEpicStage
        >=> loadStageProtocol >=> executeStage >=> exitRecoverable
 
@@ -164,11 +190,18 @@ childDesignBatch slug = loop
       -- 每轮开始、每个 child design-review 后、以及准备 final answer 前都先跑 hook：
       next <- run "python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic \
                   \--roadmap .codestable/roadmap/{slug} --json"
-      case next of
-        _ | next.must_continue || not next.final_answer_allowed   -- 即 hook 输出 must_continue: true 或 final_answer_allowed: false
-            -> step next.next_action >> loop        -- 必须按 next_action 继续，不得结束本轮
-        _ | next.status in [user_gate, blocked]
-            -> stopAt checkpoint                    -- 停在对应 checkpoint
+      case next.status of
+        continue      -> step next.next_action >> loop
+        goal_package  -> step next.next_action >> loop
+        dispatch_goal -> step next.next_action >> loop
+        user_gate | next.next_action == "all-feature-designs-confirmation"
+                      -> stopAt (HumanCheckpoint ConfirmAllChildDesign)
+        user_gate     -> stopAt (Blocked UnexpectedWorkflowUserGate)
+        awaiting      -> stopAt (Awaiting (WorkflowWait next.next_action))
+        handoff       -> stopAt (GoalHandoff next.next_action)
+        blocked       -> stopAt (Blocked next.reason)
+        _             -> stopAt (Blocked InvalidWorkflowNext)
+      -- hook 输出 must_continue: true 或 final_answer_allowed: false 时只能来自前三个继续态；不得 final answer
       -- 每轮先扫 {slug}-items.yaml：取下一个 planned / in-progress 且缺 design、checklist
       -- 或 passed design-review 的 item，调用 cs-feat（epic_child_batch: true）推进
 ```
@@ -206,6 +239,7 @@ review **gate 必需独立 Task agent reviewer**：主 agent 本地审查不得�
 onCheckpoint :: CheckpointReason -> Action
 onCheckpoint ConfirmRoadmap        = 停等用户确认 epic 规划            -- roadmap/epic planning review passed 后
 onCheckpoint ConfirmAllChildDesign = 停等用户统一确认所有 design，确认后逐份标 approved
+onCheckpoint (ApproveReviewFallback reason) = 停等 owner 决定是否批准 local-only review；记录 reason
 ```
 
 不要在第一个或任一单独子 feature design-review passed 后停下来要求用户确认执行；那是 `cs-feat` 普通单 feature 行为，在 `cs-epic` 子流程里必须延后到所有子 feature 都完成 design-review 后统一处理。
@@ -217,12 +251,14 @@ driver 不可见、派发失败或返回 `CS_ROADMAP_GOAL_HANDOFF` 时走 `GoalH
 
 ```haskell
 needsHuman :: Situation -> Bool
-needsHuman s = attentionMissing s
-            || noRecoverableEpic s
+needsHuman s = noRecoverableEpic s
             || ambiguousEpicTarget s
             || stageConflictsRepoFacts s
-            || invalidArtifactState s    -- 例如 active roadmap 没有 passed review
-            || unknownGoalState s
+
+isBlocked :: Situation -> Bool
+isBlocked s = invalidArtifactState s    -- 例如 active roadmap 没有 passed review
+           || unknownGoalState s
+           || reviewerFailed s
 ```
 
 报告：当前 roadmap 目录、阻塞原因、下一步用户动作、已写文件、是否可安全重试。可安全回退为 fenced `/goal` 的 driver 不可用不算 `NeedsHuman`，统一返回 `GoalHandoff`。
@@ -230,14 +266,17 @@ needsHuman s = attentionMissing s
 ## Output Contract
 
 ```haskell
-mustContinue (RoutedTo _)            = True
-mustContinue ChildDesignBatch        = True
-mustContinue (DispatchGoalDriver _)  = True
-mustStop     (HumanCheckpoint _)     = True
-mustStop     (GoalHandoff _)         = True
-mustStop     (NeedsHuman _)          = True
-mustStop     (ReportDriver _)        = True
-mustStop     (Completed _)           = True
+data ExitPolicy = ContinueRun | StopRecoverable
+
+exitPolicy :: EpicOutcome -> ExitPolicy
+exitPolicy (RoutedTo _)           = ContinueRun
+exitPolicy (DispatchGoalDriver _) = ContinueRun
+exitPolicy (Awaiting _)           = StopRecoverable
+exitPolicy (HumanCheckpoint _)    = StopRecoverable
+exitPolicy (GoalHandoff _)        = StopRecoverable
+exitPolicy (NeedsHuman _)         = StopRecoverable
+exitPolicy (Blocked _)            = StopRecoverable
+exitPolicy (Completed _)          = StopRecoverable
 ```
 
 退出或交接时必须报告：roadmap 目录、恢复出的 `goalRunState`、child batch 进度、本轮写入文件、下一动作或 checkpoint、已运行验证。`DispatchGoalDriver` 不得直接退化成 `/goal`：先按 agent conventions 尝试可见 driver，只有不可用或派发失败才输出 `GoalHandoff`。

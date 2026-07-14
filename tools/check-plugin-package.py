@@ -231,6 +231,24 @@ def check_generated_exclusions(root: Path, findings: list[Finding]) -> None:
                 findings.append(Finding(rel(path, root), "generated or cache artifact found in plugin entity"))
 
 
+def check_source_plugin_skills_only(root: Path, findings: list[Finding]) -> None:
+    source_mcp = root / "plugins/codestable/.mcp.json"
+    source_bin = root / "plugins/codestable/bin"
+    if source_mcp.exists():
+        findings.append(Finding(rel(source_mcp, root), "source plugin must remain skills-only; MCP configuration belongs to optional runtime integrations"))
+    if source_bin.exists():
+        findings.append(Finding(rel(source_bin, root), "source plugin must not contain bundled runtime binary"))
+    for filename in (
+        "plugins/codestable/.codex-plugin/plugin.json",
+        "plugins/codestable/.claude-plugin/plugin.json",
+    ):
+        data, error = read_json(root / filename)
+        if error or not isinstance(data, dict):
+            continue
+        if data.get("mcpServers"):
+            findings.append(Finding(filename, "source plugin manifest must remain skills-only; MCP registration belongs to optional runtime integrations"))
+
+
 def check_readme_commands(root: Path, findings: list[Finding]) -> None:
     required = [
         "codex plugin marketplace add codestable/CodeStable",
@@ -280,6 +298,7 @@ def check_repo(root: Path) -> list[Finding]:
     check_ignored_assets(root, findings)
     check_codestable_not_ignored(root, findings)
     check_generated_exclusions(root, findings)
+    check_source_plugin_skills_only(root, findings)
     check_readme_commands(root, findings)
     return findings
 

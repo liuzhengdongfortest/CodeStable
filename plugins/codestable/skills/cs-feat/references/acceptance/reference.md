@@ -15,13 +15,31 @@
 
 对照方案 frontmatter 的 `requirement`、第 1 节需求摘要、feature 目录下已有 `*-req-delta.md` 和 clarifications，逐条判定（这是受 delta 约束的实际写文件动作，不是自由重写 requirement 的机会）：
 
-- [ ] `requirement` 空 + 方案明确"不新增能力"（纯重构 / 技术债）→ 跳过，写"无 requirement 影响"。
-- [ ] `requirement` 空 + 新增了用户可感能力 → 停下：需要 owner-approved req delta 或 `cs-req` backfill 设计，不在 accept 里直接落 current。
-- [ ] `requirement` 指向 draft req + 已有 approved req delta → 机械应用 delta：`draft` → `current`，保留原始愿景，在变更日志记录本次 feature。
-- [ ] `requirement` 指向 draft req + 没有 approved req delta → 停下写 `approval-report.md`，说明缺 delta，不能继续改长期 req。
-- [ ] `requirement` 指向 current req 且本次改了边界 / 用户故事 / pitch + 已有 approved req delta → 机械应用 delta 并记录 change log。
-- [ ] `requirement` 指向 current req 且本次改了边界 / 用户故事 / pitch + 没有 approved req delta → 停下，回到 clarification / req-delta 流程。
-- [ ] `requirement` 指向 current req 但本次未改用户视角 → 写"req-{slug} 未变，无需更新"。
+```haskell
+data RequirementRef = NoRequirement | DraftRequirement | CurrentRequirement
+data CapabilityImpact = NoCapabilityChange | NewCapability | BoundaryChanged | NoUserVisibleChange
+data DeltaState = ApprovedDelta | NoApprovedDelta
+data ReqWriteback
+  = SkipRequirement | NeedBackfillApproval | ApplyDeltaAndMarkCurrent
+  | ApplyDeltaAndLog | NeedDeltaApproval | RequirementUnchanged
+  | InvalidRequirementState
+
+writeback :: RequirementRef -> CapabilityImpact -> DeltaState -> ReqWriteback
+writeback NoRequirement NoCapabilityChange _       = SkipRequirement
+writeback NoRequirement NewCapability _            = NeedBackfillApproval
+writeback DraftRequirement _ ApprovedDelta         = ApplyDeltaAndMarkCurrent
+writeback DraftRequirement _ NoApprovedDelta       = NeedDeltaApproval
+writeback CurrentRequirement BoundaryChanged ApprovedDelta = ApplyDeltaAndLog
+writeback CurrentRequirement BoundaryChanged NoApprovedDelta = NeedDeltaApproval
+writeback CurrentRequirement NoUserVisibleChange _ = RequirementUnchanged
+writeback _ _ _ = InvalidRequirementState
+```
+
+`NoCapabilityChange` 只和 `NoRequirement` 配对；已有 current requirement 且没有用户可见变化时用
+`NoUserVisibleChange`。`CurrentRequirement + NewCapability` 表示 impact 分类错误或 requirement 已过期，
+保留为 `InvalidRequirementState` 并停下复核，不静默当作 unchanged。
+
+`NeedBackfillApproval` / `NeedDeltaApproval` 都先写 `approval-report.md`，不在 acceptance 内直接落 current。
 
 ## 最终审计（final audit）完整步骤
 

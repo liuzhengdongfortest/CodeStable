@@ -47,11 +47,20 @@
 
 完整独立审查一旦应该启动或已经启动，reviewer 就是 gate 输入；返回前不能定稿 `passed`。focused closure 只适用于首次独立 reviewer 已完成且原 finding 可窄验证的同一修订链，不得借它绕过首次审查或关闭实质 finding。运行时确实没有 Task agent 能力时，仍须 approval-report + 用户明确授权才可降级。
 
-**检测由主 agent 在运行时自检自己的工具**，不靠脚本猜环境——主 agent 最清楚自己手上有哪些工具。按 Task agent 选择规则启动独立 Task agent reviewer（**plan / read-only 等价 mode 只读启动**，mode 名按 provider capability 发现、一步到位不要先默认 mode 再重起，细则见 agent-conventions「启动 mode」；优先 Paseo subagent，否则当前宿主原生 Codex/Claude Task/Agent）：
+backend、配置、只读 mode、降级与生命周期只由
+`.codestable/reference/agent-conventions.md` 定义；本协议不得重定义选择链。
 
-1. **有 `mcp__paseo__create_agent` 工具**：必须优先用 Paseo subagent 做只读独立审查（首选：能换 provider，做到真正异构审查）。启动前先加载 / 读取 `paseo` skill 的当前说明，并遵守它的规则：读取 `~/.paseo/orchestration-preferences.json`，使用 `providers.audit`，不要硬编码 Claude 或 Codex。不要无限轮询运行中的 agent；如果 reviewer 已启动但结果未返回，停止在 review gate，记录 pending/blocked，等待通知或用户决定。
-2. **否则有当前宿主原生 Codex/Claude Task/Agent 工具**：用原生 Task agent 做独立上下文审查。如属同类 agent，在报告里记录降级和残余风险。
-3. **两者都没有**：本地 review 只能在记录 `local-only` 且获得必要授权后定稿；没有授权时报告 `blocked`，不要伪装启动。
+```haskell
+designReview :: Round -> AgentEnv -> AgentRun -> Maybe OwnerApproval -> AgentDecision
+designReview _round env run approval =
+  reviewGate (selectTaskAgent Review env) run approval
+
+designVerdict :: AgentDecision -> Findings -> ReviewVerdict
+designVerdict decision findings = reviewVerdict (toReviewLane decision) findings
+```
+
+`designReview` 只用于首次或实质变化后的完整复审；focused closure 不调用它，也不增加 round。`review_state/review_reason/reviewer_id` 是跨会话恢复的机器真相。
+`Launch` 只启动一次 reviewer；`Await`、`NeedOwnerApproval`、运行失败、hard block 分别写 `awaiting-reviewer`、`needs-owner-approval`、`reviewer-failed`、`blocked`；`LocalReview` 仅来自 `ApproveLocalOnly`，只有 `MergeVerified` / `LocalReview` 可进入本地核验。
 
 独立 Task agent reviewer prompt 必须只给原始材料和边界，不透露本地 review 结论：
 
@@ -90,12 +99,12 @@
 
 ### 2. 独立审查合并
 
-- 记录主 agent 自检结果：`paseo` / `native-agent` / `local-only`。
-- 没有启动独立 Task agent reviewer 时，记录确无能力 / provider 不可用 / 用户授权降级；未满足这些条件时不得定稿 `passed`。
-- 启动 Paseo subagent / 原生 Task agent 后，最终 verdict 必须等 reviewer 返回。
+- 记录 `heterogeneous-agent` / `independent-agent` / `local-only` 与 agent id、状态。
+- 最终 verdict 必须等 `reviewGate` 返回 `MergeVerified` 或 `LocalReview`。
 - reviewer 返回后逐条做本地事实核验；能用 design / checklist / 文档 / 代码证据支撑才合并。
 - reviewer 结果合并进 `{slug}-design-review.md` 后，按 Task agent 生命周期关闭该 reviewer。
-- reviewer 失败、权限阻塞、超时或仍在运行时，不要默默降级；报告 `status: blocked`。
+- `NeedOwnerApproval` 写 `status: blocked` 并记录 pending approval；其他未放行状态同样 blocked，
+  不静默降级。
 
 ### 3. 方案审查
 
@@ -105,7 +114,7 @@
 - 术语与现状：关键术语是否与代码 / 架构 / 历史 feature 冲突；现状描述是否真实。
 - 名词层：值对象、实体、接口、类型、组件 props/events 是否讲清变化。
 - Module/interface 设计：interface 是否包含 caller 必须知道的 invariant / ordering / error mode；module 是否 deep；seam / adapter 是否真实需要；测试是否能通过 interface 观察行为。
-- 编排层：主流程图、分支、错误语义、幂等、并发、可观测点是否能跑通。
+- 编排层：复杂编排的主流程图或简单线性流程的顺序说明，以及分支、错误语义、幂等、并发、可观测点是否能跑通。
 - 挂载点：是否列了真实对外注册点，而不是内部改动文件清单。
 - 结构健康度：微重构是否必要且边界安全；目录 convention 候选是否合理。
 - 验收契约：正常 / 边界 / 错误路径是否覆盖，是否有证据类型。
@@ -146,8 +155,6 @@
 
 不要把个人偏好的实现写法升级成 blocking。blocking 必须能用 design 契约、checklist、roadmap/req/arch、代码事实或可靠工程原则支撑。
 
----
-
 ## 报告模板
 
 报告路径：`.codestable/features/{feature}/{slug}-design-review.md`。
@@ -157,6 +164,9 @@
 doc_type: feature-design-review
 feature: {feature}
 status: passed|changes-requested|blocked
+review_state: passed|changes-requested|awaiting-reviewer|needs-owner-approval|reviewer-failed|blocked
+review_reason: ""       # needs-owner-approval|reviewer-failed|blocked 时必填
+reviewer_id: ""         # awaiting-reviewer 时必填
 reviewed: YYYY-MM-DD
 round: 1
 ---
@@ -175,8 +185,8 @@ round: 1
 ### Independent Review
 
 - Status: not-available|skipped-by-user|local-only|pending|completed|failed|blocked
-- Detection: paseo|native-agent|local-only|skipped
-- Provider / agent: {providers.audit / agent id / none}
+- Detection: heterogeneous-agent|independent-agent|local-only|skipped
+- Provider / agent: {resolved config / agent id / none}
 - Raw output: {摘要 / 路径 / none}
 - Merge policy: {已逐条核验 / 未启用原因 / pending 时不得定稿}
 - Gate effect: {none | blocks final verdict until completed / user-approved downgrade}
@@ -258,8 +268,6 @@ Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
 
 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。
 
----
-
 ## 退出条件
 
 - [ ] 已读取 attention、design、checklist、相关 intent / brainstorm / roadmap / req / arch / compound。
@@ -273,8 +281,6 @@ Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
 - [ ] 已写 `.codestable/features/{feature}/{slug}-design-review.md`。
 - [ ] 有 blocking / 未处理 important 时指向 `cs-feat` design 阶段 修订并重跑 review。
 - [ ] 无 blocking 且 important 已处理或明确接受时，明确告诉用户下一步是 feature design 人工 review。
-
----
 
 ## 容易踩的坑
 

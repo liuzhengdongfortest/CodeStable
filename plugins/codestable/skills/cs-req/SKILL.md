@@ -46,7 +46,13 @@ contracts:
 ## Spec
 
 ```haskell
-csReq :: ReqRequest -> ReqOutcome
+csReq :: ReqState -> ReqInput -> ReqOutcome
+
+data ReqInput
+  = Start ReqRequest
+  | Review ReqDraft DraftDecision
+
+data DraftDecision = ApproveDraft | ReviseDraft Feedback
 
 data ReqRequest = ReqRequest
   { mode      : Maybe ReqMode         -- draft | backfill | update；缺则从素材/意图判定
@@ -74,19 +80,22 @@ data ReqOutcome
 
 data CheckpointReason
   = ConfirmScope        -- 一次请求含多个独立能力，须拆分确认动哪一份
-  | ReviewDraft         -- Phase 5：完整初稿贴给用户，改到明确「可以了」
-  | CapabilityUnproven  -- backfill 目标能力是否真在代码里跑存疑，须用户确认
+  | ReviewDraft ReqDraft -- Phase 5：携带完整初稿，改到明确「可以了」
 ```
 
 `selectReqAction` 从素材与仓库事实选模式并选下一步（决策细则见「单目标规则」「工作流」「硬性边界」；此处只固定分支形态）：
 
 ```haskell
-selectReqAction :: ReqState -> ReqRequest -> ReqOutcome
-selectReqAction(s, r)
+selectReqAction :: ReqState -> ReqInput -> ReqOutcome
+selectReqAction(s, Start r)
   | attentionMissing                             -> NeedsHuman "route to cs-onboard"
   | s.targetCount > 1                            -> HumanCheckpoint ConfirmScope
-  | r.mode == Backfill && s.capabilityLive == Unknown -> HumanCheckpoint CapabilityUnproven
-  | otherwise                                    -> Drafted (writeReqThenReview s r)  -- 落盘前经 Phase 5 ReviewDraft
+  | r.mode == Backfill && s.capabilityLive == Unknown -> NeedsHuman "capability evidence missing"
+  | otherwise                                    -> HumanCheckpoint (ReviewDraft (buildReqDraft s r))
+selectReqAction(_, Review _ _) | attentionMissing -> NeedsHuman "route to cs-onboard"
+selectReqAction(s, Review draft ApproveDraft)     -> Drafted (persistReqAndRefreshIndex s draft)
+selectReqAction(s, Review draft (ReviseDraft feedback))
+                                                 -> HumanCheckpoint (ReviewDraft (reviseReqDraft draft feedback))
 ```
 
 ---
@@ -132,7 +141,7 @@ selectReqAction(s, r)
 
 ### Phase 2：读取材料
 
-**共同必读（上下文幂等：首次读、已载复用）**：`VISION.md`（需求中心索引，首次进入本 req 会话必读）+ 用户素材（口述 / 产品想法 / 用户反馈 / 已有 feature 散落需求描述）。`requirements/` 下其他 req 改按需 grep-by-slug（判断互引 / 重复时再读对应文件）；**若本会话已加载过 VISION / 相关 req，则复用，不重复 Glob+Read**。
+**共同必读（上下文幂等：首次读、已载复用）**：已有 `VISION.md`（需求中心索引，首次进入本 req 会话必读；缺失按空索引处理，首次落 req 时创建）+ 用户素材（口述 / 产品想法 / 用户反馈 / 已有 feature 散落需求描述）。`requirements/` 下其他 req 按需 grep-by-slug（判断互引 / 重复时再读对应文件）；**若本会话已加载过 VISION / 相关 req，则复用，不重复 Glob+Read**。
 
 **按情况读**：可能承载这能力的 architecture doc（用于 `implemented_by`）；相关已有 feature 方案；compound 沉淀（`grep -r "{能力关键词}" .codestable/compound/`）。
 
@@ -254,8 +263,8 @@ tags: []
 
 `cs-req` 停下的两种形态：
 
-- `NeedsHuman`：无法启动 req operator。`.codestable/attention.md` 缺失（→ `cs-onboard`）；用户素材不足以判定要写哪个能力，也无法从 `VISION.md` / 已有 req 追溯出单一目标；要写的用户故事无任何素材或可追溯场景支撑（不允许凭空造）。
-- `HumanCheckpoint`：operator 触发停顿点。`ConfirmScope`（一次请求含多个独立能力，须先拆分确认动哪一份，不一次吐多份）；`CapabilityUnproven`（backfill 目标能力是否真在代码里跑存疑，须用户确认再落 `status: current`）；`ReviewDraft`（Phase 5 完整初稿贴给用户，改到明确「可以了」才落盘）。
+- `NeedsHuman`：无法启动 req operator。`.codestable/attention.md` 缺失（→ `cs-onboard`）；用户素材不足以判定要写哪个能力，也无法从 `VISION.md` / 已有 req 追溯出单一目标；backfill 没有代码或运行证据证明能力已存在；要写的用户故事无任何素材或可追溯场景支撑（不允许凭空造）。
+- `HumanCheckpoint`：operator 触发真实 owner 决策。`ConfirmScope`（一次请求含多个独立能力，须先拆分选择动哪一份，不一次吐多份）；`ReviewDraft`（Phase 5 完整初稿贴给用户，改到明确「可以了」才落盘）。
 
 两种情况都要报告：本次锁定的模式与目标 req、阻塞或 checkpoint 原因、需要用户的决策或确认、已写文件（初稿路径 / VISION.md），以及是否可安全重试或继续。不要在用户未确认时落盘，不要为凑数硬写没有素材的用户故事。
 
@@ -270,7 +279,7 @@ tags: []
 | `cs-feat` design 阶段可写 | design 读已有 req 对齐用户故事和边界；新能力首次设计方案化时触发 `draft` 模式起草愿景 req |
 | `cs-feat` acceptance 阶段主路径 | 验收统一处理 req 落档：draft req 对应的能力实现完成触发 `update`（draft → current，保留愿景追加变更日志）；从未写过 req 的能力触发 `backfill`（直接落 current）；已有 current req 的能力改变触发 `update` 刷新 |
 | `cs-epic` 配合 | req 记"要什么、为什么"、roadmap 记"怎么分步实现"。roadmap 条目可关联 req slug，但 req 不绑定具体 roadmap。draft req 不给 roadmap 压力——愿景可以先于排期存在 |
-| `cs-onboard` 创建者 | onboard 建 `requirements/` 空目录 + `VISION.md` 空骨架 |
+| `cs-onboard` 创建者 | onboard 只建 `requirements/` 聚合根；`cs-req` 首次落 req 时 lazy 创建 `VISION.md` |
 
 ---
 

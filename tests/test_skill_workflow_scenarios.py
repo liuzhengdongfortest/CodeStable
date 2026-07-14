@@ -207,13 +207,29 @@ def write_feature_design_review(repo: Path, slug: str, status: str = "passed") -
 
 def write_feature_goal_state(repo: Path, slug: str, stage: str, status: str, driver: str = "none") -> None:
     directory = feature_dir(repo, slug)
-    driver_id = "paseo-123" if driver != "none" else ""
+    driver_id = f"{driver}-123" if driver != "none" else ""
     write(
         directory / "goal-state.yaml",
         f"feature: {slug}\nstatus: {status}\nbaseline_ref: baseline\nstage: {stage}\ndriver_kind: {driver}\ndriver_id: \"{driver_id}\"\n",
     )
     write(directory / "goal-plan.md", "# Goal Plan\n")
     write(directory / "goal-protocol.md", "# Goal Protocol\n")
+
+
+def normalized_review_state(path: Path) -> str:
+    meta = frontmatter(path)
+    state = meta.get("review_state")
+    valid = {"passed", "changes-requested", "awaiting-reviewer", "needs-owner-approval", "reviewer-failed", "blocked"}
+    if state:
+        return state if state in valid else "invalid"
+    status = meta.get("status")
+    if status == "passed":
+        return "passed"
+    if status in {"changes-requested", "blocking"}:
+        return "changes-requested"
+    if status == "blocked":
+        return "legacy-blocked"
+    return "missing" if status is None else "invalid"
 
 
 # Compact scenario model only. Production conformance is asserted by
@@ -229,14 +245,20 @@ def feature_next(repo: Path, slug: str) -> Action:
     design_meta = frontmatter(design)
     design_status = design_meta.get("status")
     execution_lane = design_meta.get("execution_lane", "standard")
-    review_status = frontmatter(review).get("status")
-    if design_status == "approved" and review_status != "passed":
+    review_state = normalized_review_state(review)
+    if design_status == "approved" and review_state != "passed":
         return Action("blocked", "invalid-approved-design-review")
-    if review_status in {"changes-requested", "blocked"}:
+    if review_state == "changes-requested":
         return Action("load-reference", "cs-feat/references/design/protocol.md")
-    if design_status == "draft" and review_status != "passed":
+    if review_state == "awaiting-reviewer":
+        return Action("awaiting", "feature-design-reviewer")
+    if review_state == "needs-owner-approval":
+        return Action("user-checkpoint", "feature-design-review-fallback")
+    if review_state in {"invalid", "legacy-blocked", "reviewer-failed", "blocked"}:
+        return Action("blocked", "feature-design-review-block")
+    if design_status == "draft" and review_state != "passed":
         return Action("load-reference", "cs-feat/references/design-review/protocol.md")
-    if review_status == "passed" and design_status != "approved":
+    if review_state == "passed" and design_status != "approved":
         return Action("user-checkpoint", "feature-design-confirmation")
     if design_status == "approved" and not goal_state.exists():
         if execution_lane == "goal":
@@ -250,7 +272,7 @@ def feature_next(repo: Path, slug: str) -> Action:
         return Action("complete", "CS_FEATURE_GOAL_COMPLETE")
     if (stage, status) == ("handoff", "blocked"):
         return Action("user-checkpoint", "CS_FEATURE_GOAL_HANDOFF")
-    if state.get("driver_kind") in {"paseo", "native"} and state.get("driver_id"):
+    if state.get("driver_kind") in {"host-agent", "paseo", "native"} and state.get("driver_id"):
         return Action("report-visible-driver", state["driver_id"])
     if (stage, status) == ("implementation", "ready-to-dispatch"):
         return Action("dispatch-goal-driver", "feature")
@@ -295,7 +317,7 @@ def roadmap_item_slugs(repo: Path, slug: str) -> list[str]:
 
 def write_epic_goal_state(repo: Path, slug: str, status: str, driver: str = "none") -> None:
     directory = roadmap_dir(repo, slug)
-    driver_id = "paseo-roadmap-123" if driver != "none" else ""
+    driver_id = f"{driver}-roadmap-123" if driver != "none" else ""
     write(
         directory / "goal-state.yaml",
         f"roadmap: {slug}\nstatus: {status}\nbaseline_ref: baseline\ndriver_kind: {driver}\ndriver_id: \"{driver_id}\"\ncurrent_feature_index: 0\nfeatures:\n  - slug: api-seed\n    status: pending\n",
@@ -312,10 +334,18 @@ def epic_next(repo: Path, slug: str) -> Action:
     if not roadmap.exists():
         return Action("load-reference", "cs-epic/references/planning/protocol.md")
     roadmap_status = frontmatter(roadmap).get("status")
-    review_status = frontmatter(review).get("status")
-    if roadmap_status == "active" and review_status is None:
+    review_state = normalized_review_state(review)
+    if roadmap_status == "active" and review_state == "missing":
         return Action("blocked", "invalid-active-roadmap-review")
-    if review_status != "passed":
+    if review_state == "changes-requested":
+        return Action("load-reference", "cs-epic/references/planning/protocol.md")
+    if review_state == "awaiting-reviewer":
+        return Action("awaiting", "roadmap-reviewer")
+    if review_state == "needs-owner-approval":
+        return Action("user-checkpoint", "roadmap-review-fallback")
+    if review_state in {"invalid", "legacy-blocked", "reviewer-failed", "blocked"}:
+        return Action("blocked", "roadmap-review-block")
+    if review_state != "passed":
         return Action("load-reference", "cs-epic/references/review/protocol.md")
     if roadmap_status != "active":
         return Action("user-checkpoint", "epic-roadmap-confirmation")
@@ -348,7 +378,7 @@ def epic_next(repo: Path, slug: str) -> Action:
         return Action("complete", "CS_ROADMAP_GOAL_COMPLETE")
     if state.get("status") == "handoff":
         return Action("user-checkpoint", "CS_ROADMAP_GOAL_HANDOFF")
-    if state.get("driver_kind") in {"paseo", "native"} and state.get("driver_id"):
+    if state.get("driver_kind") in {"host-agent", "paseo", "native"} and state.get("driver_id"):
         return Action("report-visible-driver", state["driver_id"])
     if state.get("status") == "ready-to-dispatch":
         return Action("dispatch-goal-driver", "epic")
@@ -368,10 +398,16 @@ def write_issue_doc(repo: Path, slug: str, name: str, status: str = "draft") -> 
 
 def issue_next(repo: Path, slug: str) -> Action:
     directory = issue_dir(repo, slug)
-    if not (directory / f"{slug}-report.md").exists():
+    report = directory / f"{slug}-report.md"
+    if not report.exists():
         return Action("load-reference", "cs-issue/references/report/protocol.md")
-    if not (directory / f"{slug}-analysis.md").exists():
+    if frontmatter(report).get("status") != "confirmed":
+        return Action("user-checkpoint", "issue-report-confirmation")
+    analysis = directory / f"{slug}-analysis.md"
+    if not analysis.exists():
         return Action("load-reference", "cs-issue/references/analyze/protocol.md")
+    if frontmatter(analysis).get("status") != "confirmed":
+        return Action("user-checkpoint", "issue-fix-plan-confirmation")
     if not (directory / f"{slug}-fix-note.md").exists():
         return Action("load-reference", "cs-issue/references/fix/protocol.md")
     review_status = frontmatter(directory / f"{slug}-review.md").get("status")
@@ -380,7 +416,15 @@ def issue_next(repo: Path, slug: str) -> Action:
     if review_status in {"changes-requested", "blocked"}:
         return Action("load-reference", "cs-issue/references/fix/protocol.md#review-fix")
     if review_status == "passed":
-        return Action("complete", "issue-reviewed")
+        approval = directory / "approval-report.md"
+        approval_status = frontmatter(approval).get("status")
+        if not approval_status:
+            return Action("load-reference", "cs-issue/references/fix/protocol.md#completion-checkpoint")
+        if approval_status == "pending":
+            return Action("user-checkpoint", "issue-fix-completion")
+        if approval_status == "approved":
+            return Action("complete", "issue-reviewed")
+        return Action("blocked", "issue-fix-completion-rejected")
     return Action("blocked", "unknown-issue-state")
 
 
@@ -410,9 +454,12 @@ def refactor_next(repo: Path, slug: str, mode: str | None = None, small_scope: b
         return Action("load-reference", "cs-refactor/references/standard/protocol.md#design")
     if frontmatter(design).get("status") != "approved":
         return Action("user-checkpoint", "refactor-design-confirmation")
-    if "verification: HUMAN" in (directory / f"{slug}-checklist.yaml").read_text(encoding="utf-8"):
-        return Action("user-checkpoint", "refactor-human-validation")
     if not apply_notes.exists():
+        return Action("load-reference", "cs-refactor/references/standard/protocol.md#apply")
+    apply_state = apply_notes.read_text(encoding="utf-8")
+    if "step_state: applied-awaiting-human" in apply_state:
+        return Action("user-checkpoint", "refactor-human-validation")
+    if "step_state: verified" not in apply_state:
         return Action("load-reference", "cs-refactor/references/standard/protocol.md#apply")
     review_status = frontmatter(directory / f"{slug}-review.md").get("status")
     if review_status != "passed":
@@ -453,15 +500,12 @@ def code_review_next(repo: Path, feature_slug: str | None = None, range_arg: str
 
 def goal_driver_decision(
     *,
-    paseo: bool = False,
-    native: bool = False,
+    host_agent: bool = False,
     visible: bool = False,
     nested_reviewer: bool = False,
 ) -> Action:
-    if paseo:
-        return Action("dispatch", "paseo")
-    if native and visible and nested_reviewer:
-        return Action("dispatch", "native")
+    if host_agent and visible and nested_reviewer:
+        return Action("dispatch", "host-agent")
     return Action("fallback", "fenced-/goal")
 
 
@@ -475,9 +519,11 @@ def test_router_classifies_intake_before_selecting_a_target() -> None:
         "cs",
         "SKILL.md",
         "入口模式先于路由目标",
-        "data IntakeMode = Execute | Advise | Explain | Ambiguous",
+        "data Ambiguity = MissingActionIntent | RouteChoice [SkillName]",
+        "data IntakeMode = Execute | Advise | Explain | Ambiguous Ambiguity",
         "Completed Recommendation",
         "Completed Overview",
+        "NeedsHuman ActionIntentMissing",
         "HumanCheckpoint ClarifyRoute",
         "preflight 只记录缺失状态",
     )
@@ -521,28 +567,206 @@ def test_router_priority_and_recovery_boundaries_are_explicit() -> None:
 
 
 def test_shared_dispatch_conventions_distinguish_exit_confirmation() -> None:
-    assert_doc_contains(
-        "cs-onboard",
-        "references/execution-conventions.md",
+    text = skill_text("cs-onboard", "references/execution-conventions.md")
+    for phrase in (
         "## Skill 间同轮转交",
         "已确认出口",
         "待确认出口",
         "不要求重新调用命令",
         "转交本身不授权",
-    )
+        "data PendingHandoff = PendingHandoff Skill Context",
+        "| AwaitOwner PendingHandoff",
+        "resumeHandoff :: PendingHandoff -> OwnerDecision -> TargetAvailability -> HandoffOutcome",
+        "ApproveExit TargetAvailable   = LoadAndContinue target ctx",
+        "DeclineExit _                 = Stay ctx",
+        "缺输入或能力用 `NeedsHuman`",
+        "只需等待的外部工作用 `Awaiting`",
+        "才用 `HumanCheckpoint`",
+    ):
+        assert phrase in text
+    assert "OneCheckpoint Skill" not in text
+    decline = "resumeHandoff (PendingHandoff _ ctx)      DeclineExit _"
+    unavailable = "resumeHandoff (PendingHandoff target _)   ApproveExit TargetUnavailable"
+    approved = "resumeHandoff (PendingHandoff target ctx) ApproveExit TargetAvailable"
+    assert text.index(decline) < text.index(unavailable) < text.index(approved)
 
 
 def test_brainstorm_secondary_routes_keep_one_confirmation_gate() -> None:
     text = skill_text("cs-brainstorm")
     for phrase in (
-        "case 1 / case 2 / case 4 是待确认出口",
-        "case 3 的 ready 拆解表述本身视为确认",
+        "data Readiness = Fuzzy | Clear | Ready",
+        'route (Feature Clear) = Handoff PendingExit "cs-feat"',
+        'route (Feature Ready) = Handoff ConfirmedExit "cs-feat"',
+        'route (Epic Clear)    = Handoff PendingExit "cs-epic"',
+        'route (Epic Ready)    = Handoff ConfirmedExit "cs-epic"',
+        "`Ready` 只来自 owner 明确表示现在进入下一阶段",
         "用户确认后在当前 run 加载 `cs-feat`",
         "直接在当前 run 加载 `cs-epic`",
     ):
         assert phrase in text
+    assert re.search(r"(?m)^confirmed\b", text) is None
+    assert "route Clear" not in text
     assert "停下来等用户触发 design" not in text
     assert "准备好了就触发 `cs-epic`" not in text
+
+
+def test_review_outcomes_do_not_treat_waiting_or_missing_input_as_approval() -> None:
+    text = skill_text("cs-code-review")
+    protocol = skill_text("cs-code-review", "references/independent-review/protocol.md")
+    for phrase in (
+        "| Awaiting ReviewWait",
+        "| NeedsHuman ReviewBlocker",
+        "not s.specFinalized                                -> NeedsHuman SpecNotFinalized",
+        "not s.diffAttributed                               -> NeedsHuman DiffNotAttributable",
+        "anyStartedLanePending s                            -> Awaiting LaneStillPending",
+        "HumanCheckpoint SelfReviewDowngrade",
+    ):
+        assert phrase in text
+    for forbidden in (
+        "HumanCheckpoint SpecNotFinalized",
+        "HumanCheckpoint DiffNotAttributable",
+        "HumanCheckpoint LaneStillPending",
+    ):
+        assert forbidden not in text
+    guard_order = (
+        "not s.specFinalized",
+        "not s.diffAttributed",
+        "anyLaneFailed s",
+        "anyStartedLanePending s",
+        "focusedClosureEligible s && hasBlocking s",
+        "focusedClosureEligible s                           -> FocusedClosure Passed",
+        "laneAMissing s",
+        "hasBlocking s                                      -> ReviewWritten ChangesRequested",
+    )
+    assert [text.index(guard) for guard in guard_order] == sorted(
+        text.index(guard) for guard in guard_order
+    )
+    for phrase in (
+        "mergeGate (Launch _ _) _ = MergeAwaiting LaneStillPending",
+        "mergeGate Await _ = MergeAwaiting LaneStillPending",
+        "mergeGate (NeedOwnerApproval reason) _ = MergeNeedsOwnerApproval reason",
+        "pending laneB                       = MergeAwaiting LaneStillPending",
+    ):
+        assert phrase in protocol
+    assert "Blocked LaneStillPending" not in protocol
+
+
+def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
+    skill = skill_text("cs-issue")
+    report = skill_text("cs-issue", "references/report/protocol.md")
+
+    for phrase in (
+        "data IssuePath = PathUndecided | StandardPath | FastPathPending | FastPathApproved | FastPathRejected",
+        "issuePath    : IssuePath",
+        "fastPathApproval approval == Pending  = FastPathPending",
+        "issuePathField report == Just StandardPath = StandardPath",
+        "isNothing (issuePathField report) && reportStatus report == ArtifactConfirmed = StandardPath",
+        "s.reportStatus /= ArtifactConfirmed                -> RoutedTo (IssueStage Report)",
+        "s.issuePath == FastPathApproved                     -> RoutedTo (IssueStage FastPath)",
+        "s.analysisStatus /= ArtifactConfirmed",
+        's.issuePath == PathUndecided                        -> NeedsHuman "confirmed report lacks path decision"',
+        "approval-report.md       # 仅需 owner 决策时",
+        "s.fixCompletionApproval == ApprovalMissing",
+        "s.fixCompletionApproval == ApprovalApproved",
+    ):
+        assert phrase in skill
+    for phrase in (
+        "advance Standard _ (Just ApproveCheckpoint) = PersistAndRoute StandardPath AnalyzeNext",
+        "advance FastPath _ (Just ApproveCheckpoint) = PersistAndRoute FastPathApproved FixNext",
+        "advance FastPath _ (Just RejectCheckpoint)  = PersistAndRoute FastPathRejected AnalyzeNext",
+        "PersistDraftAndCheckpoint ConfirmReport",
+        "PersistDraftAndCheckpoint ConfirmFixPlan",
+        "fast-track 不得绕过五问",
+        "记录 fast-path 已批准再进入 fix",
+        "issue_path: undecided # undecided | standard | fast-track",
+    ):
+        assert phrase in report
+    assert "ConfirmFastPath" not in skill
+    guard_order = (
+        "s.hasFixNote && s.reviewStatus == Missing",
+        "not s.hasFixNote && s.reviewStatus /= Missing",
+        "s.reportStatus /= ArtifactConfirmed",
+        "s.codeStatus == Changed && not s.hasFixNote",
+        "s.issuePath == PathUndecided",
+        "s.issuePath == FastPathPending",
+        "s.issuePath == FastPathApproved && not",
+        "s.issuePath == FastPathApproved                     -> RoutedTo (IssueStage FastPath)",
+        "s.issuePath in [StandardPath, FastPathRejected] && s.analysisStatus /= ArtifactConfirmed",
+    )
+    assert [skill.index(guard) for guard in guard_order] == sorted(
+        skill.index(guard) for guard in guard_order
+    )
+
+
+def test_req_review_checkpoint_precedes_persistence() -> None:
+    text = skill_text("cs-req")
+    checkpoint = "HumanCheckpoint (ReviewDraft (buildReqDraft s r))"
+    persist = "Review draft ApproveDraft)     -> Drafted (persistReqAndRefreshIndex s draft)"
+
+    assert "data ReqInput" in text
+    assert "| Review ReqDraft DraftDecision" in text
+    assert checkpoint in text
+    assert persist in text
+    assert text.index(checkpoint) < text.index(persist)
+    assert "writeReqThenReview" not in text
+    assert 's.capabilityLive == Unknown -> NeedsHuman "capability evidence missing"' in text
+    assert "HumanCheckpoint CapabilityUnproven" not in text
+
+
+def test_docs_checkpoint_domain_matches_stage_protocols() -> None:
+    skill = skill_text("cs-docs")
+    tutorial = skill_text("cs-docs", "references/tutorial/protocol.md")
+    api = skill_text("cs-docs", "references/api/protocol.md")
+    reasons = {
+        "ReviewDraft",
+        "ReviewManifest",
+        "ConfirmOverwrite",
+        "ConfirmContractWording",
+        "ReviewEntry",
+        "ReviewSamples",
+        "ReviewAllDrafts",
+    }
+
+    assert all(reason in skill for reason in reasons)
+    assert 'targetAmbiguous state       = NeedsHuman "which reader?"' in tutorial
+    assert "Just reason <- approvalGate state" in tutorial
+    assert "Just reason <- approvalGate s" in api
+    assert "ConfirmNewDoc" not in skill
+    assert "ConfirmReaderAndScope" not in skill
+    assert tutorial.index("targetAmbiguous state") < tutorial.index("Just reason <- approvalGate state")
+
+
+def test_goal_owner_stop_has_resume_and_terminal_branches() -> None:
+    skill = skill_text("cs-goal")
+    reference = skill_text("cs-goal", "reference.md")
+    for phrase in (
+        "data OwnerStopState",
+        "| PendingStop CheckpointReason",
+        "| ResolvedStop GoalOwnerDecision",
+        "data GoalOwnerDecision = ResumeWith GoalDelta | KeepBlocked",
+        "| Blocked GoalSummary",
+        "ResolvedStop (ResumeWith delta)",
+        "ResolvedStop KeepBlocked",
+        's.status == Blocked                           -> NeedsHuman "blocked goal lacks owner-stop state"',
+    ):
+        assert phrase in skill
+    for phrase in (
+        "schema_version: 2",
+        "status: none # none | pending | resolved",
+        "status: pending",
+        "选择不继续时",
+        "读取 schema v1 时",
+    ):
+        assert phrase in reference
+    terminal_order = (
+        "s.status == Complete && s.acceptancePassed",
+        "s.ownerStop is PendingStop reason",
+        "ownerStopTriggered(s)",
+        "s.status == Active && not s.acceptancePassed",
+    )
+    assert [skill.index(guard) for guard in terminal_order] == sorted(
+        skill.index(guard) for guard in terminal_order
+    )
 
 
 def test_audit_selected_finding_dispatches_in_the_current_run() -> None:
@@ -571,6 +795,8 @@ def test_feature_long_range_scenario_simulates_human_design_confirmation(tmp_pat
         "Goal 模式接管",
         "CS_FEATURE_GOAL_COMPLETE",
         "CS_FEATURE_GOAL_HANDOFF",
+        "transition Complete event",
+        "transition (Handoff reason) event",
     )
     repo = init_isolated_repo(tmp_path)
     slug = "export-csv"
@@ -587,8 +813,8 @@ def test_feature_long_range_scenario_simulates_human_design_confirmation(tmp_pat
 
     write_feature_goal_state(repo, slug, "implementation", "ready-to-dispatch")
     assert feature_next(repo, slug) == Action("dispatch-goal-driver", "feature")
-    write_feature_goal_state(repo, slug, "implementation", "running", driver="paseo")
-    assert feature_next(repo, slug) == Action("report-visible-driver", "paseo-123")
+    write_feature_goal_state(repo, slug, "implementation", "running", driver="host-agent")
+    assert feature_next(repo, slug) == Action("report-visible-driver", "host-agent-123")
 
 
 def test_feature_quick_lane_is_default_for_clear_local_work_and_can_reclassify() -> None:
@@ -649,14 +875,90 @@ def test_feature_review_restarts_only_for_material_changes() -> None:
     )
 
 
-@pytest.mark.parametrize("review_status", ["changes-requested", "blocked"])
-def test_feature_design_review_failure_returns_to_design(tmp_path: Path, review_status: str) -> None:
+def test_standard_implementation_proceeds_directly_to_code_review() -> None:
+    implementation = skill_text("cs-feat", "references/implementation/protocol.md")
+
+    assert "afterAllSteps Normal               = RunCodeReview" in implementation
+    assert "modeForFix OwnerRequestedChanges   = ReviewFixMode" in implementation
+    assert "modeForFix QAFix                   = QAFixMode" in implementation
+    assert "afterAllSteps ReviewFixMode        = RunCodeReview" in implementation
+    assert "afterAllSteps QAFixMode            = RunCodeReviewThenQA" in implementation
+    assert "afterAllSteps GoalMode             = RunGatesThenCodeReview" in implementation
+    assert "ConfirmImplementation" not in implementation
+
+
+def test_acceptance_separates_evidence_causes_and_reaches_repeated_gap_handoff() -> None:
+    acceptance = skill_text("cs-feat", "references/acceptance/protocol.md")
+    ordered_guards = (
+        "coreEvidenceMissingDueToInput s",
+        "coreEvidenceMissingDueToEnvironment s",
+        "not (coreEvidencePassed s)",
+        "not (finalAuditPassed s) && sameFinalAuditGapCount s >= 3",
+        "not (allChecksPassed s)",
+        "| not (finalAuditPassed s)                    = RepairGap FinalAudit",
+    )
+
+    positions = [acceptance.index(guard) for guard in ordered_guards]
+    assert positions == sorted(positions)
+    assert "NeedsHuman CoreEvidenceInput" in acceptance
+    assert "NeedsHuman CoreEvidenceEnvironmentUnavailable" in acceptance
+    assert "RouteImplementation QAFix" in acceptance
+    assert "Handoff RepeatedFinalAuditGap" in acceptance
+
+
+def test_review_focused_closure_never_masks_failed_or_pending_lanes() -> None:
+    review = skill_text("cs-code-review")
+    ordered_guards = (
+        "anyLaneFailed s",
+        "anyStartedLanePending s",
+        "focusedClosureEligible s && hasBlocking s",
+        "focusedClosureEligible s                           -> FocusedClosure Passed",
+    )
+
+    positions = [review.index(guard) for guard in ordered_guards]
+    assert positions == sorted(positions)
+    assert "anyLaneFailed s                                    -> ReviewWritten Blocked" in review
+    assert "s.priorIndependentReview" in review
+    assert "s.changeClass == ClosureOnly" in review
+
+
+def test_refactor_human_validation_happens_after_the_step_is_applied() -> None:
+    protocol = skill_text("cs-refactor", "references/standard/protocol.md")
+    pending = "PendingApply` 必须先进入 `Run Apply`"
+    applied = "afterStep item HumanVerification StepApplied       = PersistAndCheckpoint (HumanValidation item)"
+    verified = "afterStep _ HumanVerification VerificationPassed  = Continue"
+
+    assert pending in protocol
+    assert applied in protocol
+    assert verified in protocol
+    assert protocol.index(applied) < protocol.index(verified)
+
+
+@pytest.mark.parametrize(
+    ("review_status", "expected"),
+    [
+        ("changes-requested", Action("load-reference", "cs-feat/references/design/protocol.md")),
+        ("blocked", Action("blocked", "feature-design-review-block")),
+    ],
+)
+def test_feature_design_review_failure_preserves_failure_kind(
+    tmp_path: Path, review_status: str, expected: Action
+) -> None:
     repo = init_isolated_repo(tmp_path)
     slug = "export-csv"
     write_feature_design(repo, slug, status="draft")
     write_feature_design_review(repo, slug, status=review_status)
 
-    assert feature_next(repo, slug) == Action("load-reference", "cs-feat/references/design/protocol.md")
+    assert feature_next(repo, slug) == expected
+
+
+def test_epic_legacy_blocked_review_fails_closed_in_compact_model(tmp_path: Path) -> None:
+    repo = init_isolated_repo(tmp_path)
+    slug = "billing-system"
+    write_roadmap(repo, slug, status="draft")
+    write_roadmap_review(repo, slug, status="blocked")
+
+    assert epic_next(repo, slug) == Action("blocked", "roadmap-review-block")
 
 
 @pytest.mark.parametrize(
@@ -716,8 +1018,8 @@ def test_epic_long_range_scenario_simulates_both_human_confirmations(tmp_path: P
 
     write_epic_goal_state(repo, slug, "ready-to-dispatch")
     assert epic_next(repo, slug) == Action("dispatch-goal-driver", "epic")
-    write_epic_goal_state(repo, slug, "running", driver="paseo")
-    assert epic_next(repo, slug) == Action("report-visible-driver", "paseo-roadmap-123")
+    write_epic_goal_state(repo, slug, "running", driver="host-agent")
+    assert epic_next(repo, slug) == Action("report-visible-driver", "host-agent-roadmap-123")
 
 
 def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_path: Path) -> None:
@@ -749,6 +1051,41 @@ def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_pat
     assert epic_next(repo, slug) == Action("load-skill", "cs-feat design/design-review")
 
 
+def test_epic_goal_qa_blocked_hands_off_without_entering_review_fix() -> None:
+    feature_loop = skill_text("cs-epic", "references/goal/support/protocol-feature-loop.md")
+
+    assert "advance QA (Failed _)                                   = Remediate Implementation Review" in feature_loop
+    assert "advance stage (Awaiting ref)                            = WaitFor stage ref" in feature_loop
+    assert "advance stage (NeedsHuman reason)                       = RequestHuman stage reason" in feature_loop
+    assert "advance stage (Blocked reason)                          = HandoffStage stage reason" in feature_loop
+    assert "advance QA _" not in feature_loop
+
+
+def test_epic_goal_audit_hands_off_unapproved_h_only_evidence_immediately() -> None:
+    audit = skill_text("cs-epic", "references/goal/support/protocol-audit.md")
+    goal = skill_text("cs-epic", "references/goal/support/protocol.md")
+    gates = skill_text("cs-epic", "references/goal/support/protocol-gates.md")
+
+    assert "not (noUnapprovedHOnlyCoreCheck a)   = AuditHandoff UnapprovedHOnlyCoreCheck" in audit
+    assert "sameAuditFailureCount a >= 3         = AuditHandoff RepeatedFailure" in audit
+    assert "AuditRepeatedFailure" not in audit
+    assert "unapprovedHOnlyCoreCheck s       = Just UnapprovedHOnlyCoreCheck" in goal
+    assert "recover QA             = FixQAThenReview" in gates
+    assert "| FixQA |" not in gates
+
+
+def test_roadmap_item_enters_in_progress_when_design_starts() -> None:
+    planning = skill_text("cs-epic", "references/planning/reference.md")
+    shared = skill_text("cs-onboard", "references/shared-conventions.md")
+
+    assert "roadmap item 生命周期以项目 `.codestable/reference/shared-conventions.md`" in planning
+    assert "不复制 transition" in planning
+    assert "data ItemEvent" not in planning
+    assert "data ItemEvent = StartDesign | AcceptFeature | OwnerDrops Reason" in shared
+    assert "transition Planned StartDesign" in shared
+    assert "StartFeature" not in shared
+
+
 def test_workflow_runtime_details_are_centralized_in_preflight() -> None:
     assert_doc_contains(
         "cs-onboard",
@@ -756,7 +1093,7 @@ def test_workflow_runtime_details_are_centralized_in_preflight() -> None:
         "--mode refresh-runtime",
         "可重复执行",
         "不重新审计 / 迁移文档",
-        "只想刷新 runtime、不审计或迁移文档时，显式传 `--mode refresh-runtime`",
+        "selectOnboardPath RefreshRuntime Installed _  = Refresh",
         ".codestable/runtime-manifest.json",
         "codestable-runtime-sync.py",
         "不移动用户文件",
@@ -767,8 +1104,8 @@ def test_workflow_runtime_details_are_centralized_in_preflight() -> None:
         "Runtime 资产恢复",
         "runtime capability",
         ".codestable/runtime-manifest.json",
-        "用当前插件包里的",
-        "`cs-onboard/tools/codestable-runtime-sync.py` 自动同步",
+        "recoverRuntime RuntimeIncomplete  = SyncRuntime",
+        "recoverRuntime ManagedPathsDirty  = Stop ManagedRuntimeDirty",
         "--check --json",
         "去掉 `--check`",
         "`workflow-next`",
@@ -798,15 +1135,13 @@ def test_goal_driver_selection_requires_visibility_and_nested_reviewer() -> None
     assert_doc_contains(
         "cs-onboard",
         "references/agent-conventions.md",
-        "宿主显式暴露用户可见的 run id",
-        "宿主显式支持 driver 在其运行环境内再启动独立 Task agent reviewer",
-        "回退打印 fenced",
+        "visibleHostDriver e && canSpawnReviewer e",
+        'PrintGoal "/goal"',
     )
 
-    assert goal_driver_decision(paseo=True) == Action("dispatch", "paseo")
-    assert goal_driver_decision(native=True, visible=True, nested_reviewer=True) == Action("dispatch", "native")
-    assert goal_driver_decision(native=True, visible=True, nested_reviewer=False) == Action("fallback", "fenced-/goal")
-    assert goal_driver_decision(native=True, visible=False, nested_reviewer=True) == Action("fallback", "fenced-/goal")
+    assert goal_driver_decision(host_agent=True, visible=True, nested_reviewer=True) == Action("dispatch", "host-agent")
+    assert goal_driver_decision(host_agent=True, visible=True, nested_reviewer=False) == Action("fallback", "fenced-/goal")
+    assert goal_driver_decision(host_agent=True, visible=False, nested_reviewer=True) == Action("fallback", "fenced-/goal")
     assert goal_driver_decision() == Action("fallback", "fenced-/goal")
 
 
@@ -815,11 +1150,11 @@ def test_task_agent_lifecycle_closes_consumed_agents_and_cleans_only_on_capacity
         "cs-onboard",
         "references/agent-conventions.md",
         "## Task Agent 生命周期",
-        "先消费并落盘结果，再调用宿主提供的 `close_agent`",
-        "不要关闭 still-running、pending、permission-needed",
-        "不要预先批量清理旧 agent",
-        "`agent thread limit reached`",
-        "按最老优先关闭一小批，再重试本次 create / spawn 一次",
+        "data CreateRecovery = RetryCreate | CreateBlocked Reason",
+        "terminal s && resultConsumed s && not (permissionPending s)",
+        "recoverCreate CapacityExhausted",
+        "closeOldest mayClose >> RetryCreate",
+        "recoverCreate reason            = CreateBlocked reason",
     )
     assert_doc_contains(
         "cs-goal",
@@ -851,14 +1186,27 @@ def test_issue_scenario_progresses_through_main_entry_references(tmp_path: Path)
 
     assert issue_next(repo, slug) == Action("load-reference", "cs-issue/references/report/protocol.md")
     write_issue_doc(repo, slug, "report")
+    assert issue_next(repo, slug) == Action("user-checkpoint", "issue-report-confirmation")
+    replace_status(issue_dir(repo, slug) / f"{slug}-report.md", "confirmed")
     assert issue_next(repo, slug) == Action("load-reference", "cs-issue/references/analyze/protocol.md")
     write_issue_doc(repo, slug, "analysis")
+    assert issue_next(repo, slug) == Action("user-checkpoint", "issue-fix-plan-confirmation")
+    replace_status(issue_dir(repo, slug) / f"{slug}-analysis.md", "confirmed")
     assert issue_next(repo, slug) == Action("load-reference", "cs-issue/references/fix/protocol.md")
     write_issue_doc(repo, slug, "fix-note")
     assert issue_next(repo, slug) == Action("load-skill", "cs-code-review")
     write_issue_doc(repo, slug, "review", status="changes-requested")
     assert issue_next(repo, slug) == Action("load-reference", "cs-issue/references/fix/protocol.md#review-fix")
     replace_status(issue_dir(repo, slug) / f"{slug}-review.md", "passed")
+    assert issue_next(repo, slug) == Action(
+        "load-reference", "cs-issue/references/fix/protocol.md#completion-checkpoint"
+    )
+    write(
+        issue_dir(repo, slug) / "approval-report.md",
+        "---\ndoc_type: approval-report\nstatus: pending\n---\n# Approval\n",
+    )
+    assert issue_next(repo, slug) == Action("user-checkpoint", "issue-fix-completion")
+    replace_status(issue_dir(repo, slug) / "approval-report.md", "approved")
     assert issue_next(repo, slug) == Action("complete", "issue-reviewed")
 
 
@@ -880,11 +1228,30 @@ def test_refactor_scenario_respects_scan_design_and_human_validation_gates(tmp_p
     write(refactor_dir(repo, slug) / f"{slug}-checklist.yaml", "steps:\n  - id: visual\n    verification: HUMAN\n")
     assert refactor_next(repo, slug) == Action("user-checkpoint", "refactor-design-confirmation")
     replace_status(refactor_dir(repo, slug) / f"{slug}-refactor-design.md", "approved")
-    assert refactor_next(repo, slug) == Action("user-checkpoint", "refactor-human-validation")
-    write(refactor_dir(repo, slug) / f"{slug}-checklist.yaml", "steps:\n  - id: visual\n    verification: AI\n")
     assert refactor_next(repo, slug) == Action("load-reference", "cs-refactor/references/standard/protocol.md#apply")
     write_refactor_doc(repo, slug, "apply-notes")
+    with (refactor_dir(repo, slug) / f"{slug}-apply-notes.md").open("a", encoding="utf-8") as handle:
+        handle.write("step_state: applied-awaiting-human\n")
+    assert refactor_next(repo, slug) == Action("user-checkpoint", "refactor-human-validation")
+    apply_notes = refactor_dir(repo, slug) / f"{slug}-apply-notes.md"
+    apply_notes.write_text(
+        apply_notes.read_text(encoding="utf-8").replace("applied-awaiting-human", "verified"),
+        encoding="utf-8",
+    )
     assert refactor_next(repo, slug) == Action("load-skill", "cs-code-review")
+
+
+def test_refactor_low_candidate_scan_does_not_enter_design() -> None:
+    protocol = skill_text("cs-refactor", "references/standard/protocol.md")
+    spec = protocol.split("```haskell", 1)[1].split("```", 1)[0]
+    scan_missing = "not (scanExists s)          = Run Scan"
+    low_candidates = "candidateCount s < 3 && fastforwardEligible s"
+    selection_gate = "not (selectionConfirmed s)  = Checkpoint ScanSelection"
+
+    assert scan_missing in spec
+    assert low_candidates in spec
+    assert selection_gate in spec
+    assert spec.index(scan_missing) < spec.index(low_candidates) < spec.index(selection_gate)
 
 
 def test_docs_scenario_selects_docs_entry_or_neat_hygiene(tmp_path: Path) -> None:
@@ -970,39 +1337,104 @@ def test_solution_depth_prepass_is_authoritative_and_reachable() -> None:
     assert_doc_contains("cs-onboard", "references/shared-conventions.md", "solution-depth-conventions")
 
 
-def test_readonly_task_agent_mode_is_provider_aware_and_reachable() -> None:
-    # 权威源:只读隔离 Task agent 用 provider 的 plan/read-only 等价 mode,不硬编码 mode 名
-    # (codex 无 plan mode 的实测反例,codex review imp-1);Goal driver 例外。
+def test_readonly_task_agent_capability_is_provider_aware_and_reachable() -> None:
+    # 只读 mode 的唯一权威在共享 selector；阶段协议只组合 selector，不复制规则。
     assert_doc_contains(
         "cs-onboard",
         "references/agent-conventions.md",
-        "read-only 等价 mode",
-        "provider capability",
-        "未必有同名 mode",
-        "Goal driver 例外",
+        "data Isolation = Heterogeneous | Independent",
+        "data ReadOnlyControl = EnforcedReadOnly | VerifiedNoWrite",
+        "data AgentSelection",
+        "hostAgentCapabilities",
+        "readOnlyControlled",
+        "selectTaskAgent",
+        "reviewGate :: AgentSelection -> AgentRun",
     )
-    # 三个 reviewer 派发点 provider-aware,不留裸"plan mode 启动"硬编码。
     for skill, path in (
         ("cs-feat", "references/design-review/protocol.md"),
         ("cs-epic", "references/review/protocol.md"),
         ("cs-code-review", "references/independent-review/protocol.md"),
     ):
-        assert_doc_contains(skill, path, "read-only 等价 mode", "provider capability")
-    # QA runner / acceptance auditor / goal 功能验收 三个启动点也须触达 mode 规则(codex review imp-2)。
+        assert_doc_contains(skill, path, "selectTaskAgent Review", "reviewGate")
+        assert "runReviewer" not in skill_text(skill, path)
+    # 其他只读 Task agent 启动点也须触达共享 mode 规则。
     assert_doc_contains("cs-feat", "references/qa/protocol.md", "read-only 等价 mode")
     assert_doc_contains("cs-feat", "references/acceptance/protocol.md", "read-only 等价 mode")
     assert_doc_contains("cs-goal", "SKILL.md", "read-only 等价 mode")
 
 
+def test_review_selector_preserves_guard_order_and_scope() -> None:
+    assert_doc_contains(
+        "cs-onboard",
+        "references/agent-conventions.md",
+        "Heterogeneous",
+        "Independent",
+        "hostAgentCapabilities",
+        "不依赖 backend 产品名或工具名",
+        "ExplicitConfigUnavailable",
+    )
+    selector = skill_text("cs-onboard", "references/agent-conventions.md")
+    selection_order = (
+        "Just agent <- bestFit",
+        "= Start agent config",
+        "SelectionBlocked ExplicitConfigUnavailable",
+        "SelectionNeedsOwnerApproval IndependentAgentUnavailable",
+    )
+    positions = [selector.index(fragment) for fragment in selection_order]
+    assert positions == sorted(positions)
+    review_gate_order = (
+        "reviewGate _ (Finished findings)",
+        "reviewGate _ (Active _)",
+        "reviewGate _ (Failed _) (Just ApproveLocalOnly)",
+        "reviewGate _ (Failed reason) _",
+        "reviewGate (SelectionBlocked reason) NotStarted",
+        "reviewGate (SelectionNeedsOwnerApproval _) NotStarted (Just ApproveLocalOnly)",
+        "reviewGate (SelectionNeedsOwnerApproval reason) NotStarted",
+        "reviewGate (Start agent config) NotStarted",
+    )
+    review_gate_positions = [selector.index(fragment) for fragment in review_gate_order]
+    assert review_gate_positions == sorted(review_gate_positions)
+    assert "toReviewLane (NeedOwnerApproval reason) = Left reason" in selector
+    assert "data ReviewVerdict = Passed | ChangesRequested | ReviewBlocked Reason" in selector
+    assert_doc_contains(
+        "cs-code-review",
+        "references/independent-review/protocol.md",
+        "dirtyPaths scope `isSubsetOf` currentScope scope",
+        "OcrSkippedByUser",
+        "pending laneB",
+        "pending (RunCommitted _)",
+        "failed (OcrFailed _)",
+        "finished (OcrFinished _)",
+        "verifiedFindings (IndependentFindings findings) laneB",
+        "mergeableDecision (MergeVerified findings)",
+        "`ApproveLocalOnly` 是 owner 的人类授权",
+        "环境变量是 runner 的机械 opt-in",
+    )
+    independent_review = skill_text("cs-code-review", "references/independent-review/protocol.md")
+    assert "otherwise                       = Blocked IndependentReviewRequired" not in independent_review
+    assert "reviewerField LocalReview" not in independent_review
+
+
+def test_cs_skills_depend_on_host_agent_behavior_not_a_backend_tool_name() -> None:
+    selector = skill_text("cs-onboard", "references/agent-conventions.md")
+    assert "hostAgentCapabilities" in selector
+    assert "Heterogeneous" in selector
+    assert "Independent" in selector
+    assert "异构候选不可用不阻塞独立 review" in selector
+
+    for markdown in SKILLS.rglob("*.md"):
+        text = markdown.read_text(encoding="utf-8")
+        assert "cs_agent_" not in text, markdown
+        assert "CS Agent Facade" not in text, markdown
+
 def test_runtime_reference_copies_match_templates() -> None:
-    # 模板(cs-onboard/references/)与项目副本(.codestable/reference/)必须逐字一致(codex review imp-4)。
-    for name in (
-        "shared-conventions.md",
-        "agent-conventions.md",
-        "solution-depth-conventions.md",
-        "execution-conventions.md",
-        "system-overview.md",
-    ):
-        src = (SKILLS / "cs-onboard" / "references" / name).read_text(encoding="utf-8")
-        copy = (ROOT / ".codestable" / "reference" / name).read_text(encoding="utf-8")
-        assert src == copy, f"{name}: 模板与项目副本不一致，需 sync"
+    # runtime 可保留 legacy-only 文件；每个 onboard 模板都必须存在同名逐字副本。
+    templates = SKILLS / "cs-onboard" / "references"
+    runtime = ROOT / ".codestable" / "reference"
+    for src in sorted(templates.rglob("*.md")):
+        relative = src.relative_to(templates)
+        copy = runtime / relative
+        assert copy.exists(), f"{relative}: 缺 runtime reference 副本"
+        assert src.read_text(encoding="utf-8") == copy.read_text(encoding="utf-8"), (
+            f"{relative}: 模板与项目副本不一致，需 sync"
+        )

@@ -12,6 +12,36 @@ Goal 是有界起点/终点工作单元。owner 定义结果和验收信号；AI
 当请求是“达成这个结果”、“跑到被验收”、“自主迭代”、“AI 自主实现”或“先 grill me”时，
 使用 goal。
 
+## Spec
+
+```haskell
+data GoalStatus = Active | Complete | Blocked
+data StopReason
+  = AcceptanceConflict | AmbiguousTerminal | ScopeBoundaryChange
+  | RepeatedBlocker | BudgetExhausted | RiskAcceptanceNeeded | AcceptanceAgentUnavailable
+
+nextIteration :: GoalState -> [IterationArtifact] -> Int
+nextIteration state existing =
+  max (currentIteration state) (highestIteration existing) + 1
+
+ownerStop :: GoalState -> Maybe StopReason
+ownerStop g
+  | acceptanceConflicts g                 = Just AcceptanceConflict
+  | objectiveOrTerminalAmbiguous g        = Just AmbiguousTerminal
+  | changesLongLivedContract g            = Just ScopeBoundaryChange
+  | sameBlockerCount g >= 3               = Just RepeatedBlocker
+  | budgetExhaustedOrNear g               = Just BudgetExhausted
+  | needsRiskSecretDestructiveOrDeploy g  = Just RiskAcceptanceNeeded
+  | requiredTaskAgentUnavailable g        = Just AcceptanceAgentUnavailable
+  | otherwise                             = Nothing
+
+mayComplete :: GoalState -> Bool
+mayComplete g =
+  isNothing (ownerStop g)
+    && acceptanceCriteriaPassed g
+    && functionalAcceptanceRecorded g
+```
+
 ## 报告语言
 
 所有 goal 报告正文遵守 `.codestable/attention.md`。如果 attention 没有报告语言策略，
@@ -44,9 +74,7 @@ next action。
 
 ## State Model
 
-```text
-active | complete | blocked
-```
+`GoalStatus` 落盘为 `active | complete | blocked`；`Blocked` 的原因同时写入 blocker 字段。
 
 必需的 `state.yaml` 字段：
 
@@ -69,11 +97,7 @@ active | complete | blocked
 
 ## Iteration 编号
 
-修改 `current_iteration` 前，按以下方式计算下一个 `{nnn}`：
-
-```text
-max(state.yaml.current_iteration, highest existing iterations/{nnn}*.md) + 1
-```
+修改 `current_iteration` 前按 `nextIteration` 计算下一个 `{nnn}`。
 
 写入 `iterations/{nnn}.md` 后，让 `state.yaml.current_iteration` 等于该已完成编号。
 不要覆盖已有 iteration 文件。如果 attention 要求语言变体，同时写对应的
@@ -99,14 +123,6 @@ iteration。只有测试不足以完成 goal。
 
 ## 严格 Owner Stop
 
-只在以下情况停止（与 `cs-goal` 的 `CheckpointReason` 枚举一一对应；改口径需两处同步）：
-
-- acceptance criteria 冲突，或已不足以判断完成。
-- objective / start / terminal condition 有重大歧义。
-- 继续会改变记录 goal 之外的长期 spec、public contract 或 capability boundary。
-- 同一个 blocker 连续三次 iteration 重复。
-- budget 已用尽或接近用尽。
-- 需要明确的人类风险接受、secrets、破坏性操作、外部购买、merge / deployment 批准。
-- 可见 Task agent（终端验收 / 独立 review）无法启动且按生命周期重试仍失败；写 approval-report 后停下，不自验收。
-
-日常技术选择和普通失败尝试由 AI 负责。
+只按 `ownerStop` 停止；它与 `cs-goal.CheckpointReason` 一一对应，改口径需同步。
+`RiskAcceptanceNeeded` 包含风险接受、secrets、破坏性操作、外部购买、merge / deployment 批准；
+`AcceptanceAgentUnavailable` 需先按生命周期重试，再写 approval report，禁止自验收。日常技术选择和普通失败尝试由 AI 负责。

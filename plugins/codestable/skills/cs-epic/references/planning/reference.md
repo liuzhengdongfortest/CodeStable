@@ -72,7 +72,7 @@ related_architecture: []    # 相关 architecture doc slug，可空
 
 ### 模块 B / C · ...
 
-> 不需要模块拆分（纯改一个已有模块的内部行为）→ 明确写"本大需求在已有模块 {X} 内完成，不引入新模块也不调整模块边界"，跳过第 4 节直接到第 5 节。
+> 不需要模块拆分（纯改一个已有模块的内部行为）→ 明确写"本大需求在已有模块 {X} 内完成，不引入新模块也不调整模块边界"；仍保留第 4 节并明确写"本 roadmap 无跨模块接口"。
 
 ## 4. 模块间接口契约 / 共享协议（架构层详设）
 
@@ -201,19 +201,15 @@ items:
 
 ### 状态机
 
-```
-planned  → in-progress  （feature-design 启动时由 design 改）
-in-progress → done      （feature-acceptance 完成时由 acceptance 改）
-planned  → dropped      （用户决定不做，由 `cs-epic` planning/update 改）
-done / dropped 终态
-```
+roadmap item 生命周期以项目 `.codestable/reference/shared-conventions.md` 的
+「roadmap ↔ feature 衔接协议」为唯一权威；本模板只定义字段格式，不复制 transition。
 
-**不合法跃迁**：`done` 回 `in-progress`（要改需求回退走新 feature）；`dropped` 回 `planned`（恢复要新加一条 slug 略改）。
+修改 `Done` 需求或恢复 `Dropped` 条目都新建一个略改 slug 的 item。
 
 ### 校验
 
 ```bash
-python <cs-onboard skill 目录>/tools/validate-yaml.py --file .codestable/roadmap/{slug}/{slug}-items.yaml --yaml-only
+python3 <cs-onboard skill 目录>/tools/validate-yaml.py --file .codestable/roadmap/{slug}/{slug}-items.yaml --yaml-only
 ```
 
 ---

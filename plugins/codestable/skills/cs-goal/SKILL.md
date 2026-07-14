@@ -37,6 +37,11 @@ data GoalRequest = GoalRequest
   , attention  : Maybe Attention     -- .codestable/attention.md；缺则 route to cs-onboard
   }
 
+data OwnerStopState
+  = NoOwnerStop
+  | PendingStop CheckpointReason
+  | ResolvedStop GoalOwnerDecision
+
 data GoalState = GoalState           -- 从 .codestable/goals/YYYY-MM-DD-{slug}/ 恢复
   { goalDir          : Maybe Path
   , status           : Active | Complete | Blocked   -- state.yaml 为机器 source of truth
@@ -45,12 +50,16 @@ data GoalState = GoalState           -- 从 .codestable/goals/YYYY-MM-DD-{slug}/
   , acceptancePassed : Bool          -- Task agent functional-acceptance verdict = pass
   , blockerSignature : Maybe Text
   , blockerCount     : Int           -- 同一 blocker 连续 iteration 次数
+  , ownerStop        : OwnerStopState
   }
+
+data GoalOwnerDecision = ResumeWith GoalDelta | KeepBlocked
 
 data GoalOutcome
   = Iterating GoalState               -- 自主继续，已写 iteration 报告 + 刷新 state.yaml
   | HumanCheckpoint CheckpointReason  -- strict owner-stop：先写 approval-report.md 再停
   | Completed GoalSummary             -- acceptance + Task agent 验收 + final iteration 齐备
+  | Blocked GoalSummary               -- owner 已决定保持 blocked；不重复询问
   | NeedsHuman Reason
 
 data CheckpointReason      -- 全部枚举仅指已运行 goal 的 owner-stop：新 goal 未 grill 前的
@@ -78,9 +87,18 @@ selectNextAttempt(req, s)
   | isNothing s.goalDir                           -> NeedsHuman "grill 无法收敛出有界 goal"
   | not s.hasStartReport && canRebuild(s, req)    -> Iterating (writeStartReport s) -- 阶段 2：从 state / interview 证据重建，实现前必须存在
   | not s.hasStartReport                          -> NeedsHuman "缺起点报告且无法从证据重建"
+  | s.status == Complete && s.acceptancePassed    -> Completed (summary s)
+  | s.status == Complete                          -> NeedsHuman "complete goal lacks passing acceptance"
+  | s.ownerStop is PendingStop reason
+                                                   -> HumanCheckpoint reason
+  | s.status == Blocked && s.ownerStop is ResolvedStop (ResumeWith delta)
+                                                   -> Iterating (resumeGoal s delta)
+  | s.status == Blocked && s.ownerStop is ResolvedStop KeepBlocked
+                                                   -> Blocked (summary s)
+  | s.status == Blocked                           -> NeedsHuman "blocked goal lacks owner-stop state"
   | ownerStopTriggered(s)                         -> HumanCheckpoint (ownerStopReason s)  -- 含 RepeatedBlocker / Budget / …
   | s.status == Active && not s.acceptancePassed  -> Iterating (nextMinimalAttempt s)     -- 阶段 3：review / 验收经可见 Task agent
-  | s.acceptancePassed                            -> Completed (summary s)
+  | s.status == Active && s.acceptancePassed      -> Completed (summary s)
 ```
 
 ## Operation
@@ -223,7 +241,7 @@ fixture 输出复核，或其他和 owner 相关的证明。单测、lint 和 bu
 
 ## Failure Behavior
 
-`cs-goal` 停下的两种形态：
+`cs-goal` 停下的三种形态：
 
 - `NeedsHuman`：无法启动 goal driver。`.codestable/attention.md` 缺失（→ `cs-onboard`）；
   owner 未给终点且 grill 也无法收敛出有界 goal；已有 active goal 但缺起点报告且无法从
@@ -231,8 +249,9 @@ fixture 输出复核，或其他和 owner 相关的证明。单测、lint 和 bu
 - `HumanCheckpoint`：driver 触发 strict owner-stop（见「严格 Owner Stop」枚举的
   `CheckpointReason`）。停前先写 `.codestable/goals/YYYY-MM-DD-{slug}/approval-report.md`，
   除非最新 iteration 报告已含完整决策上下文、选项、推荐、权衡、证据、后果和下一步。
+- `Blocked`：owner 已回答并选择保持 blocked，或明确不继续；记录决策后返回终态摘要，不重复同一 checkpoint。owner 选择恢复时，先把 `status` 改回 `active`、应用 `GoalDelta` 并清除 pending owner-stop，再继续 iteration。
 
-两种情况都要报告：当前 goal 目录、`state.yaml.status`、阻塞或 checkpoint 原因、需要的
+三种情况都要报告：当前 goal 目录、`state.yaml.status`、阻塞或 checkpoint 原因、需要的
 owner 决策或下一步动作、已写文件（起点报告 / 最新 iteration / approval-report），以及是否
 可安全重试或继续。不要在 acceptance 未过时假装完成，也不要自验收 goal 为 complete。
 

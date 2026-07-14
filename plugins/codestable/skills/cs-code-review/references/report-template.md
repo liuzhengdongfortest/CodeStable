@@ -14,19 +14,19 @@
 
 | 值 | 含义 |
 |---|---|
-| `subagent+ocr` | Task agent reviewer（Paseo subagent 或原生 Codex/Claude Task/Agent）+ ocr CLI 均已完成并合并 |
+| `subagent+ocr` | 独立 Task agent reviewer + ocr CLI 均已完成并合并 |
 | `subagent` | 仅 Task agent reviewer 完成 |
 | `ocr` | 仅 ocr CLI 完成 |
 | `self` | 仅主 agent 本地 review |
 
-下游质量 gate 默认要求 `reviewer: subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。`status: passed` 时必填 `reviewer`。
+下游质量 gate 默认要求 `reviewer: subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。`status: passed` 时必填 `reviewer`。`status: blocked` 且没有任何已完成 reviewer 时省略该字段；不得用 completed 值伪装 pending / failed。
 
 ```markdown
 ---
 doc_type: feature-review
 feature: YYYY-MM-DD-slug
 status: passed|changes-requested|blocked
-reviewer: subagent+ocr|subagent|ocr|self
+reviewer: subagent+ocr|subagent|ocr|self # blocked 且无 completed reviewer 时整行省略
 reviewed: YYYY-MM-DD
 round: 1
 ---
@@ -47,8 +47,8 @@ round: 1
 
 ### Independent Review
 
-- Detection: {主 agent 自检结果——Paseo subagent / 原生 Codex/Claude Task/Agent / ocr CLI 各是否可用}
-- 环节 A 独立隔离 Task agent: {paseo|native-agent|local-only} + {not-available|pending|completed|failed|blocked|skipped-by-user}
+- Detection: {主 agent 自检结果——heterogeneous agent / independent agent / ocr CLI 各是否可用}
+- 环节 A 独立隔离 Task agent: {heterogeneous-agent|independent-agent|local-only} + {not-available|pending|completed|failed|blocked|skipped-by-user}
 - 环节 B OCR CLI: not-available|completed|failed|skipped-scope-ambiguous|skipped-by-user
 - OCR severity mapping: High→blocking/important, Medium→nit/suggestion, Low→discarded
 - Merge policy: {各环节结果已逐条本地核验后合并 / 未启用原因 / pending 时不得定稿}

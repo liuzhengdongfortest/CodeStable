@@ -17,7 +17,7 @@ tags: [...]
 
 # {功能名称} Brainstorm
 
-> Stage 0 | {YYYY-MM-DD} | 下一步：design
+> Stage 0 | {YYYY-MM-DD} | 下一步：cs-feat（由主入口选择 lane）
 
 ## 想做什么、为什么
 {出发点 + 关键发现和转折}

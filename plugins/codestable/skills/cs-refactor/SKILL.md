@@ -58,29 +58,50 @@ data RefactorRequest = RefactorRequest
 
 data Stage = Scan | Design | Apply | CodeReview
 data Mode  = Standard | Fastforward
+data RouteTarget = StandardStage Stage | FastforwardStage Stage | ExternalSkill SkillName
+data DesignStatus = Draft | Approved
+data ReviewStatus = Missing | Passed | Blocking
+data VerificationOwner = AIVerification | HumanVerification
+data StepState
+  = NoCurrentStep | PendingApply StepId VerificationOwner
+  | AppliedAwaitingHuman StepId | StepVerified StepId
+data FastforwardStatus = FastforwardInactive | FastforwardActive | FastforwardSwitchRequired | FastforwardComplete
 
 data RefactorState = RefactorState       -- 全部从 .codestable/refactors/{slug}/ 恢复
   { refactorDir    : Maybe Path
+  , mode           : Mode
   , hasScan        : Bool
   , scanSelected   : Bool                -- 用户已勾选 ✓/✗
   , hasDesign      : Bool
-  , designStatus   : Draft | Approved    -- {slug}-refactor-design.md 的 status
+  , designStatus   : DesignStatus        -- {slug}-refactor-design.md 的 status
   , hasChecklist   : Bool                -- {slug}-checklist.yaml
-  , pendingHuman   : Bool                -- checklist 里 HUMAN 验证项未放行
+  , currentStep    : StepState           -- checklist + apply-notes 恢复；只有 AppliedAwaitingHuman 才停
   , applyDone      : Bool                -- apply-notes 每步验证齐
-  , reviewStatus   : Missing | Passed | Blocking
+  , fullVerificationPassed : Bool
+  , finalValidationPending : Bool
+  , reviewStatus   : ReviewStatus
+  , fastforwardStatus : FastforwardStatus -- {slug}-ff-state.yaml
   }
 
 data RefactorOutcome
-  = RoutedTo Stage
+  = RoutedTo RouteTarget
   | HumanCheckpoint CheckpointReason
   | Completed RefactorSummary
   | NeedsHuman Reason
+  | Blocked Reason
 
 data CheckpointReason
   = ScanSelection            -- scan 产物待用户勾选
   | DesignConfirmation       -- design 整体待用户 review 放行
-  | HumanValidation          -- apply 中 HUMAN 验证项待用户确认
+  | HumanValidation StepId   -- 该步已应用，HUMAN 验证待确认
+  | FinalValidation          -- 全量验证和 code review 后的最终人工确认
+  | ConfirmMethodAndScope    -- fastforward 对齐
+  | ConfirmEffect            -- fastforward 完成效果确认
+  | PartialChangeDisposition -- fastforward 退回 standard 时处理本轮部分改动
+
+data CheckpointAnswer = ApproveCheckpoint | RejectCheckpoint | ReviseCheckpoint
+resumeCheckpoint :: RefactorState -> CheckpointAnswer -> RefactorState
+resumeCheckpoint s answer = persistApprovalAnswer s answer
 ```
 
 `restoreRefactorStage` 从仓库事实选下一步（一旦会改外部可观察行为 → 转 `cs-feat` 新需求或 `cs-issue` 修 bug，行为等价是底线）：
@@ -88,17 +109,26 @@ data CheckpointReason
 ```haskell
 restoreRefactorStage :: RefactorState -> EntryIntent -> RefactorOutcome
 restoreRefactorStage(s, intent)
-  | changesBehavior(intent)                          -> NeedsHuman "not behavior-preserving"
-  | intent.mode == Fastforward && smallSafe(s)       -> RoutedTo Apply       -- ff：识别+对齐+原地改+测试自证
-  | not s.hasScan                                     -> RoutedTo Scan
+  | changesBehavior intent                            -> RoutedTo (ExternalSkill (behaviorRoute intent))
+  | s.mode == Fastforward && s.fastforwardStatus == FastforwardComplete
+                                                       -> Completed summary
+  | s.mode == Fastforward && s.fastforwardStatus == FastforwardSwitchRequired
+                                                       -> RoutedTo (StandardStage Scan)
+  | s.mode == Fastforward && smallSafe s              -> RoutedTo (FastforwardStage Apply)
+  | s.mode == Fastforward                              -> RoutedTo (StandardStage Scan)
+  | not s.hasScan                                     -> RoutedTo (StandardStage Scan)
   | s.hasScan && not s.scanSelected                  -> HumanCheckpoint ScanSelection
-  | s.scanSelected && not s.hasDesign                -> RoutedTo Design
+  | s.scanSelected && not s.hasDesign                -> RoutedTo (StandardStage Design)
   | s.hasDesign && s.designStatus == Draft           -> HumanCheckpoint DesignConfirmation
-  | s.designStatus == Approved && s.pendingHuman     -> HumanCheckpoint HumanValidation
-  | s.designStatus == Approved && not s.applyDone    -> RoutedTo Apply
-  | s.applyDone && s.reviewStatus == Missing         -> RoutedTo CodeReview
-  | s.reviewStatus == Blocking                       -> RoutedTo Apply        -- 窄修复，修完重跑 review
+  | AppliedAwaitingHuman step <- s.currentStep        -> HumanCheckpoint (HumanValidation step)
+  | s.designStatus == Approved && not s.applyDone    -> RoutedTo (StandardStage Apply)
+  | s.applyDone && not s.fullVerificationPassed      -> RoutedTo (StandardStage Apply)
+  | s.applyDone && s.reviewStatus == Missing         -> RoutedTo (StandardStage CodeReview)
+  | s.reviewStatus == Blocking                       -> RoutedTo (StandardStage Apply)
+  | s.reviewStatus == Passed && s.finalValidationPending
+                                                       -> HumanCheckpoint FinalValidation
   | s.reviewStatus == Passed                         -> Completed summary
+  | otherwise                                        -> Blocked InvalidRefactorState
 ```
 
 ## Workflow
@@ -133,7 +163,9 @@ exitRecoverable      -- apply-notes 每步验证齐、design status: approved、
 └── {slug}-apply-notes.md
 ```
 
-fastforward 默认不建目录；用户要求留记录时才写 `{slug}-refactor-note.md`。
+fastforward 不生成 scan / design / checklist，但始终写
+`.codestable/refactors/{YYYY-MM-DD}-{slug}/{slug}-ff-state.yaml` 保存 scope、method、approval、验证、
+review 和 completion 状态；用户要求留人读记录时再加 `{slug}-refactor-note.md`。
 
 ---
 
@@ -186,10 +218,15 @@ stageSupport _          = []
 onCheckpoint :: CheckpointReason -> Action
 onCheckpoint ScanSelection      = 停等用户勾选 scan 产物       -- AI 不替用户勾选
 onCheckpoint DesignConfirmation = 停等用户整体 review design   -- 放行后才进入 apply
-onCheckpoint HumanValidation    = 停等用户明确继续             -- apply 中 HUMAN 验证项
+onCheckpoint (HumanValidation step) = 停等用户验证已应用的 step
+onCheckpoint FinalValidation        = 停等用户做最终整体确认
+onCheckpoint ConfirmMethodAndScope  = 停等用户批准 ff 方法与范围
+onCheckpoint ConfirmEffect          = 停等用户确认 ff 结果
+onCheckpoint PartialChangeDisposition = 停等用户选择保留 / 暂存 / 丢弃本轮部分改动
 ```
 
-apply 完成后进入 `cs-code-review`；Critical/Important 未清零不提交。
+每个 checkpoint 的候选 artifact / state 和 pending approval 必须先落盘；owner 回答后先更新状态再
+调用 `resumeCheckpoint`。apply 完成后进入 `cs-code-review`；blocking 未清零、important 未处理或未被明确接受时不提交。
 
 ---
 
@@ -214,8 +251,9 @@ mayExit :: State -> Bool
 mayExit s
   | s.mode == Standard    = scanSelected s && designApproved s
                          && applyNotesEachStepVerified s && testsPassed s && reviewPassed s
-  | s.mode == Fastforward = methodScopeEvidenceStated s   -- 已说明方法、范围、验证证据；
-                                                          -- 如变复杂已停下切回标准模式
+                         && finalValidationSettled s
+  | s.mode == Fastforward = s.fastforwardStatus == FastforwardComplete
+                         && testsPassed s && reviewPassed s && effectConfirmed s
 ```
 
 不夹带 feature 或 issue 改动。

@@ -15,7 +15,7 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 ├── .gitignore             忽略 CodeStable 运行期 Python 缓存等机器产物
 ├── attention.md           CodeStable 技能启动必读的项目注意事项
 ├── requirements/          能力愿景 + 领域模型 + 决策记录
-│   ├── VISION.md           能力中心索引（cs-req 维护）
+│   ├── VISION.md           能力中心索引（cs-req 首次落 req 时 lazy 创建并维护）
 │   ├── {slug}.md           一个能力一份，扁平（cs-req 产出）
 │   ├── CONTEXT.md          领域术语表（cs-domain lazy 创建；多 context 时被 CONTEXT-MAP.md 替代）
 │   ├── CONTEXT-MAP.md      多 context 拓扑入口（cs-domain，仅多 context 时存在）
@@ -32,11 +32,11 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 │       ├── {slug}-roadmap-review.md 人工确认前的规划审查报告
 │       └── drafts/             可选
 ├── goals/                 目标聚合根（起点报告 / 自主迭代 / 功能验收）
-│   └── {slug}/           一个 bounded goal 一个子目录（cs-goal 产出）
-│       ├── {slug}-start-report.md 起点报告
-│       ├── {slug}-state.yaml     机器可读状态
-│       ├── {slug}-iteration-*.md 迭代报告
-│       └── {slug}-functional-acceptance.md Task agent 功能验收
+│   └── YYYY-MM-DD-{slug}/ 一个 bounded goal 一个子目录（cs-goal 产出）
+│       ├── state.yaml              机器可读状态
+│       ├── goal.md                 起点报告
+│       ├── iterations/{nnn}.md     迭代报告
+│       └── functional-acceptance.md Task agent 功能验收
 ├── features/              feature spec 聚合根
 │   └── YYYY-MM-DD-{slug}/  每个 feature 一个目录
 │       ├── {slug}-brainstorm.md  （可选，case 2 时产出）
@@ -77,7 +77,7 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 
 ### 命名规则
 
-- 需求文档：`requirements/{slug}.md`（能力愿景，不带日期前缀，扁平不分组）；中心索引 `requirements/VISION.md`
+- 需求文档：`requirements/{slug}.md`（能力愿景，不带日期前缀，扁平不分组）；中心索引 `requirements/VISION.md` 由 cs-req 首次落 req 时 lazy 创建
 - roadmap：`roadmap/{slug}/`（不带日期前缀，平铺不嵌套）
 - feature / issue / refactor 目录：带日期前缀 `YYYY-MM-DD-{slug}`
 - feedback 目录：带日期前缀 `YYYY-MM-DD-{slug}`，保存 report、local-private evidence/triage/candidate 与用户确认的 public preview
@@ -94,7 +94,7 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 
 ### 改目录结构
 
-改 `plugins/codestable/skills/cs-onboard/references/shared-conventions.md` 模板，新项目 onboard 时带上新版本；已有项目手动同步 `.codestable/reference/shared-conventions.md`。
+维护者改已安装 `cs-onboard` skill 内的 `references/shared-conventions.md` 模板；新项目 onboard 自动带上，已有项目用 `cs-onboard --mode refresh-runtime` 同步，不手改运行时副本。
 
 ---
 
@@ -118,24 +118,29 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 
 ## 2. {slug}-checklist.yaml 生命周期
 
-- 是 feature 工作流的唯一执行清单
-- 由 `cs-feat` design 阶段在 draft design 成型后先生成 `steps` + `checks`，供 design-review 阶段和用户 review；用户确认后随 design 一起进入实现
-- `cs-feat` fastforward mode **不生成** checklist（也不写 design / acceptance），是跳过 spec 流程直接写代码的超轻量通道；唯一留下的痕迹是动手后回写的 `{slug}-ff-note.md`（轻量回顾，参与 scoped-commit、可被 cs-req / cs-domain backfill 检索到）
+它是 feature 工作流的唯一执行清单。fastforward 不生成 checklist/design/acceptance，只在动手后写
+`{slug}-ff-note.md`。
+
+```haskell
+data ChecklistOwner = Design | Implementation | Acceptance
+data ChecklistMutation
+  = CreateCandidate Steps Checks | ReviseCandidate Steps Checks
+  | CompleteStep StepId | VerdictCheck CheckId CheckVerdict
+data CheckVerdict = Passed | Failed
+
+allowed :: ChecklistOwner -> ChecklistMutation -> Bool
+allowed Design         (CreateCandidate _ _) = True
+allowed Design         (ReviseCandidate _ _) = True
+allowed Implementation (CompleteStep _)      = True
+allowed Acceptance     (VerdictCheck _ _)    = True
+allowed _              _                     = False
+allowed _              _                     = False
+```
 
 `steps` 的粒度是 **编排-计算分离维度的切片策略**——按"先编排骨架、后计算节点、最后持久化与测试"写（最简 Workflow 先行 → 逐个节点填充），**不下沉到 file:line / 函数级**。具体改哪个文件由 implement 阶段决定。
 
-**design 的职责**：
-
-- 提取 `steps`（4-8 步，每步独立可验证退出信号）：后端节奏 = 编排骨架 → 计算节点逐个填 → 接通持久化 → 测试覆盖；前端 = 静态结构 → 交互逻辑 → 状态接入 → 联调收尾
-- 提取 `checks`：第 1 节"明确不做"→ 范围守护；第 2.1 接口 → 名词契约；第 2.2 主流程 + 流程级约束 → 编排骨架；第 2.3 挂载点 → 挂载点；第 3 节场景清单 → 验收场景
-
-**implement 的职责**：
-
-- 按 `steps` 顺序执行，每步完成把 status `pending` → `done`
-- 实现到具体文件级时需要拆分某步、或发现微重构是其前置（参考第 7 节反射检查）→ 跟用户对齐后追加 / 拆分 steps，**不偷偷做**
-- 不改写 `checks`
-
-**acceptance 的职责**：只更新 `checks[].status`（`pending` → `passed` / `failed`），不重写 `steps`。
+Design 提取 4-8 个可独立验证的 `steps` 与可追溯的 `checks`；Implementation 只顺序完成 step，
+拆 step 或加入微重构前先与用户对齐；Acceptance 只裁决 checks。各阶段只做 `allowed` 的 mutation。
 
 **写作约束**：子技能描述 checklist 时只补本阶段读 / 写哪一部分，不重新定义生命周期。
 
@@ -147,13 +152,20 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 
 **items.yaml 状态机**：
 
-```
-planned  → in-progress  （cs-feat design 阶段启动 feature 时改）
-in-progress → done      （cs-feat acceptance 阶段验收完成时改）
-planned  → dropped      （cs-epic planning update 模式，用户决定不做时改）
+```haskell
+data ItemStatus = Planned | InProgress | Done | Dropped Reason
+data ItemEvent = StartDesign | AcceptFeature | OwnerDrops Reason
+
+transition :: ItemStatus -> ItemEvent -> Either Reason ItemStatus
+transition Planned StartDesign         = Right InProgress
+transition InProgress AcceptFeature    = Right Done
+transition Planned (OwnerDrops reason) = Right (Dropped reason)
+transition Done _                      = Left TerminalState
+transition (Dropped _) _               = Left TerminalState
+transition _ _                         = Left InvalidTransition
 ```
 
-`done` / `dropped` 是终态。需要回退重做的新加一条 slug 略改的条目，不改终态。
+回退重做时新加略改 slug 的条目，不改终态。
 
 **cs-epic planning 阶段的职责**：生成和维护 roadmap 主文档 + items.yaml；把 `planned` 改 `dropped`（用户放弃时）；不改 `in-progress` / `done`（feature 流程负责）。第一版内部仍使用 `.codestable/roadmap/`。
 
@@ -183,30 +195,16 @@ planned  → dropped      （cs-epic planning update 模式，用户决定不做
 
 ## 3. 阶段收尾推荐
 
-**feature-acceptance** 收尾按顺序判断：
+```haskell
+data CloseoutStage = FeatureAcceptance | IssueFix | FeatureFastForward | EpicRoadmap
+data CloseoutAction = KeepIfReusable | TutorialIfUserFacing | ApiIfPublic | NeatIfMilestone | NeatIfDocsDrift | ScopedCommit | GoalPackageIfRequested
 
-1. `cs-keep`：沉淀坑点 / 技巧 / 长期约束 / 选型
-2. `cs-docs` tutorial mode：开发者 / 用户指南
-3. `cs-docs` api mode：公开 API 参考
-4. `cs-docs-neat`：阶段 / 里程碑收尾时同步 `.codestable/`、README/docs、`CLAUDE.md` / `AGENTS.md` 和 agent 记忆
-5. `scoped-commit`
-
-**issue-fix** 收尾按顺序判断：
-
-1. `cs-keep`：沉淀坑点或暴露的长期约束
-2. `cs-docs-neat`：修复暴露了文档、agent 入口或记忆不一致时做全局整理
-3. `scoped-commit`
-
-**feature-ff** 收尾按顺序判断（比标准 acceptance 短，没有 req 回写动作）：
-
-1. `cs-keep`：动手过程暴露的坑或拍板的长期约束
-2. `cs-docs-neat`：快速改动影响 README/docs 或 agent 入口时同步
-3. `scoped-commit`
-
-**epic / roadmap** 收尾按顺序判断：
-
-1. `cs-docs-neat`：roadmap 确认落盘或整个 roadmap goal 完成后，同步 `.codestable/`、README/docs、`CLAUDE.md` / `AGENTS.md` 和 agent 记忆
-2. 后续若要自动推进整份 roadmap，再走 `cs-epic` goal-package 阶段
+closeout :: CloseoutStage -> [CloseoutAction]
+closeout FeatureAcceptance = [KeepIfReusable, TutorialIfUserFacing, ApiIfPublic, NeatIfMilestone, ScopedCommit]
+closeout IssueFix          = [KeepIfReusable, NeatIfDocsDrift, ScopedCommit]
+closeout FeatureFastForward = [KeepIfReusable, NeatIfDocsDrift, ScopedCommit]
+closeout EpicRoadmap       = [NeatIfMilestone, GoalPackageIfRequested]
+```
 
 **统一规则**：一律一句话提示；用户说"不用"立即跳过；不强制；上游主动提示，下游承接执行。
 

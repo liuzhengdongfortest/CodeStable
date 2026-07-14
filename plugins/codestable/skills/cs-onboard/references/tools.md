@@ -32,7 +32,7 @@ python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir {目录} [--filter 
 
 ### 常用命令
 
-`search-yaml.py` 用于扫**带 frontmatter 的产物**——feature spec / issue spec / requirements / adrs / guides / library-docs。
+`search-yaml.py` 用于扫**带 frontmatter 的产物**——feature spec / issue spec / requirements / adrs / `docs/dev|user|api`。
 
 `.codestable/compound/` 由 `cs-keep` 写纯 markdown（无 frontmatter），**不用 search-yaml**，直接 grep：
 
@@ -49,12 +49,12 @@ ls -lt .codestable/compound/ | head        # 看最近沉淀
 python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter doc_type=feature-design --filter status=approved
 
 # 按时间排序
-python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/library-docs --sort-by last_reviewed --order asc
-python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/guides --filter status=current --sort-by last_reviewed --order asc
+python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir docs/api --sort-by last_reviewed --order asc
+python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir docs/dev --filter status=current --sort-by last_reviewed --order asc
 
 # 输出控制
-python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter status=approved --full
-python <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter tags~=llm --json
+python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter status=approved --full
+python3 <cs-onboard skill 目录>/tools/search-yaml.py --dir .codestable/features --filter tags~=llm --json
 ```
 
 ### 典型使用场景

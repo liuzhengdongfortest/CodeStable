@@ -1,6 +1,6 @@
 ---
 name: cs-docs
-description: "Docs 主入口。触发：写/更新开发者指南、用户指南、API 参考；不包含 docs-neat 收尾整理。不要用于新功能实现(cs-feat)、修 bug / 诊断报错(cs-issue)、大需求拆解(cs-epic)、领域建模(cs-domain)、ADR 决策记录(best-adr)。"
+description: "Docs 主入口。触发：写/更新开发者指南、用户指南、API 参考；不包含 docs-neat 收尾整理。不要用于新功能实现(cs-feat)、修 bug / 诊断报错(cs-issue)、大需求拆解(cs-epic)、领域建模或 ADR 决策记录(cs-domain)。"
 argument-hint: "[--mode tutorial|api] <topic>"
 contracts:
   - grep: "restoreDocsStage"
@@ -74,18 +74,21 @@ data DocsOutcome
   | Completed DocsSummary
   | NeedsHuman Reason
 
-data CheckpointReason = ConfirmNewDoc | ConfirmOverwrite | ConfirmContractWording
+data CheckpointReason
+  = ReviewDraft | ReviewManifest | ConfirmOverwrite | ConfirmContractWording
+  | ReviewEntry | ReviewSamples | ReviewAllDrafts
 -- 目标读者/类型模糊不是 checkpoint：走 NeedsHuman "which reader?"（见 restoreDocsStage 与 Failure Behavior）
 ```
 
 `restoreDocsStage` 从仓库事实选下一步（全局同步 / 记忆整理 → 路由 `cs-docs-neat`）：
 
 ```haskell
-restoreDocsStage :: DocsState -> EntryIntent -> DocsOutcome
+restoreDocsStage :: DocsState -> DocsRequest -> DocsOutcome
 restoreDocsStage(s, intent)
   | needsGlobalSync(intent)                              -> RoutedTo NeatHandoff   -- 全局同步/README/agent 入口/记忆整理，转 `cs-docs-neat`
   | ambiguousReader(s, intent)                           -> NeedsHuman "which reader?"
-  | intent.mode == Api || wantsReference(intent)         -> RoutedTo ApiStage      -- 无 manifest 则初始化，缺条目则补
+  | requestedMode intent == Just Api || wantsReference(intent)
+                                                         -> RoutedTo ApiStage      -- 无 manifest 则初始化，缺条目则补
   | s.manifest == HasManifest && s.entryStatus in [Pending, Draft, Outdated]
                                                          -> RoutedTo ApiStage      -- 生成或增量更新条目
   | wantsTaskGuide(intent) && s.docStatus == Missing     -> RoutedTo TutorialStage -- 新建
@@ -125,15 +128,17 @@ restoreDocsStage(s, intent)
 
 必须停下等用户明确确认的点：
 
-1. 新建文档前：目标读者、文档类型（tutorial / api）和落点路径。
+1. 目标读者、文档类型（tutorial / api）或落点路径缺失时返回 `NeedsHuman "which reader?"`；草稿完成后以 `ReviewDraft` / `ReviewEntry` / `ReviewSamples` / `ReviewAllDrafts` 放行。
 2. 覆盖或重写已有 `current` 文档前：确认旧内容确实过期，不是并行有效版本。
 3. 文档表述会改变 user-facing 契约或公开理解时：让用户确认口径后再落盘。
+
+checkpoint 以 owner 的明确回答作为 resume input；草稿或 manifest 必须先以 `draft` 状态持久化，确认后再改为 `current` / `approved`，因此跨会话也能恢复待确认对象。API manifest 初次生成后用 `ReviewManifest` 放行，不能把“文件已存在”当作“用户已确认”。
 
 ---
 
 ## Failure Behavior
 
-返回 `NeedsHuman` 当：`.codestable/attention.md` 缺失（→ `cs-onboard`）；无法识别目标文档或落点路径；目标读者/文档类型模糊无法从仓库事实判定；requested mode 与仓库事实冲突；文档表述会改变 user-facing 契约或公开理解而用户未确认口径；诉求实为全局同步 / 记忆整理（→ `cs-docs-neat`）；写 API 时源码事实源不足只能靠猜。报告：当前目标文档、阻塞原因、下一步用户动作、已写文件、是否可安全重试。
+返回 `NeedsHuman` 当：`.codestable/attention.md` 缺失（→ `cs-onboard`）；无法识别目标文档或落点路径；目标读者/文档类型模糊无法从仓库事实判定；requested mode 与仓库事实冲突；写 API 时源码事实源不足只能靠猜。覆盖当前文档、公开契约口径和各类草稿 review 属 `HumanCheckpoint`；全局同步 / 记忆整理属于 `RoutedTo NeatHandoff`，不得混成 `NeedsHuman`。报告：当前目标文档、阻塞或 checkpoint 原因、下一步用户动作、已写文件、是否可安全重试。
 
 ---
 

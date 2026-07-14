@@ -42,24 +42,49 @@ data IssueRequest = IssueRequest
   }
 
 data Stage = Report | Analyze | Fix | CodeReview | FastPath
+data RouteTarget = IssueStage Stage | ExternalSkill SkillName
+data ArtifactStatus = ArtifactMissing | ArtifactDraft | ArtifactConfirmed
+data IssuePath = PathUndecided | StandardPath | FastPathPending | FastPathApproved | FastPathRejected
+data ApprovalStatus = ApprovalMissing | ApprovalPending | ApprovalApproved | ApprovalRejected
+data RootCauseStatus = RootCauseUnknown | RootCauseClear
+data CodeStatus = NotStarted | Changed
+data ReviewStatus = Missing | Passed | Blocking
 
 data IssueState = IssueState             -- 全部从 .codestable/issues/{slug}/ 恢复
   { issueDir     : Maybe Path
-  , hasReport    : Bool
-  , rootCause    : Unknown | Clear       -- 读代码后根因是否明确
-  , hasAnalysis  : Bool
-  , codeStatus   : NotStarted | Changed  -- 当前 git diff
+  , reportStatus : ArtifactStatus
+  , rootCause    : RootCauseStatus       -- 读代码后根因是否明确
+  , analysisStatus : ArtifactStatus
+  , issuePath    : IssuePath             -- 从 report + approval-report 恢复；一旦 standard 不二次改判
+  , codeStatus   : CodeStatus            -- 当前 git diff
   , hasFixNote   : Bool
-  , reviewStatus : Missing | Passed | Blocking
+  , reviewStatus : ReviewStatus
+  , pendingCheckpoint : Maybe CheckpointReason -- approval-report.md 当前 pending decision
+  , fixCompletionApproval : ApprovalStatus     -- review passed 后的最终 owner sign-off
   }
 
 data IssueOutcome
-  = RoutedTo Stage
+  = RoutedTo RouteTarget
   | HumanCheckpoint CheckpointReason
   | Completed IssueSummary
   | NeedsHuman Reason
+  | Blocked Reason
 
-data CheckpointReason = ConfirmReport | ConfirmFixPlan | ConfirmFastPath | AmbiguousIssueTarget
+data CheckpointReason = ConfirmReport | ConfirmFixPlan | ConfirmFixCompletion
+data CheckpointAnswer = ApproveCheckpoint | RejectCheckpoint | ReviseCheckpoint
+
+resumeCheckpoint :: IssueState -> CheckpointAnswer -> IssueState
+resumeCheckpoint s answer = persistApprovalAnswer s.pendingCheckpoint answer s
+
+normalizeIssuePath :: IssueReport -> Maybe ApprovalReport -> IssuePath
+normalizeIssuePath report (Just approval)
+  | fastPathApproval approval == Pending  = FastPathPending
+  | fastPathApproval approval == Approved = FastPathApproved
+  | fastPathApproval approval == Rejected = FastPathRejected
+normalizeIssuePath report _
+  | issuePathField report == Just StandardPath = StandardPath
+  | isNothing (issuePathField report) && reportStatus report == ArtifactConfirmed = StandardPath
+  | otherwise                             = PathUndecided
 ```
 
 `restoreIssueStage` 从仓库事实选下一步（新增能力而非坏掉的既有行为 → 路由 `cs-feat`）：
@@ -68,16 +93,31 @@ data CheckpointReason = ConfirmReport | ConfirmFixPlan | ConfirmFastPath | Ambig
 restoreIssueStage :: IssueState -> EntryIntent -> IssueOutcome
 restoreIssueStage(s, intent)
   | ambiguousTarget(s, intent)                          -> NeedsHuman "which issue?"
-  | isNewCapability(intent)                             -> RoutedTo <cs-feat>   -- 非 bug
-  | not s.hasReport                                     -> RoutedTo Report
-  | s.hasReport && s.rootCause == Clear && smallFix(s) && not crossModule(s)
-      -> HumanCheckpoint ConfirmFastPath                                        -- 确认后直接 fix，仍写 fix-note
-  | s.hasReport && s.rootCause == Unknown && not s.hasAnalysis -> RoutedTo Analyze
-  | s.hasAnalysis && s.codeStatus == NotStarted        -> RoutedTo Fix
-  | s.codeStatus == Changed && not s.hasFixNote        -> RoutedTo Fix          -- 验证/记录部分
-  | s.hasFixNote && s.reviewStatus == Missing          -> RoutedTo CodeReview
-  | s.reviewStatus == Blocking                         -> RoutedTo Fix          -- 窄修复，修完重跑 review
-  | s.reviewStatus == Passed                           -> Completed summary     -- 汇报完成，提示 docs/neat 候选
+  | isNewCapability(intent)                             -> RoutedTo (ExternalSkill "cs-feat")
+  | Just reason <- s.pendingCheckpoint                 -> HumanCheckpoint reason
+  | s.hasFixNote && s.reviewStatus == Missing           -> RoutedTo (IssueStage CodeReview)
+  | s.hasFixNote && s.reviewStatus == Blocking          -> RoutedTo (IssueStage Fix)
+  | s.hasFixNote && s.reviewStatus == Passed
+  , s.fixCompletionApproval == ApprovalMissing          -> RoutedTo (IssueStage Fix)
+  | s.hasFixNote && s.reviewStatus == Passed
+  , s.fixCompletionApproval == ApprovalPending          -> Blocked "pending fix approval lacks checkpoint state"
+  | s.hasFixNote && s.reviewStatus == Passed
+  , s.fixCompletionApproval == ApprovalRejected         -> Blocked "fix completion rejected"
+  | s.hasFixNote && s.reviewStatus == Passed
+  , s.fixCompletionApproval == ApprovalApproved         -> Completed summary
+  | not s.hasFixNote && s.reviewStatus /= Missing       -> Blocked "review exists without fix-note"
+  | s.reportStatus /= ArtifactConfirmed                -> RoutedTo (IssueStage Report)
+  | s.codeStatus == Changed && not s.hasFixNote        -> RoutedTo (IssueStage Fix)
+  | s.issuePath == PathUndecided                        -> NeedsHuman "confirmed report lacks path decision"
+  | s.issuePath == FastPathPending                      -> RoutedTo (IssueStage Report)
+  | s.issuePath == FastPathApproved && not (fastPathEligible s)
+                                                            -> NeedsHuman "approved fast path is no longer eligible"
+  | s.issuePath == FastPathApproved                     -> RoutedTo (IssueStage FastPath)
+  | s.issuePath in [StandardPath, FastPathRejected] && s.analysisStatus /= ArtifactConfirmed
+                                                            -> RoutedTo (IssueStage Analyze)
+  | s.issuePath in [StandardPath, FastPathRejected] && s.analysisStatus == ArtifactConfirmed
+                                                            -> RoutedTo (IssueStage Fix)
+  where fastPathEligible x = x.rootCause == RootCauseClear && smallFix(x) && not crossModule(x)
 ```
 
 `restoreIssueStage` 是唯一路由真相：启动后扫描 `.codestable/issues/`、读取目标 issue 产物、检查当前 git diff 恢复 `IssueState`，按上方分支选下一步；各 stage 加载哪个 protocol 见下方 Progressive Reference Loading。
@@ -106,7 +146,9 @@ exitRecoverable   -- fix-note 必出（根因/改动/验证/遗留风险），ne
 .codestable/issues/{YYYY-MM-DD}-{slug}/
 ├── {slug}-report.md
 ├── {slug}-analysis.md
-└── {slug}-fix-note.md
+├── {slug}-fix-note.md
+├── {slug}-review.md
+└── approval-report.md       # 仅需 owner 决策时；fast-path 选择从这里恢复
 ```
 
 日期取发现/提报问题当天。`fix-note.md` 是必出产物，即使走快速通道也要写。
@@ -137,14 +179,14 @@ stageProtocol FastPath   = stageProtocol Fix              -- 确认后直接 fix
 
 ## 人工 checkpoint
 
-`ConfirmFastPath` / `AmbiguousIssueTarget` 的触发时机以 Spec 的 `restoreIssueStage` 为唯一权威；`ConfirmReport` / `ConfirmFixPlan` 在对应 stage protocol 完成产物时触发。本节只定义停下后的行为：
+三个 checkpoint 都必须先把候选 artifact 和 pending decision 写入 `approval-report.md`；顶层只消费
+`pendingCheckpoint`，owner 回答后先更新 approval 状态和目标 artifact，再恢复路由：
 
 ```haskell
 onCheckpoint :: CheckpointReason -> Action
-onCheckpoint ConfirmReport        = 停等用户确认问题描述、复现、期望/实际、环境、严重度   -- report 产物落盘后触发
-onCheckpoint ConfirmFixPlan       = 停等用户确认推荐修复方案和风险                       -- analyze 产物落盘后触发
-onCheckpoint ConfirmFastPath      = 停等用户确认根因明确、改动小、无跨模块风险            -- 走快速通道前触发
-onCheckpoint AmbiguousIssueTarget = NeedsHuman "which issue?"
+onCheckpoint ConfirmReport        = 停等用户确认已持久化的 report draft
+onCheckpoint ConfirmFixPlan       = 停等用户确认已持久化的修复方案和风险
+onCheckpoint ConfirmFixCompletion = 停等用户确认 review 已通过的修复结果
 ```
 
 fix 阶段的验证结果和 review blocking 处理按协议循环，不在每步默认打断用户。
@@ -156,8 +198,6 @@ needsHuman :: Situation -> Bool
 needsHuman s = attentionMissing s          -- .codestable/attention.md 缺失 -> 先 cs-onboard
             || noRecoverableIssue s        -- 无可恢复 issue 目标
             || ambiguousScope s            -- issue 范围模糊
-            || stageConflictsRepoFacts s   -- requested stage 与仓库事实冲突
-            || isNewCapability s           -- 问题实为新增能力 -> cs-feat
             || needsProductJudgement s     -- 修复需产品判断而非定点修复
 ```
 
@@ -169,6 +209,7 @@ needsHuman s = attentionMissing s          -- .codestable/attention.md 缺失 ->
 mayExit :: State -> Bool
 mayExit s = fixNoteComplete s   -- {slug}-fix-note.md 已写明根因、改动、验证和遗留风险
          && reviewSettled s     -- 必要 code review 已通过或阻塞项已清楚交回
+         && (reviewBlocked s || s.fixCompletionApproval == ApprovalApproved)
 ```
 
 修复暴露新 feature 需求时，不在 issue 内偷做，另开 `cs-feat`。

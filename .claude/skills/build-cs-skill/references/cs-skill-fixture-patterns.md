@@ -77,7 +77,7 @@ expect:
   must_not_target: GoalHandoff
 ```
 
-Add companion cases for `GoalDriverActive -> ReportDriver`, `GoalComplete -> Completed`, `GoalHandoffBlocked -> GoalHandoff`, and unknown state -> `NeedsHuman`. Terminal cases should include stale driver metadata when the runtime persists it, proving terminal-state precedence.
+Add companion cases for `GoalDriverActive -> Awaiting`, `GoalComplete -> Completed`, `GoalHandoffBlocked -> GoalHandoff`, and unknown state -> `Blocked`. Terminal cases should include stale driver metadata when the runtime persists it, proving terminal-state precedence.
 
 ## Forbidden Action Fixture
 

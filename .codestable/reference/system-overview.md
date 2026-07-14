@@ -4,6 +4,33 @@
 
 CodeStable 把常见开发活动各配一套流程，产物放进统一的 `.codestable/` 目录结构，带统一命名和状态，方便人和 AI 在后续会话里检索复用。
 
+## Spec
+
+```haskell
+data MainEntry
+  = Onboard | Brainstorm | Feature | Goal | Issue | Refactor | Epic | CodeReview
+  | Audit | Feedback | Keep | Note | Requirement | Domain | Docs | DocsNeat
+data RouteOutcome = Route MainEntry | SerialOnboard MainEntry | Explain MainEntry | NeedClarification
+data FeatureLane = Quick | Standard | GoalLane
+data WorkflowEntry = IssueFlow | RefactorFlow | EpicFlow
+
+route :: Repo -> Intent -> RouteOutcome
+route repo intent
+  | actionable intent && not (onboarded repo) = SerialOnboard (classify intent)
+  | actionable intent                         = Route (classify intent)
+  | advisory intent, Just entry <- classifyMaybe intent = Explain entry
+  | otherwise                                 = NeedClarification
+
+featureWorkflow :: FeatureLane -> [Stage]
+featureWorkflow Quick     = [FastForward, CodeReview]
+featureWorkflow Standard  = [Design, DesignReview, OwnerConfirm, Implementation, CodeReview, Acceptance]
+featureWorkflow GoalLane  = [Design, DesignReview, OwnerConfirm, GoalPackage, Implementation, CodeReview, QA, Acceptance]
+workflow :: WorkflowEntry -> [Stage]
+workflow IssueFlow    = [Report, AnalyzeIfNeeded, Fix, CodeReview]
+workflow RefactorFlow = [Scan, Design, Apply, CodeReview]
+workflow EpicFlow     = [Planning, Review, OwnerConfirm, ChildDesignBatch, OwnerConfirm, GoalPackage]
+```
+
 ## 技能分成四部分
 
 **根入口**
@@ -12,7 +39,7 @@ CodeStable 把常见开发活动各配一套流程，产物放进统一的 `.cod
 
 **做事主入口**
 
-- `cs-feat` — 新功能端到端：design → design-review → implementation → code-review → QA → acceptance。想法模糊时先走 `cs-brainstorm`。
+- `cs-feat` — 新功能先按风险选择 Quick / Standard / Goal，再按对应 lane 推进；只有 Goal 固定包含独立 QA 和 goal package。想法模糊时先走 `cs-brainstorm`。
 - `cs-issue` — 修 bug 端到端：report → analyze → fix → code-review。
 - `cs-refactor` — 行为不变的结构/性能/可读性优化：标准模式或 fastforward mode。
 - `cs-epic` — 大需求端到端：规划、规划审查、子 feature design、goal 执行包。用户叫 epic；内部第一版仍用 roadmap 目录/doc_type。
@@ -39,7 +66,7 @@ CodeStable 把常见开发活动各配一套流程，产物放进统一的 `.cod
 
 ## 场景路由
 
-仓库还没有 `.codestable/` 目录时，明确行动请求由 `cs` 串行进入 `cs-onboard` gate，完成后继续原目标；只咨询时不自动搭骨架。
+仓库还没有 `.codestable/` 目录时按 `route` 串行进入 `cs-onboard`；只咨询时不自动搭骨架。
 
 | 场景 | 主入口 |
 |---|---|
@@ -68,12 +95,7 @@ CodeStable 把常见开发活动各配一套流程，产物放进统一的 `.cod
 
 ## 阶段不可跳
 
-主入口会自动判断阶段，但不会跳过 gate：
-
-- feature：design → design-review → implementation → code-review → QA → acceptance。
-- issue：report → analyze → fix → code-review；简单问题可走快速通道但仍写 fix-note。
-- refactor：标准模式必须 scan → design → apply → code-review；fastforward 必须行为不变、范围小、可自证。
-- epic：planning → review → 用户确认 → 子 feature design/review → 用户确认 → goal 包。
+Feature 先按仓库事实选择 `featureWorkflow`，不得由 Brainstorm 等上游预选 design 或 Goal；选定 lane 后不跳该 lane 的 gate。Issue 可在根因明确时省略 Analyze，但仍写 fix-note；Refactor fastforward 仅限行为不变、范围小且可自证。
 
 每个 checkpoint 的详细规则在对应主入口及其 `references/` 中。
 
@@ -86,4 +108,4 @@ CodeStable 把常见开发活动各配一套流程，产物放进统一的 `.cod
 - `.codestable/reference/tools-context.md` — context packet、commit planning 和 backlog 工具用法。
 - `.codestable/reference/maintainer-notes.md` — 断点恢复和新增子工作流登记。
 
-目录结构权威定义在 `shared-conventions.md`。要改目录先改 `plugins/codestable/skills/cs-onboard/references/shared-conventions.md` 模板，新项目 onboard 时会带上新版本。
+目录结构权威定义在 `shared-conventions.md`。维护者改已安装 `cs-onboard` skill 内的模板；已有项目通过 refresh-runtime 同步。

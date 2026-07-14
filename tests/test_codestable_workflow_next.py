@@ -64,6 +64,9 @@ def write_feature(
     *,
     design_status: str = "draft",
     review_status: str = "passed",
+    review_state: str | None = None,
+    review_reason: str = "",
+    reviewer_id: str = "",
     execution_lane: str | None = None,
     execution_lane_reason: str | None = None,
     include_roadmap: bool = False,
@@ -72,6 +75,13 @@ def write_feature(
     roadmap_fields = f"roadmap: billing-system\nroadmap_item: {slug}\n" if include_roadmap else ""
     lane_field = f"execution_lane: {execution_lane}\n" if execution_lane else ""
     lane_reason_field = f"execution_lane_reason: {execution_lane_reason}\n" if execution_lane_reason else ""
+    review_state_fields = ""
+    if review_state is not None:
+        review_state_fields = (
+            f"review_state: {review_state}\n"
+            f'review_reason: "{review_reason}"\n'
+            f'reviewer_id: "{reviewer_id}"\n'
+        )
     write(
         feature / f"{slug}-design.md",
         f"---\ndoc_type: feature-design\nfeature: 2026-07-02-{slug}\n"
@@ -81,7 +91,8 @@ def write_feature(
     write(feature / f"{slug}-checklist.yaml", "steps:\n  - id: step-1\n    status: pending\n")
     write(
         feature / f"{slug}-design-review.md",
-        f"---\ndoc_type: feature-design-review\nstatus: {review_status}\n---\n# Review\n",
+        f"---\ndoc_type: feature-design-review\nstatus: {review_status}\n"
+        f"{review_state_fields}---\n# Review\n",
     )
     return feature
 
@@ -137,7 +148,7 @@ def write_roadmap_goal_state(roadmap: Path, *, feature_slug: str = "api-seed") -
         roadmap / "goal-state.yaml",
         "roadmap: billing-system\n"
         "status: ready-to-dispatch\n"
-        "driver_kind: paseo\n"
+        "driver_kind: host-agent\n"
         'driver_id: "epic-run-123"\n'
         "current_feature_index: 0\n"
         "features:\n"
@@ -1477,23 +1488,87 @@ def test_feature_unknown_execution_lane_fails_closed(tmp_path: Path) -> None:
     assert result["next_action"] == "fix-feature-execution-lane"
 
 
-def test_feature_review_failure_returns_to_design(tmp_path: Path) -> None:
+def test_feature_review_changes_return_to_design(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
+    feature = write_feature(repo, "changes-requested", review_status="changes-requested")
 
-    for review_status in ("changes-requested", "blocked"):
-        feature = write_feature(repo, review_status, review_status=review_status)
+    result = workflow_next.feature_next(feature, epic_child_batch=False)
 
-        result = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert result["status"] == "continue"
+    assert result["next_action"] == "cs-feat design"
+    assert result["reason"] == "design-review requested changes"
 
-        assert result["status"] == "continue"
-        assert result["next_action"] == "cs-feat design"
-        assert result["reason"] == f"design-review is {review_status}"
+
+@pytest.mark.parametrize(
+    ("review_state", "review_reason", "reviewer_id", "expected_status", "expected_action"),
+    [
+        ("awaiting-reviewer", "", "feature-review-123", "awaiting", "resume-feature-design-reviewer"),
+        (
+            "needs-owner-approval",
+            "independent reviewer unavailable",
+            "",
+            "user_gate",
+            "approve-feature-design-review-fallback",
+        ),
+        (
+            "reviewer-failed",
+            "reviewer process failed",
+            "",
+            "blocked",
+            "retry-feature-design-reviewer",
+        ),
+        (
+            "blocked",
+            "design evidence is invalid",
+            "",
+            "blocked",
+            "resolve-feature-design-review-block",
+        ),
+    ],
+)
+def test_feature_design_review_state_preserves_recovery_semantics(
+    tmp_path: Path,
+    review_state: str,
+    review_reason: str,
+    reviewer_id: str,
+    expected_status: str,
+    expected_action: str,
+) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(
+        repo,
+        review_state,
+        review_status="blocked",
+        review_state=review_state,
+        review_reason=review_reason,
+        reviewer_id=reviewer_id,
+    )
+
+    result = workflow_next.feature_next(feature, epic_child_batch=False)
+
+    assert workflow_next.feature_design_review_state(
+        feature / f"{review_state}-design-review.md"
+    )[0] == review_state
+    assert result["status"] == expected_status
+    assert result["next_action"] == expected_action
+    assert result["evidence"]["design_review_state"] == review_state
+
+
+def test_feature_legacy_blocked_design_review_fails_closed(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(repo, "legacy-blocked", review_status="blocked")
+
+    result = workflow_next.feature_next(feature, epic_child_batch=False)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "classify-feature-design-review-block"
+    assert result["evidence"]["design_review_state"] == "legacy-blocked"
 
 
 def test_feature_approved_design_requires_passed_review_before_goal_state(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
 
-    for review_status in ("missing", "changes-requested", "blocked"):
+    for review_status in ("missing", "changes-requested"):
         slug = f"invalid-{review_status}"
         feature = write_feature(
             repo,
@@ -1510,7 +1585,7 @@ def test_feature_approved_design_requires_passed_review_before_goal_state(tmp_pa
         assert result["status"] == "blocked"
         assert result["next_action"] == "fix-feature-design-review-state"
         assert result["final_answer_allowed"] is True
-        assert result["blocking"] == [f"approved design has design-review status: {review_status}"]
+        assert result["blocking"] == [f"approved design has design-review state: {review_status}"]
 
 
 def test_feature_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path: Path) -> None:
@@ -1527,11 +1602,11 @@ def test_feature_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path:
         feature,
         stage="implementation",
         status="running",
-        driver_kind="paseo",
+        driver_kind="host-agent",
         driver_id="feature-run-123",
     )
     active = workflow_next.feature_next(feature, epic_child_batch=False)
-    assert active["status"] == "report_driver"
+    assert active["status"] == "awaiting"
     assert active["evidence"]["driver_id"] == "feature-run-123"
 
 
@@ -1542,7 +1617,7 @@ def test_feature_terminal_goal_states_override_stale_driver(tmp_path: Path) -> N
         feature,
         stage="complete",
         status="passed",
-        driver_kind="paseo",
+        driver_kind="host-agent",
         driver_id="feature-run-123",
     )
 
@@ -1554,13 +1629,13 @@ def test_feature_terminal_goal_states_override_stale_driver(tmp_path: Path) -> N
         feature,
         stage="handoff",
         status="blocked",
-        driver_kind="paseo",
+        driver_kind="host-agent",
         driver_id="feature-run-123",
         handoff_reason="missing production credential",
         handoff_next="provide credential",
     )
     handoff = workflow_next.feature_next(feature, epic_child_batch=False)
-    assert handoff["status"] == "user_gate"
+    assert handoff["status"] == "handoff"
     assert handoff["next_action"] == "CS_FEATURE_GOAL_HANDOFF"
     assert handoff["reason"] == "missing production credential"
     assert handoff["evidence"]["handoff_next"] == "provide credential"
@@ -1581,11 +1656,11 @@ def test_epic_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path: Pa
     write_goal_state(
         roadmap,
         status="ready-to-dispatch",
-        driver_kind="paseo",
+        driver_kind="host-agent",
         driver_id="epic-run-123",
     )
     active = workflow_next.epic_next(roadmap)
-    assert active["status"] == "report_driver"
+    assert active["status"] == "awaiting"
     assert active["evidence"]["driver_id"] == "epic-run-123"
 
 
@@ -1603,6 +1678,92 @@ def test_epic_active_roadmap_requires_review_artifact_before_goal_state(tmp_path
     assert result["blocking"] == ["active roadmap has no roadmap review artifact"]
 
 
+@pytest.mark.parametrize(
+    ("review_state", "status", "review_reason", "reviewer_id", "expected_status", "expected_action"),
+    [
+        ("passed", "passed", "", "", "continue", "cs-feat design/design-review"),
+        (
+            "changes-requested",
+            "changes-requested",
+            "",
+            "",
+            "continue",
+            "cs-epic planning/update then review",
+        ),
+        ("awaiting-reviewer", "blocked", "", "review-run-123", "awaiting", "wait-roadmap-reviewer"),
+        (
+            "needs-owner-approval",
+            "blocked",
+            "independent reviewer unavailable",
+            "",
+            "user_gate",
+            "resolve-roadmap-review-approval",
+        ),
+        (
+            "reviewer-failed",
+            "blocked",
+            "reviewer crashed",
+            "",
+            "blocked",
+            "retry-roadmap-reviewer",
+        ),
+        (
+            "blocked",
+            "blocked",
+            "explicit reviewer config unavailable",
+            "",
+            "blocked",
+            "resolve-roadmap-review-block",
+        ),
+    ],
+)
+def test_epic_roadmap_review_state_routes_without_collapsing_failure_modes(
+    tmp_path: Path,
+    review_state: str,
+    status: str,
+    review_reason: str,
+    reviewer_id: str,
+    expected_status: str,
+    expected_action: str,
+) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-roadmap-review.md",
+        "---\n"
+        "doc_type: roadmap-review\n"
+        f"status: {status}\n"
+        f"review_state: {review_state}\n"
+        f'review_reason: "{review_reason}"\n'
+        f'reviewer_id: "{reviewer_id}"\n'
+        "---\n# Review\n",
+    )
+
+    review_file = roadmap / "billing-system-roadmap-review.md"
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == expected_status
+    assert result["next_action"] == expected_action
+    assert workflow_next.roadmap_review_state(review_file)[0] == review_state
+    if review_state != "passed":
+        assert result["evidence"]["roadmap_review_state"] == review_state
+
+
+def test_epic_legacy_blocked_review_fails_closed(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-roadmap-review.md",
+        "---\ndoc_type: roadmap-review\nstatus: blocked\n---\n# Legacy Review\n",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "rerun-cs-epic-review-to-migrate-state"
+    assert result["evidence"]["roadmap_review_state"] == "legacy-blocked"
+
+
 def test_epic_terminal_goal_states_override_stale_driver(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     roadmap = write_roadmap(repo)
@@ -1611,7 +1772,7 @@ def test_epic_terminal_goal_states_override_stale_driver(tmp_path: Path) -> None
     write_goal_state(
         roadmap,
         status="complete",
-        driver_kind="paseo",
+        driver_kind="host-agent",
         driver_id="epic-run-123",
     )
 
@@ -1622,13 +1783,13 @@ def test_epic_terminal_goal_states_override_stale_driver(tmp_path: Path) -> None
     write_goal_state(
         roadmap,
         status="handoff",
-        driver_kind="paseo",
+        driver_kind="host-agent",
         driver_id="epic-run-123",
         handoff_reason="migration environment unavailable",
         handoff_next="provision migration environment",
     )
     handoff = workflow_next.epic_next(roadmap)
-    assert handoff["status"] == "user_gate"
+    assert handoff["status"] == "handoff"
     assert handoff["next_action"] == "CS_ROADMAP_GOAL_HANDOFF"
     assert handoff["reason"] == "migration environment unavailable"
     assert handoff["evidence"]["handoff_next"] == "provision migration environment"

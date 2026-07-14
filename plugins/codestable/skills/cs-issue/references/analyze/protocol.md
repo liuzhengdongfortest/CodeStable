@@ -4,6 +4,42 @@
 
 分析完不直接动手——给用户看 2-3 种修复方案让 TA 选。原因：根因往往有多种修法，影响面 / 副作用 / 改动范围各不相同，这是用户该拍板的事。
 
+## Spec
+
+```haskell
+data AnalysisSection = Locate | TraceFailure | ConfirmRootCause | AssessImpact | CompareFixes
+data AnalysisBlocker = CodeEvidenceUnavailable | RootCauseNotEstablished
+data AnalysisOutcome
+  = RouteReport | Run AnalysisSection
+  | PersistDraftAndCheckpoint CheckpointReason
+  | PersistAndRouteFix | NeedsHuman AnalysisBlocker
+
+nextAnalysis :: AnalysisState -> Maybe CheckpointAnswer -> AnalysisOutcome
+nextAnalysis state owner
+  | not (confirmedReport state)       = RouteReport
+  | not (codeEvidenceAvailable state) = NeedsHuman CodeEvidenceUnavailable
+  | rootCauseSearchExhausted state
+  , not (rootCauseEstablished state)  = NeedsHuman RootCauseNotEstablished
+  | Just section <- firstIncomplete state
+                                        = Run section
+  | fixOptionCount state < 2          = Run CompareFixes
+  | owner == Just ReviseCheckpoint    = Run CompareFixes
+  | owner /= Just ApproveCheckpoint   = PersistDraftAndCheckpoint ConfirmFixPlan
+  | otherwise                         = PersistAndRouteFix
+
+sectionComplete :: AnalysisSection -> AnalysisEvidence -> Bool
+sectionComplete CompareFixes evidence =
+  codeFactsRead evidence && concreteEvidence CompareFixes evidence && fixOptionCount evidence >= 2
+sectionComplete section evidence =
+  codeFactsRead evidence && concreteEvidence section evidence
+```
+
+`firstIncomplete` 固定按 Locate → TraceFailure → ConfirmRootCause → AssessImpact → CompareFixes；
+已有 analysis 只补第一处缺失，不重写已完成节。每节只有满足 `sectionComplete` 才算完成。
+`PersistDraftAndCheckpoint` 先落 `status: draft` 的 analysis 和 pending approval，再停等 owner；
+`ApproveCheckpoint` / `ReviseCheckpoint` 是显式 resume 输入。代码不可读或穷尽证据仍无法成立根因时返回
+`NeedsHuman`，不能无限重跑同一 section。
+
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节和 `cs-issue` 的"文件放哪儿"。
 
 ---

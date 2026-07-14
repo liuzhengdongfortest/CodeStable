@@ -8,13 +8,14 @@
 project: {项目名}
 entry_type: component | function | endpoint | command
 source_root: {源码根路径}
+manifest_status: draft | approved
 last_scanned: YYYY-MM-DD
 
 entries:
   - {entry: button, category: 基础组件, source_files: [src/components/Button.vue], doc_path: docs/api/button.md, status: pending, note: ""}
  ```
 
-status 语义：`pending` / `draft` / `current` / `outdated` / `skipped`。
+`manifest_status` 在初次清单 review 前为 `draft`，owner 确认范围后为 `approved`；旧 manifest 缺字段时兼容读取，下次写入时补齐。条目 status 语义：`pending` / `draft` / `current` / `outdated` / `skipped`。
 
 ## 2. 条目文档 frontmatter
 

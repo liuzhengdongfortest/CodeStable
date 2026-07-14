@@ -4,12 +4,41 @@
 
 把一个已通过 design-review、并由用户确认的单个 feature 变成可恢复、可长程执行的 goal 包。
 
-流程：
+## Spec
 
-1. 确认 `{slug}-design.md` 已 `status: approved`，且 `{slug}-design-review.md` 为 `passed`。
-2. 写 `goal-plan.md`、`goal-state.yaml`、`goal-protocol.md`。
-3. 生成一条可粘贴 `/goal` 指令。
-4. 按 `.codestable/reference/agent-conventions.md` 的 Goal driver 派发规则，优先用可见 Task agent 自动执行；自动 driver 也必须用这条 literal `/goal` 指令作为初始任务。派发失败就把 `/goal` 指令交给用户。
+```haskell
+data GoalState
+  = ReadyToDispatch | ImplementationRunning | ReviewReady | ReviewFixing
+  | QAReady | QAFixing | AcceptanceReady | Complete | Handoff Reason
+data GoalEvent
+  = DriverStarted | ImplementationPassed | ReviewPassed | ReviewFailed | ReviewFixed
+  | QAPassed | QAFailed | QAFixed | AcceptancePassed | NeedsHandoff Reason
+data PackageOutcome = PackageBlocked Reason | WriteGoalPackage | DispatchOrPrintLiteralGoal
+data TransitionResult = Next GoalState | Reject GoalState GoalEvent
+
+transition :: GoalState -> GoalEvent -> TransitionResult
+transition Complete event                   = Reject Complete event
+transition (Handoff reason) event           = Reject (Handoff reason) event
+transition _ (NeedsHandoff reason)          = Next (Handoff reason)
+transition ReadyToDispatch DriverStarted    = Next ImplementationRunning
+transition ImplementationRunning ImplementationPassed = Next ReviewReady
+transition ReviewReady ReviewFailed         = Next ReviewFixing
+transition ReviewFixing ReviewFixed         = Next ReviewReady
+transition ReviewReady ReviewPassed         = Next QAReady
+transition QAReady QAFailed                 = Next QAFixing
+transition QAFixing QAFixed                 = Next ReviewReady
+transition QAReady QAPassed                 = Next AcceptanceReady
+transition AcceptanceReady AcceptancePassed = Next Complete
+transition state event                      = Reject state event
+
+buildPackage :: GoalPackageState -> PackageOutcome
+buildPackage s
+  | not (designApproved s && designReviewPassed s) = PackageBlocked DesignGateNotPassed
+  | not (goalFilesPersisted s)                     = WriteGoalPackage
+  | otherwise                                      = DispatchOrPrintLiteralGoal
+```
+
+每次 event 后立即持久化 `Next`；`Reject` 进入 handoff，不静默吞掉非法跃迁。driver 中断时以仓库产物校正 state，再从该状态恢复。
 
 ---
 
@@ -51,7 +80,7 @@ feature: "{slug}"
 status: ready-to-dispatch
 baseline_ref: "{git rev-parse HEAD 或 no-git}"
 stage: implementation
-driver_kind: none            # paseo|native|none，派发成功后写回
+driver_kind: none            # host-agent|none，派发成功后写回
 driver_id: ""
 handoff_reason: ""           # stage=handoff/status=blocked 时必填
 handoff_next: ""             # stage=handoff/status=blocked 时必填
@@ -62,19 +91,9 @@ qa: ".codestable/features/YYYY-MM-DD-{slug}/{slug}-qa.md"
 acceptance: ".codestable/features/YYYY-MM-DD-{slug}/{slug}-acceptance.md"
 ```
 
-合法状态机：
-
-| stage | status | 何时写入 | 下一步 |
-|---|---|---|---|
-| implementation | ready-to-dispatch | goal 包生成后 | 派发 driver 或打印 `/goal` |
-| implementation | running | driver 开始实现时 | 完成 checklist steps |
-| review | ready | implementation gates 通过，evidence 已生成 | 运行 `cs-code-review` |
-| review | fixing | review 有 blocking，进入 review-fix | 修完回 `review: ready` |
-| qa | ready | review passed | 运行 `cs-feat` QA |
-| qa | fixing | QA failed / blocked，进入 qa-fix | 修完回 `review: ready`，重跑 review 和 QA |
-| acceptance | ready | QA passed | 运行 `cs-feat` acceptance |
-| complete | passed | acceptance passed 且无 handoff | 打印 `CS_FEATURE_GOAL_COMPLETE` |
-| handoff | blocked | 命中 handoff 条件 | 打印 `CS_FEATURE_GOAL_HANDOFF` |
+落盘 `(stage, status)` 与 `GoalState` 一一映射：`implementation/ready-to-dispatch`、
+`implementation/running`、`review/ready|fixing`、`qa/ready|fixing`、`acceptance/ready`、
+`complete/passed`、`handoff/blocked`。
 
 每次 stage / status 变化都要立即写回 `goal-state.yaml`。driver 中断后，后续 agent 先读 `goal-state.yaml`，再按仓库事实核验对应产物是否存在且状态匹配；不一致时以仓库事实为准并修正 state。派发成功后写回 `driver_kind` / `driver_id`；重入是否重派按 `.codestable/reference/agent-conventions.md` 的 Goal driver 派发规则判定。`complete/passed` 与 `handoff/blocked` 是终态，即使仍残留 driver 元数据也必须优先识别。
 
@@ -125,7 +144,7 @@ handoff 条件：
 
 生成 goal 包后，按 `.codestable/reference/agent-conventions.md` 的 Goal driver 派发规则执行：
 
-- 有可见 Paseo subagent 或可见 native Task/Agent 时，启动 driver 并把 agent id / run id / 查看方式告诉用户。
+- 有满足共享契约的可见 host Agent 时，启动 driver 并把 agent id / run id / 查看方式告诉用户。
 - driver 初始 prompt 必须是上面生成的同一条 literal `/goal` 指令；不要改写成普通 implementation 任务。
 - driver 不可见、不可追踪、缺授权或启动失败时，不启动后台任务，只打印 fenced `/goal`。
 - 主 agent 不能仅凭“已派发”宣布完成；完成必须由 goal 产物和 transcript 标记证明。

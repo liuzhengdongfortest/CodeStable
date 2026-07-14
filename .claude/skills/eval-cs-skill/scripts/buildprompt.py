@@ -179,7 +179,7 @@ def build_routing_prompt(fixture: Fixture, variant_text: str) -> str:
     parts += [
         "\n## 输出要求",
         "按该 skill 的路由规则，决定当前这一步该做什么。**只输出一个 JSON 对象，不要其他任何文本**：",
-        '{"result_type": "<RoutedTo|HumanCheckpoint|NeedsHuman|Completed|GoalHandoff|ChildDesignBatch|DispatchGoalDriver|ReportDriver>",'
+        '{"result_type": "<RoutedTo|Awaiting|HumanCheckpoint|NeedsHuman|Blocked|Completed|GoalHandoff|ChildDesignBatch|DispatchGoalDriver>",'
         ' "target": "<stage 名或 checkpoint reason；Completed/NeedsHuman 可为简述>", "reason": "<一句话依据>"}',
     ]
     return "\n".join(parts)

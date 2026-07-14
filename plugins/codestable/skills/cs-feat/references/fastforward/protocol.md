@@ -4,6 +4,33 @@
 
 很轻：没有 design doc / checklist / 验收清单 / 动手前的用户确认。看完指引，该读代码读、该写代码写、写完回写一段话。
 
+## Spec
+
+```haskell
+data FastForwardInput = StartQuick | ResumeEffect EffectDecision
+data FastForwardStage = LoadKnowledge | Apply | Verify | WriteFFNote | CodeReview
+data FastForwardOutcome
+  = Run FastForwardStage | RouteDesign | HumanCheckpoint Reason | Blocked Reason | Complete
+
+eligible :: FastForwardState -> Bool
+eligible s = smallScope s && requirementClear s && not (crossSystemContractRisk s)
+
+advance :: FastForwardInput -> FastForwardState -> FastForwardOutcome
+advance input s
+  | not (eligible s) || scopeExpanded s = RouteDesign
+  | not (knowledgeLoaded s)             = Run LoadKnowledge
+  | not (changesApplied s)              = Run Apply
+  | not (verificationPassed s)          = Run Verify
+  | input == ResumeEffect EffectRejected = Blocked EffectRejectedByOwner
+  | effectConfirmationRequired s && input /= ResumeEffect EffectAccepted
+                                          = HumanCheckpoint ConfirmEffect
+  | not (ffNoteExists s)                = Run WriteFFNote
+  | not (codeReviewPassed s)            = Run CodeReview
+  | otherwise                           = Complete
+```
+
+入口没有方案确认 checkpoint；只有用户可见效果需要 owner 判断时，`ConfirmEffect` 才发生在代码和验证完成后。恢复必须显式传入 `ResumeEffect EffectAccepted|EffectRejected`，不能从聊天语气猜测；非用户可见 Quick 以验证证据继续。
+
 ---
 
 ## 动手前先扫一眼 .codestable/
@@ -37,7 +64,7 @@ Glob `.codestable/` 发现可用目录和文档，按需取用：
 
 fastforward 直接按当前检出环境改项目源码；CodeStable 不决定分支或检出策略。动手前先确认当前 dirty scope，只把和本次小功能相关的改动纳入结果。
 
-ff-note 落盘、收尾提交前做首次独立代码审查；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
+ff-note 落盘、收尾提交前做首次独立代码审查；`blocking` / `important` 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
 
 断点恢复以 ff-note + review 为准：没有 ff-note 就继续 Quick 实现；ff-note 已有但 review 缺失/blocked 就回 `cs-code-review`；`changes-requested` 时读取 findings 做窄 review-fix、更新 ff-note 验证记录，再回 review；只有 `reviewer: subagent|subagent+ocr` 的 passed review 才打印 `CS_FEATURE_QUICK_COMPLETE`。已有 design 的显式降级必须先按 `cs-feat` 主契约持久化 `execution_lane: quick`，不能只生成 ff-note。
 
@@ -144,7 +171,7 @@ tags: [...]
 
 **写得真的轻**：每节就那么几行，不要把它写成迷你 design / 迷你 acceptance。这份文档的目标是"半年后有人看 git log 能跳进来 30 秒搞清楚做了啥"，不是替代标准流程。
 
-落盘后告诉用户："已写 `{slug}-ff-note.md`，本次 fastforward 闭环。"
+落盘后告诉用户："已写 `{slug}-ff-note.md`，下一步进入独立代码审查。" 只有 review passed 后才宣布 fastforward 闭环。
 
 ---
 
@@ -172,7 +199,7 @@ tags: [...]
 
 ## 退出条件
 
-- [ ] 代码写完且用户确认效果 OK
+- [ ] 代码写完且验证通过；用户可见效果已收到显式 `EffectAccepted`
 - [ ] `{slug}-ff-note.md` 已落盘且四节填齐（顺手发现可省）
 - [ ] `{slug}-review.md` 已由独立 reviewer 审查通过
 - [ ] 没有未对齐的"顺手发现"（都进 ff-note 末节，留给后续）
@@ -186,7 +213,7 @@ tags: [...]
 - **提交范围**：本次代码改动 + `{slug}-ff-note.md`
 - ff-note 落盘后告诉用户"已就绪，是否代为 commit？"，用户明确同意才执行
 
-收尾 commit 前先进入 `cs-code-review` 做首次独立 diff 评审，Critical / Important 未清零不进 commit；scoped-commit 发起权归 `cs-code-review`。
+收尾 commit 前先进入 `cs-code-review` 做首次独立 diff 评审，`blocking` / `important` 未清零不进 commit；scoped-commit 发起权归 `cs-code-review`。
 
 按 `shared-conventions.md` 第 3 节"feature-ff"收尾推荐顺序逐项一句话提示（用户"不用"立即跳过）：
 

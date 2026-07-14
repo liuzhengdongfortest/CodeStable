@@ -20,9 +20,25 @@ from codestable_gate_common import load_yaml, load_yaml_text
 from codestable_common import SUBAGENT_REVIEWERS, review_has_subagent_evidence
 
 
-NON_BLOCKING_STATUSES = {"continue", "user_gate", "goal_package", "dispatch_goal", "report_driver", "complete"}
+NON_BLOCKING_STATUSES = {
+    "continue",
+    "awaiting",
+    "handoff",
+    "user_gate",
+    "goal_package",
+    "dispatch_goal",
+    "complete",
+}
 REVIEW_FALLBACK_REVIEWERS = {"ocr", "self"}
 VALID_EXECUTION_LANES = {"quick", "standard", "goal"}
+VALID_INDEPENDENT_REVIEW_STATES = {
+    "passed",
+    "changes-requested",
+    "awaiting-reviewer",
+    "needs-owner-approval",
+    "reviewer-failed",
+    "blocked",
+}
 
 
 class ArtifactParseError(Exception):
@@ -107,6 +123,50 @@ def status_of(path: Path | None) -> str:
     if path is None:
         return "missing"
     return str(frontmatter(path).get("status", "missing"))
+
+
+def independent_review_state(path: Path | None, label: str) -> tuple[str, str, str]:
+    if path is None:
+        return "missing", "", ""
+
+    meta = frontmatter(path)
+    status = str(meta.get("status") or "missing").strip().lower()
+    state = str(meta.get("review_state") or "").strip().lower()
+    reason = str(meta.get("review_reason") or "").strip()
+    reviewer_id = str(meta.get("reviewer_id") or "").strip()
+
+    if state:
+        if state not in VALID_INDEPENDENT_REVIEW_STATES:
+            return "invalid", f"unknown review_state: {state}", reviewer_id
+        expected_status = {
+            "passed": "passed",
+            "changes-requested": "changes-requested",
+        }.get(state, "blocked")
+        if status != expected_status:
+            return "invalid", f"review_state {state} requires status: {expected_status}", reviewer_id
+        if state == "awaiting-reviewer" and not reviewer_id:
+            return "invalid", "awaiting-reviewer requires reviewer_id", ""
+        if state in {"needs-owner-approval", "reviewer-failed", "blocked"} and not reason:
+            return "invalid", f"{state} requires review_reason", reviewer_id
+        return state, reason, reviewer_id
+
+    if status == "passed":
+        return "passed", "", reviewer_id
+    if status in {"changes-requested", "blocking"}:
+        return "changes-requested", "", reviewer_id
+    if status == "blocked":
+        return "legacy-blocked", "legacy blocked review lacks review_state", reviewer_id
+    if status == "missing":
+        return "missing", "", reviewer_id
+    return "invalid", f"unknown {label} status: {status}", reviewer_id
+
+
+def roadmap_review_state(path: Path | None) -> tuple[str, str, str]:
+    return independent_review_state(path, "roadmap review")
+
+
+def feature_design_review_state(path: Path | None) -> tuple[str, str, str]:
+    return independent_review_state(path, "feature design-review")
 
 
 def review_gate_passed(path: Path | None, meta: dict[str, Any]) -> bool:
@@ -874,7 +934,15 @@ def _epic_next(roadmap: Path) -> dict[str, Any]:
 
     roadmap_status = status_of(roadmap_file)
     review_status = status_of(review_file)
-    if roadmap_status == "active" and review_status == "missing":
+    review_state, review_reason, reviewer_id = roadmap_review_state(review_file)
+    review_evidence = {
+        "roadmap_review": rel(root, review_file),
+        "roadmap_review_status": review_status,
+        "roadmap_review_state": review_state,
+        "review_reason": review_reason or None,
+        "reviewer_id": reviewer_id or None,
+    }
+    if roadmap_status == "active" and review_state == "missing":
         return decision(
             workflow="epic",
             status="blocked",
@@ -884,26 +952,69 @@ def _epic_next(roadmap: Path) -> dict[str, Any]:
             evidence={
                 "roadmap": rel(root, roadmap_file),
                 "roadmap_status": roadmap_status,
-                "roadmap_review": rel(root, review_file),
-                "roadmap_review_status": review_status,
+                **review_evidence,
             },
         )
-    if review_status != "passed":
-        if review_status in {"blocking", "blocked", "changes-requested"}:
-            return decision(
-                workflow="epic",
-                status="continue",
-                next_action="cs-epic planning/update then review",
-                reason=f"roadmap review is {review_status}",
-                evidence={"roadmap_review": rel(root, review_file), "roadmap_review_status": review_status},
-            )
+    if review_state == "invalid":
+        return decision(
+            workflow="epic",
+            status="blocked",
+            next_action="fix-roadmap-review-state",
+            reason=review_reason,
+            blocking=[review_reason],
+            evidence=review_evidence,
+        )
+    if review_state == "legacy-blocked":
+        return decision(
+            workflow="epic",
+            status="blocked",
+            next_action="rerun-cs-epic-review-to-migrate-state",
+            reason=review_reason,
+            blocking=["legacy blocked roadmap review cannot be resumed safely"],
+            evidence=review_evidence,
+        )
+    if review_state == "changes-requested":
+        return decision(
+            workflow="epic",
+            status="continue",
+            next_action="cs-epic planning/update then review",
+            reason="roadmap review requested changes",
+            evidence=review_evidence,
+        )
+    if review_state == "awaiting-reviewer":
+        return decision(
+            workflow="epic",
+            status="awaiting",
+            next_action="wait-roadmap-reviewer",
+            reason="roadmap reviewer is still running",
+            evidence=review_evidence,
+        )
+    if review_state == "needs-owner-approval":
+        return decision(
+            workflow="epic",
+            status="user_gate",
+            next_action="resolve-roadmap-review-approval",
+            reason=review_reason,
+            evidence=review_evidence,
+        )
+    if review_state in {"reviewer-failed", "blocked"}:
+        next_action = "retry-roadmap-reviewer" if review_state == "reviewer-failed" else "resolve-roadmap-review-block"
+        return decision(
+            workflow="epic",
+            status="blocked",
+            next_action=next_action,
+            reason=review_reason,
+            blocking=[review_reason],
+            evidence=review_evidence,
+        )
+    if review_state != "passed":
         return decision(
             workflow="epic",
             status="continue",
             next_action="cs-epic review",
             reason="roadmap review has not passed",
             missing_artifacts=[] if review_file else [rel(root, roadmap / f"{roadmap.name}-roadmap-review.md") or ""],
-            evidence={"roadmap_review": rel(root, review_file), "roadmap_review_status": review_status},
+            evidence=review_evidence,
         )
 
     if roadmap_status != "active":
@@ -1008,7 +1119,7 @@ def _epic_next(roadmap: Path) -> dict[str, Any]:
     if state_status == "handoff":
         return decision(
             workflow="epic",
-            status="user_gate",
+            status="handoff",
             next_action="CS_ROADMAP_GOAL_HANDOFF",
             reason=str(state.get("handoff_reason") or "epic goal driver requested handoff"),
             warnings=warnings,
@@ -1019,10 +1130,10 @@ def _epic_next(roadmap: Path) -> dict[str, Any]:
         )
     driver_kind = state.get("driver_kind")
     driver_id = state.get("driver_id")
-    if driver_kind in {"paseo", "native"} and driver_id:
+    if driver_kind in {"host-agent", "paseo", "native"} and driver_id:
         return decision(
             workflow="epic",
-            status="report_driver",
+            status="awaiting",
             next_action="report-visible-driver",
             reason="visible epic goal driver is already recorded",
             warnings=warnings,
@@ -1083,6 +1194,9 @@ def _feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
     ff_note_meta = frontmatter(ff_note) if ff_note else {}
     design_status = str(design_meta.get("status") or "missing")
     design_review_status = str(design_review_meta.get("status") or "missing")
+    design_review_state, design_review_reason, design_reviewer_id = feature_design_review_state(
+        design_review
+    )
     code_review_status = str(code_review_meta.get("status") or "missing")
     qa_status = str(qa_meta.get("status") or "missing")
     acceptance_status = str(acceptance_meta.get("status") or "missing")
@@ -1130,6 +1244,9 @@ def _feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
         "checklist_steps_done": checklist_steps_done,
         "design_review": rel(root, design_review),
         "design_review_status": design_review_status,
+        "design_review_state": design_review_state,
+        "design_review_reason": design_review_reason or None,
+        "design_reviewer_id": design_reviewer_id or None,
         "code_review": rel(root, code_review),
         "code_review_status": code_review_status,
         "code_review_doc_type": code_review_meta.get("doc_type"),
@@ -1221,24 +1338,72 @@ def _feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
             missing_artifacts=[f"{feature_slug_from_dir(feature)}-design.md"],
             evidence=evidence,
         )
-    if design_status == "approved" and design_review_status != "passed":
+    if design_review_state == "invalid":
+        return decision(
+            workflow="feature",
+            status="blocked",
+            next_action="fix-feature-design-review-state",
+            reason=design_review_reason,
+            blocking=[design_review_reason],
+            evidence=evidence,
+        )
+    if design_review_state == "legacy-blocked":
+        return decision(
+            workflow="feature",
+            status="blocked",
+            next_action="classify-feature-design-review-block",
+            reason=design_review_reason,
+            blocking=["legacy blocked design-review must classify reviewer failure, owner approval, or hard block"],
+            evidence=evidence,
+        )
+    if design_status == "approved" and design_review_state != "passed":
         return decision(
             workflow="feature",
             status="blocked",
             next_action="fix-feature-design-review-state",
             reason="approved design lacks a passed design-review",
-            blocking=[f"approved design has design-review status: {design_review_status}"],
+            blocking=[f"approved design has design-review state: {design_review_state}"],
             evidence=evidence,
         )
-    if design_review_status in {"changes-requested", "blocked"}:
+    if design_review_state == "changes-requested":
         return decision(
             workflow="feature",
             status="continue",
             next_action="cs-feat design",
-            reason=f"design-review is {design_review_status}",
+            reason="design-review requested changes",
             evidence=evidence,
         )
-    if design_status == "draft" and design_review_status != "passed":
+    if design_review_state == "awaiting-reviewer":
+        return decision(
+            workflow="feature",
+            status="awaiting",
+            next_action="resume-feature-design-reviewer",
+            reason="feature design-reviewer is still running",
+            evidence=evidence,
+        )
+    if design_review_state == "needs-owner-approval":
+        return decision(
+            workflow="feature",
+            status="user_gate",
+            next_action="approve-feature-design-review-fallback",
+            reason=design_review_reason,
+            evidence=evidence,
+        )
+    if design_review_state in {"reviewer-failed", "blocked"}:
+        next_action = (
+            "retry-feature-design-reviewer"
+            if design_review_state == "reviewer-failed"
+            else "resolve-feature-design-review-block"
+        )
+        return decision(
+            workflow="feature",
+            status="blocked",
+            next_action=next_action,
+            reason=design_review_reason,
+            blocking=[design_review_reason],
+            evidence=evidence,
+        )
+    if design_status == "draft" and design_review_state == "missing":
         return decision(
             workflow="feature",
             status="continue",
@@ -1247,7 +1412,7 @@ def _feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
             missing_artifacts=[] if design_review else [f"{feature_slug_from_dir(feature)}-design-review.md"],
             evidence=evidence,
         )
-    if design_review_status == "passed" and epic_child_batch:
+    if design_review_state == "passed" and epic_child_batch:
         roadmap_slug = design_meta.get("roadmap")
         roadmap_item = design_meta.get("roadmap_item")
         if not roadmap_slug or not roadmap_item:
@@ -1286,7 +1451,7 @@ def _feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
             reason="feature is owned by an existing roadmap goal-state",
             evidence={**evidence, **roadmap_owner},
         )
-    if design_review_status == "passed" and design_status != "approved":
+    if design_review_state == "passed" and design_status != "approved":
         return decision(
             workflow="feature",
             status="user_gate",
@@ -1332,17 +1497,17 @@ def _feature_next(feature: Path, epic_child_batch: bool) -> dict[str, Any]:
     if (stage, status) == ("handoff", "blocked"):
         return decision(
             workflow="feature",
-            status="user_gate",
+            status="handoff",
             next_action="CS_FEATURE_GOAL_HANDOFF",
             reason=str(state.get("handoff_reason") or "feature goal driver requested handoff"),
             evidence={**evidence, "handoff_next": state.get("handoff_next")},
         )
     driver_kind = state.get("driver_kind")
     driver_id = state.get("driver_id")
-    if driver_kind in {"paseo", "native"} and driver_id:
+    if driver_kind in {"host-agent", "paseo", "native"} and driver_id:
         return decision(
             workflow="feature",
-            status="report_driver",
+            status="awaiting",
             next_action="report-visible-driver",
             reason="visible feature goal driver is already recorded",
             evidence={**evidence, "driver_kind": driver_kind, "driver_id": driver_id},

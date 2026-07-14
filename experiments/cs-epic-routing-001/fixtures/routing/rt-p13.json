@@ -6,7 +6,7 @@
     "state": {
       "allDesignApproved": true,
       "goalRunState": "GoalHandoffBlocked(迁移环境不可用)",
-      "driver_kind": "paseo",
+      "driver_kind": "host-agent",
       "driver_id": "run-epic-123"
     }
   },
@@ -17,6 +17,6 @@
       "handoff",
       "/goal"
     ],
-    "must_not_target": "ReportDriver"
+    "must_not_target": "report-visible-driver"
   }
 }

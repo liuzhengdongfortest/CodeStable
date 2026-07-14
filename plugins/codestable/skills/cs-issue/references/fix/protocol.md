@@ -4,13 +4,57 @@
 
 fix 阶段最容易出问题的不是改代码本身，而是**改的过程中冒出的"顺手"冲动**——顺手优化、顺手重构、顺手加抽象。每项单独看说得通，但合在一个 PR 里让别人分不清"这次到底为了修 bug 改了什么"。
 
+## Spec
+
+```haskell
+data FixPath = Standard | FastPath
+data FixStage = Apply | Verify | LogDebug | WriteFixNote | CodeReview
+data Verification = NotRun | Passed | Failed Int
+data FixEntry = Enter FixPath | RouteAnalyze | RouteReport
+data FixBlocker = FixCompletionRejected
+data FixOutcome
+  = Run FixStage | PersistCheckpoint CheckpointReason | Checkpoint CheckpointReason
+  | RouteAnalyze | RouteReport | NeedsHuman FixBlocker | Complete
+
+selectEntry :: FixState -> FixEntry
+selectEntry state
+  | confirmedAnalysis state = Enter Standard
+  | rootCauseLocated state && fixPlanConfirmed state = Enter FastPath
+  | reportExists state      = RouteAnalyze
+  | otherwise               = RouteReport
+
+afterVerification :: Verification -> FixOutcome
+afterVerification Passed     = Run WriteFixNote
+afterVerification (Failed n)
+  | n < 2                    = Run LogDebug
+  | otherwise                = RouteAnalyze
+
+advance :: FixState -> FixOutcome
+advance s
+  | not (changesApplied s)       = Run Apply
+  | verification s == NotRun     = Run Verify
+  | verification s /= Passed     = afterVerification (verification s)
+  | not (fixNoteExists s)        = Run WriteFixNote
+  | not (codeReviewPassed s)     = Run CodeReview
+  | fixCompletionApproval s == ApprovalMissing
+                                    = PersistCheckpoint ConfirmFixCompletion
+  | fixCompletionApproval s == ApprovalPending
+                                    = Checkpoint ConfirmFixCompletion
+  | fixCompletionApproval s == ApprovalRejected
+                                    = NeedsHuman FixCompletionRejected
+  | otherwise                    = Complete
+```
+
+`PersistCheckpoint` 先复用 `approval-report.md` 写 pending `ConfirmFixCompletion`，再返回
+`HumanCheckpoint`；owner 的批准 / 拒绝分别恢复为 `ApprovalApproved` / `ApprovalRejected`。
+
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节和 `cs-issue` 的"文件放哪儿"。
 
 ## 执行前检查与完成 gate
 
 CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入修复前先确认 report / analysis、修复范围和当前 dirty scope，避免把无关改动混入本 issue。
 
-修复完成、输出汇报前必须进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
+修复完成、输出汇报前必须进入 `cs-code-review` 做独立 diff 评审；blocking 未清零、important 未修复或未被 owner 明确接受时不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
 
 ---
 
@@ -21,17 +65,15 @@ CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的
 1. **方案已确认**——读 analysis，确认 `doc_type=issue-analysis` 且 `status=confirmed`，第 5 节用户选定了哪个方案
 2. **上下文读全**：analysis 全文 + report 全文 + analysis 第 1 节定位的所有代码 + `.codestable/attention.md` + 沉淀目录搜索：
    - `grep -r "{关键词}" .codestable/compound/`——确认修复方式不违背已有库用法 / 模式 / 调研结论
-3. **确认起点**——告诉用户"我将按方案 X 修改 {文件列表}，开始修复"，等用户确认才动手
+3. **确认起点**——告诉用户"我将按已批准方案 X 修改 {文件列表}"；analysis 的持久 approval 已放行，不重复创建 checkpoint
 
 ### 快速通道（无 analysis，从 report 直接触发）
 
 进入这个入口时 AI 在 report 阶段已读过代码并对根因有把握。
 
-1. **明确陈述根因**："`{文件}:{行号}` 的 {具体代码} 存在 {问题描述}"，让用户确认根因判断准确
-2. **给修复方案**——改哪里、怎么改（一两句话，不写完整分析文档）
-3. **等用户明确说"对，就这样改"才动手**——不允许"我觉得对，直接改了"
-4. 读 `.codestable/attention.md`
-5. **补搜沉淀目录**——快速通道也要查一遍 `compound/`（trick + explore），避免误把已知边界条件当新问题
+1. 从 confirmed report + `approval-report.md` 恢复已批准的 file:line 根因和小范围方案；缺任一项就回 report，不靠聊天重建
+2. 读 `.codestable/attention.md`
+3. **补搜沉淀目录**——快速通道也要查一遍 `compound/`（trick + explore），避免误把已知边界条件当新问题
 
 ---
 
@@ -65,7 +107,7 @@ issue-fix 比 feature-implement 更谨慎：**触发反射信号但结论是"该
 
 ### 每完成一处改动必须汇报
 
-修复汇报模板见同目录 `reference.md`，**不允许含糊汇报**。汇报后停下等用户回复。
+修复汇报模板见同目录 `reference.md`，**不允许含糊汇报**。正常范围内的进度汇报后继续；只有范围、方案或风险变化时才停下取得新的 owner 决策。
 
 ---
 
@@ -102,6 +144,7 @@ issue-fix 比 feature-implement 更谨慎：**触发反射信号但结论是"该
 - [ ] 所有改动文件已提交或列清单
 - [ ] 验证清单全部勾选
 - [ ] `{slug}-fix-note.md` 已建并填写完整
+- [ ] `cs-code-review` 已通过
 - [ ] 没有未处理的"顺手发现"（都进后续 issue 列表）
 - [ ] 没有范围外改动（或已和用户确认）
 - [ ] 用户明确确认修复完成
@@ -123,7 +166,7 @@ issue-fix 比 feature-implement 更谨慎：**触发反射信号但结论是"该
 
 按 `shared-conventions.md` 第 3 节"issue-fix"收尾推荐顺序各问一句（用户"不用"立即跳过）：
 
-0. 完成后先进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不进 commit，scoped-commit 发起权归 `cs-code-review`。
+0. 完成后先进入 `cs-code-review` 做独立 diff 评审；blocking 未清零、important 未处理或未被明确接受时不进 commit，scoped-commit 发起权归 `cs-code-review`。
 1. 暴露的坑点 / 长期约束 / 规约 / 技术决定 → "沉淀到 compound？（`cs-keep`）"
 2. 这个 bug 暴露了项目通用的硬约束 / 命令陷阱 / 环境设置（一两行能讲清、CodeStable 技能每次启动都该知道）→ "记到 attention.md？（`cs-note`）"
 3. 最后问是否代为提交。同意时按收尾提交规则执行

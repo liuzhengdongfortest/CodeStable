@@ -74,12 +74,71 @@ data Request = Request
 data Outcome
   = RoutedTo Stage
   | ArtifactWritten Path
+  | Awaiting WaitReason
   | HumanCheckpoint Reason
   | NeedsHuman Reason
   | Completed Summary
 ```
 
 The spec should define the smallest data model needed to make decisions. Do not model every file field unless it affects routing, safety, or output.
+
+## Haskell Contract Standard
+
+Use Haskell-style notation as a compact decision contract, not as decoration and not as a claim that
+the Markdown compiles. Follow the shape used by typed iteration protocols: declare the boundary,
+close the decision domains, encode branch priority in equations/guards, state path-wide invariants,
+and make termination observable.
+
+For a branched protocol, prefer this minimum shape:
+
+```haskell
+contractDecision :: Input -> State -> Outcome
+
+data Input = Start Request | Resume RepoFacts | Retry Evidence
+data State = Pending | Active Progress | Terminal Result
+data Outcome = Run Step | Completed Result | Blocked Reason
+data Reason = InvalidTransition | MissingEvidence | ExternalUnavailable
+
+contractDecision _ (Terminal result) = Completed result
+contractDecision (Start request) Pending
+  | valid request = Run Initialize
+  | otherwise     = Blocked MissingEvidence
+contractDecision (Resume facts) state = selectFromFacts facts state
+contractDecision _ _ = Blocked InvalidTransition
+
+mayComplete state = terminal state && requiredEvidencePresent state
+```
+
+Apply these rules:
+
+- Give each public decision function a `::` signature. Types may remain domain names, but input and
+  output boundaries must be visible.
+- Define finite alternatives with `data`; use constructors consistently in the equations, prose,
+  persisted artifacts, runtime router, and fixtures.
+- Make guard order express priority. Put terminal/invalid precedence first when it must win, and put
+  a wildcard fallback last so it cannot swallow a meaningful `Failed` / `Blocked` distinction.
+- Keep failure categories distinct when they imply different recovery: retryable failure, missing
+  evidence, human checkpoint, and terminal rejection are not one catch-all branch.
+- Use `NeedsHuman` for missing input/capability, `HumanCheckpoint` only for an actual owner decision,
+  `Awaiting` for already-started external work, and `Blocked` for an observable terminal or retryable
+  failure. Waiting is not approval, and missing evidence is not an owner decision.
+- Every `HumanCheckpoint` must have an explicit resume input or persisted state transition. A pending
+  cross-skill handoff must retain its target and complete context so approval can resume without
+  reclassification or chat-memory reconstruction.
+- In a staged workflow, the canonical main entry's tagged resume union must carry every stage-level
+  resume decision. A closed `Resume*` type inside a reference is still unreachable if the main entry
+  cannot represent and forward it.
+- Every `Awaiting` branch must persist a machine-readable state plus the external run id before it
+  returns. The restore path must reject missing ids and ambiguous legacy `blocked` states.
+- Express global conditions with `where` or a named predicate (`mayComplete`, `invariant`,
+  `converged`); do not hide a required branch or completion condition in a comment.
+- For iterative protocols, define `step`/`advance`, convergence, and termination separately. A
+  component evolved in iteration n is not stable until a later iteration validates it in practice.
+- End every decision surface in an observable outcome or explicit invalid transition. Do not leave
+  ellipses, implied defaults, or prose-only branches inside the contract.
+
+Reference-only or template documents do not need Haskell. Use it only where a closed decision,
+transition, lifecycle, gate, or invariant exists.
 
 ## Workflow Skills
 
@@ -184,6 +243,7 @@ Open maintainer decisions:
 
 - **Main workflow skills**（cs-feat / cs-issue / cs-epic / cs-docs）: optimize for entry intent parsing, repository-fact restoration, stage routing, human checkpoints, progressive reference loading, clear final handoff.
 - **Compatibility shims**: keep thin — set `requested_stage` / `requested_mode` and route to the main skill; never maintain independent rules.
+- **Cross-skill handoffs**: route to the canonical main entry and preserve context; do not preselect that skill's internal stage, mode, or lane. Compatibility shims are the only exception because passing a legacy preset is their complete contract.
 - **Fastforward modes**: a mode request, not permission to skip safety; must state eligibility and rejection conditions; if rejected, route back to the standard workflow and explain why.
 - **Goal / long-running handoff**: specify what artifact is handed off, what signal means success / blocked / needs-human, the visible fallback command, and which state files make recovery possible.
 

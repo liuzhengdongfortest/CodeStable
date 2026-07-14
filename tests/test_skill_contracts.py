@@ -119,7 +119,8 @@ def test_feat_and_epic_specs_match_goal_runtime_vocabulary() -> None:
     assert re.search(r"GoalComplete\s+-> Completed", feat)
     assert re.search(r"GoalHandoffBlocked reason\s+-> GoalHandoff", feat)
 
-    assert "roadmapReviewStatus" in epic
+    assert "roadmapReviewState" in epic
+    assert "roadmapReviewStatus" not in epic
     assert "goalRunState" in epic
     assert "hasGoalPackage" not in epic
     assert re.search(r"GoalReadyToDispatch\s+-> DispatchGoalDriver", epic)
@@ -136,6 +137,36 @@ def test_feat_and_epic_specs_match_goal_runtime_vocabulary() -> None:
     assert "终态" in feat_goal
     assert "handoff_reason" in epic_goal and "handoff_next" in epic_goal
     assert "status: complete" in epic_runtime and "status: handoff" in epic_runtime
+
+
+def test_build_cs_skill_requires_semantic_and_host_safe_validation() -> None:
+    build_root = LOCAL_SKILLS / "build-cs-skill"
+    build = (build_root / "SKILL.md").read_text(encoding="utf-8")
+    spec = (build_root / "references/cs-skill-spec-standard.md").read_text(
+        encoding="utf-8"
+    )
+    gates = (build_root / "references/cs-skill-quality-gates.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Haskell Contract Gate" in build
+    assert "CompatibilityShim -> ShimRoute" in build
+    assert "lifecycleDriven source -> LifecycleProtocol" in build
+    assert "algorithmic source -> AlgorithmProtocol" in build
+    assert "contractDecision :: Input -> State -> Outcome" in spec
+    assert "contractDecision _ _ = Blocked InvalidTransition" in spec
+    assert "`HumanCheckpoint` only for an actual owner decision" in spec
+    assert "`Awaiting` for already-started external work" in spec
+    assert "Every `HumanCheckpoint` must have an explicit resume input" in spec
+    assert "cross-skill handoff must retain its target and complete context" in spec
+    assert "## Haskell Contract Semantics Gate" in gates
+    assert "## Regression Ladder" in gates
+    assert "## Live Host Safety Gate" in gates
+    assert "## Family Audit Coverage Gate" in gates
+    assert "compare it with the reviewed/classified set by equality" in gates
+    assert "target the canonical main entry without selecting its internal stage/lane" in gates
+    assert "process start identity" in gates
+    assert "CI or a quiet disposable host" in gates
 
 
 def _routing_fixture_states(experiment: str) -> dict[str, dict[str, object]]:
@@ -158,7 +189,7 @@ def test_goal_routing_fixtures_use_current_state_schema() -> None:
         assert "终态优先" not in json.dumps(state, ensure_ascii=False), payload["id"]
 
     assert feat["rt-f10"]["expect"]["result_type"] == "DispatchGoalDriver"
-    assert feat["rt-f11"]["expect"]["result_type"] == "ReportDriver"
+    assert feat["rt-f11"]["expect"]["result_type"] == "Awaiting"
     assert feat["rt-f12"]["expect"]["result_type"] == "GoalHandoff"
     assert feat["rt-f13"]["expect"]["result_type"] == "NeedsHuman"
     assert feat["rt-f14"]["expect"]["result_type"] == "HumanCheckpoint"
@@ -169,7 +200,7 @@ def test_goal_routing_fixtures_use_current_state_schema() -> None:
     assert feat["rt-f18"]["expect"]["target"] == "FastForward"
 
     assert epic["rt-p09"]["expect"]["result_type"] == "DispatchGoalDriver"
-    assert epic["rt-p11"]["expect"]["result_type"] == "ReportDriver"
+    assert epic["rt-p11"]["expect"]["result_type"] == "Awaiting"
     assert epic["rt-p12"]["expect"]["result_type"] == "Completed"
     assert epic["rt-p13"]["expect"]["result_type"] == "GoalHandoff"
     assert epic["rt-p14"]["expect"]["result_type"] == "NeedsHuman"
@@ -183,7 +214,7 @@ def test_cs_router_fixtures_cover_modes_conflicts_and_recovery() -> None:
     assert fixtures["rt-c01"]["expect"]["target"] == "cs-issue"
     assert fixtures["rt-c02"]["expect"]["result_type"] == "Completed"
     assert fixtures["rt-c03"]["expect"]["result_type"] == "Completed"
-    assert fixtures["rt-c04"]["expect"]["result_type"] == "HumanCheckpoint"
+    assert fixtures["rt-c04"]["expect"]["result_type"] == "NeedsHuman"
 
     for fixture_id, forbidden in (
         ("rt-c05", "cs-goal"),

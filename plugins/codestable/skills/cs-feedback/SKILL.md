@@ -1,6 +1,6 @@
 ---
 name: cs-feedback
-description: CodeStable 使用反馈闭环。触发：用户反馈 cs skill 跑偏、工具失败、规则没讲清、agent 被用户纠正；显式调用后采集本机证据并准备可确认的公开 issue。
+description: CodeStable 使用反馈闭环。仅在用户明确要求记录或上报 cs skill 跑偏、工具失败、规则不清、agent 被纠正时使用；采集本机证据并准备可确认的公开 issue。
 argument-hint: "[--since-days N | --session current|<id-or-path>] [--accept-incident <id>] [--github] <feedback>"
 ---
 
@@ -14,21 +14,37 @@ argument-hint: "[--since-days N | --session current|<id-or-path>] [--accept-inci
 local-private evidence 与 triage，不修业务代码、不自动改目标 skill、不后台采集、不自动上传。
 GitHub 上报必须先展示 public preview 并得到用户逐次确认。
 
-## 入口意图
+## Spec
 
 本次调用参数：$ARGUMENTS
 
-无参数默认行为：参数为空或仍是字面 `$ARGUMENTS` 时，只问一句“这次是哪类失败：工具失败、规则不清、
-阶段跑偏、安装上报问题，还是其他？”有反馈文本但没有范围参数时，skill 默认当前会话：
-传 `--session current --cwd "$(pwd)"`，不传 `--since-days`。
+无参数默认行为：参数为空或仍是字面 `$ARGUMENTS` 时，只问失败类型。有反馈但无范围时使用
+当前 cwd 的唯一会话。
 
-| 参数 | 行为 |
-|---|---|
-| `--session current` | metadata-only 定位当前 cwd 的唯一会话；弱匹配或多候选必须让用户选择 |
-| `--session <id-or-path>` | 只采集用户选定的 Codex / Claude 会话 |
-| `--since-days N` | 用户显式要求时跨会话扫描最近 N 天；不再传 `--session current` |
-| `--accept-incident <id>` | 只在 triage 已记录同一 pending incident 时显式采纳；不得由 agent 自行推断 |
-| `--github` | 生成 public preview；不是上传授权 |
+```haskell
+data Scope = Current Cwd | Session SessionRef | Recent Days
+data Intent = Capture Scope Text | Accept IncidentId | PreviewGitHub | ConfirmPublish | DeclinePublish
+data State = NeedFeedback | Sessions [SessionMeta] | Ready | Collected | Pending IncidentId | Preview
+data FeedbackNeed = FailureKindMissing
+data FeedbackCheckpoint = SelectSession [SessionMeta] | ConfirmPublicPreview
+data Outcome = NeedsHuman FeedbackNeed | HumanCheckpoint FeedbackCheckpoint | CollectLocal
+             | ShowPreview | PublishGitHub | Completed LocalFeedback | Blocked Reason
+
+next :: Intent -> State -> Outcome
+next _ NeedFeedback          = NeedsHuman FailureKindMissing
+next _ (Sessions xs)         = HumanCheckpoint (SelectSession xs)
+next (Capture _ _) Ready     = CollectLocal
+next (Accept i) (Pending i') | i == i' = CollectLocal
+next PreviewGitHub Collected = ShowPreview
+next _ Collected             = Completed LocalFeedback
+next ConfirmPublish Preview  = PublishGitHub
+next DeclinePublish Preview  = Completed LocalFeedback
+next _ Preview               = HumanCheckpoint ConfirmPublicPreview
+next _ _                     = Blocked InvalidTransition
+```
+
+`--session current|<id-or-path>`、`--since-days N`、`--accept-incident <id>` 构造对应值；
+`--github` 只构造 `PreviewGitHub`，绝不是 `ConfirmPublish`。
 
 collector 直接调用仍保留 v1 的 `session=None + since_days=3` 默认。若调用方同时传 current
 和 since-days，current 只绕过 `time_cutoff`，输出 `since_days_ignored=true`；最后 user
@@ -91,7 +107,7 @@ v1 public `events[].failure_type` 只保留原 6 值域，不写 v2 枚举。
    reproduction，归档旧 assessment/privacy，并把 active privacy review 重置为 `pending`。
 2. target skill、expected、actual 或 observation ref 缺失：只补当前第一项。
 3. triage 已就绪但 regression 缺 input/oracle：只在用户要做回归样本时追问。
-4. 用户要求 GitHub：只问 public preview 是否可以公开。
+4. 用户要求 GitHub：返回 `HumanCheckpoint ConfirmPublicPreview`，只问 public preview 是否可以公开；确认和拒绝分别以 `ConfirmPublish` / `DeclinePublish` 恢复。
 
 `triage_ready` 要求唯一 incident、trigger cutoff、target skill、expected/actual 和 observation
 refs；`regression_ready` 还要求兼容 profile、最小可重放 input 与 oracle。quality 表示证据完备性，
@@ -134,12 +150,16 @@ python3 {skill_dir}/scripts/feedback_to_fixture.py --triage {feedback-dir}/triag
 `github-issue.md`：
 
 ```bash
-python3 {skill_dir}/scripts/report_feedback_issue.py --repo liuzhengdongfortest/CodeStable --title "{title}" --body-file {feedback-dir}/github-issue.md --confirm-public-preview
+python3 {skill_dir}/scripts/report_feedback_issue.py --repo codestable/CodeStable --title "{title}" --body-file {feedback-dir}/github-issue.md --confirm-public-preview
 ```
 
 reporter 按文件名硬拒 evidence、triage、candidate，按 `privacy=local-private` 二次拒绝，并在
 网络边界再次扫描 public body。`gh` 缺失、未登录或网络失败时只返回 manual fallback；若需要
 访问 GitHub，按宿主规则检测本机代理后重试。
+
+## Failure Behavior
+
+缺反馈类型用 `NeedsHuman FailureKindMissing`；多个会话候选或公开预览授权用 `HumanCheckpoint`，并由明确的 session scope / publish decision 恢复；已收集且未请求 GitHub 时返回 `Completed LocalFeedback`。非法状态跳转或采集/发布失败才用 `Blocked`，并报告当前 feedback 目录、失败原因、已写文件和安全下一步。
 
 ## 退出条件
 

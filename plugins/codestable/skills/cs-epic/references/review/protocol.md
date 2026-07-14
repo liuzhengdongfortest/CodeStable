@@ -43,15 +43,37 @@
 
 ## 独立 Task agent reviewer gate
 
-本阶段必须优先启动独立 Task agent reviewer；本规则对**每一轮 review 都成立**——设计/规划修订后的 round 2+ 重审不得以主 agent 本地重审代替独立审查；当前 agent 的本地审查只能作为合并与事实核验，不能替代独立审查。只有运行时确实没有 Task agent 能力、provider 不可用且无法配置，或用户在看到降级风险后明确授权，才允许 `local-only` / `skipped-by-user`。批量 roadmap、赶时间、主 agent 自认为风险低，都不是降级理由；需要授权降级时，先按 `.codestable/reference/approval-conventions.md` 写 `approval-report.md`，再让用户选择。
+backend、配置、只读 mode、降级与生命周期只由
+`.codestable/reference/agent-conventions.md` 定义；本协议不得重定义选择链。
 
-一旦本轮应该启动或已经启动独立 Task agent reviewer，它就是本轮 review gate 的输入。主 agent 可以先做本地审查草稿，但不能在 reviewer 返回前定稿 `{slug}-roadmap-review.md`、不能给出 `passed`、不能把 roadmap 交给用户确认。reviewer 卡住、失败、权限阻塞或耗时过长时，只能把本轮标成 `blocked` / `independent-review-pending`，让用户决定继续等待、重试 reviewer，或明确降级为 local-only review。
+```haskell
+epicReview :: Round -> AgentEnv -> AgentRun -> Maybe OwnerApproval -> AgentDecision
+epicReview _round env run approval =
+  reviewGate (selectTaskAgent Review env) run approval
 
-**检测由主 agent 在运行时自检自己的工具**，不靠脚本猜环境——主 agent 最清楚自己手上有哪些工具。按 Task agent 选择规则启动独立 Task agent reviewer（**plan / read-only 等价 mode 只读启动**，mode 名按 provider capability 发现、一步到位不要先默认 mode 再重起，细则见 agent-conventions「启动 mode」；优先 Paseo subagent，否则当前宿主原生 Codex/Claude Task/Agent）：
+epicReviewVerdict :: AgentDecision -> Findings -> ReviewVerdict
+epicReviewVerdict decision findings = reviewVerdict (toReviewLane decision) findings
 
-1. **有 `mcp__paseo__create_agent` 工具**：必须优先用 Paseo subagent 做只读独立审查（首选：能换 provider，做到真正异构审查）。启动前先加载 / 读取 `paseo` skill 的当前说明，并遵守它的规则：读取 `~/.paseo/orchestration-preferences.json`，使用 `providers.audit`，不要硬编码 Claude 或 Codex。不要无限轮询运行中的 agent；如果 reviewer 已启动但结果未返回，停止在 review gate，记录 pending/blocked，等待通知或用户决定。
-2. **否则有当前宿主原生 Codex/Claude Task/Agent 工具**：用原生 Task agent 做独立上下文审查。如属同类 agent，在报告里记录降级和残余风险。
-3. **两者都没有**：本地 review 只能在记录 `local-only` 且获得必要授权后定稿；没有授权时报告 `blocked`，不要伪装启动。
+data ReviewPersistence = StartReviewer | PersistReview RoadmapReviewState
+
+persistReview :: AgentSelection -> AgentRun -> AgentDecision -> Findings -> ReviewPersistence
+persistReview _ _              (Launch _ _) _        = StartReviewer
+persistReview _ (Active ref)   Await _               = PersistReview (ReviewAwaiting ref)
+persistReview _ _              (NeedOwnerApproval r) _ = PersistReview (ReviewNeedsOwnerApproval r)
+persistReview _ _              (MergeVerified _) fs  = PersistReview (verdictReviewState fs)
+persistReview _ _              LocalReview fs        = PersistReview (verdictReviewState fs)
+persistReview _ (Failed r)     (Blocked _) _          = PersistReview (ReviewerFailed r)
+persistReview _ _              (Blocked r) _          = PersistReview (ReviewBlocked r)
+persistReview _ _              Await _                = PersistReview (ReviewBlocked InvalidAwaitState)
+
+verdictReviewState :: Findings -> RoadmapReviewState
+verdictReviewState findings | hasBlocking findings = ReviewChangesRequested
+                            | otherwise             = ReviewPassed
+```
+
+`_round` 表示每轮规则相同。`Launch` 先启动 reviewer，取得可观察 id 后以 `Active` 重入再落盘；
+`Await`、owner approval、reviewer failure 与 hard block 必须写成不同 `review_state`。
+`LocalReview` 仅来自 `ApproveLocalOnly`；只有 `MergeVerified` / `LocalReview` 可进入本地核验。
 
 独立 Task agent reviewer prompt 必须只给原始材料和边界，不透露本地 review 结论：
 
@@ -88,12 +110,12 @@
 
 ### 2. 独立审查合并
 
-- 记录主 agent 自检结果：`paseo` / `native-agent` / `local-only`。
-- 没有启动独立 Task agent reviewer 时，记录确无能力 / provider 不可用 / 用户授权降级；未满足这些条件时不得定稿 `passed`。
-- 启动 Paseo subagent / 原生 Task agent 后，最终 verdict 必须等 reviewer 返回。
+- 记录 `heterogeneous-agent` / `independent-agent` / `local-only` 与 agent id、状态。
+- 最终 verdict 必须等 `reviewGate` 返回 `MergeVerified` 或 `LocalReview`。
 - reviewer 返回后逐条做本地事实核验；能用文档 / 代码 / items 证据支撑才合并。
 - reviewer 结果合并进 `{slug}-roadmap-review.md` 后，按 Task agent 生命周期关闭该 reviewer。
-- reviewer 失败、权限阻塞、超时或仍在运行时，不要默默降级；报告 `status: blocked`。
+- `Await` 写 `status: blocked, review_state: awaiting-reviewer`；`NeedOwnerApproval` 写
+  `review_state: needs-owner-approval`；运行失败与 hard block 分别写 `reviewer-failed` / `blocked`，不静默降级。
 
 ### 3. 规划审查
 
@@ -153,6 +175,9 @@
 doc_type: roadmap-review
 roadmap: {slug}
 status: passed|changes-requested|blocked
+review_state: passed|changes-requested|awaiting-reviewer|needs-owner-approval|reviewer-failed|blocked
+review_reason: ""       # needs-owner-approval|reviewer-failed|blocked 时必填
+reviewer_id: ""         # awaiting-reviewer 时必填
 reviewed: YYYY-MM-DD
 round: 1
 ---
@@ -169,8 +194,8 @@ round: 1
 ### Independent Review
 
 - Status: not-available|skipped-by-user|local-only|pending|completed|failed|blocked
-- Detection: paseo|native-agent|local-only|skipped
-- Provider / agent: {providers.audit / agent id / none}
+- Detection: heterogeneous-agent|independent-agent|local-only|skipped
+- Provider / agent: {resolved config / agent id / none}
 - Raw output: {摘要 / 路径 / none}
 - Merge policy: {已逐条核验 / 未启用原因 / pending 时不得定稿}
 - Gate effect: {none | blocks final verdict until completed / user-approved downgrade}
@@ -239,8 +264,12 @@ Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
 ## 7. Verdict
 
 - Status: passed|changes-requested|blocked
-- Next: 交给用户 review | 回 `cs-epic` planning 阶段 修订后重跑 `cs-epic` review 阶段 | 等独立 Task agent reviewer 完成 / 用户确认降级后重跑
+- Next: 交给用户 review | 回 planning 修订后重审 | 等 reviewer 完成 | 处理 owner approval | 重试 / 重配失败 reviewer
 ```
+
+`review_state` 是恢复路由的机器真相；旧 `passed` / `changes-requested` 可同名归一。
+旧报告若只有 `status: blocked`，按 `ReviewBlocked LegacyAmbiguousBlocked` fail-closed 并重跑本阶段，
+不得猜成 changes-requested、pending 或 owner approval；`status` 仅保留通用文档兼容。
 
 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。
 
@@ -265,10 +294,6 @@ Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
 ## 容易踩的坑
 
 - 把 roadmap review 做成语病检查，没审接口契约和依赖图。
-- 只读主文档，不核对 items.yaml。
-- 不读 requirement / architecture，导致规划和现状冲突没发现。
-- 接口契约写着"待定"也放过，后续每条 feature 各自发明接口。
-- 子 feature 里塞多个可独立验收的交付，却只当一条。
 - 把批量 roadmap 或赶时间当成 local-only 降级理由。
 - 启动独立 Task agent reviewer 后结果还没回来，就把本地 review 定稿为 passed。
 - 外部 reviewer 的结论没经本地事实核验就照抄。

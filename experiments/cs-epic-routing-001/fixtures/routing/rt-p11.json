@@ -5,11 +5,11 @@
     "kind": "routing",
     "state": {
       "allDesignApproved": true,
-      "goalRunState": "GoalDriverActive(driver_kind=paseo, driver_id=run-epic-123)"
+      "goalRunState": "GoalDriverActive(driver_kind=host-agent, driver_id=run-epic-123)"
     }
   },
   "expect": {
-    "result_type": "ReportDriver",
+    "result_type": "Awaiting",
     "target_any": [
       "run-epic-123",
       "report-visible-driver",

@@ -31,21 +31,34 @@ python3 <cs-onboard skill 目录>/tools/codestable-goal-consistency-gate.py --ro
 
 失败时不得打印完成标记；按 blocking 项补齐证据或回退状态后重跑。
 
-必须确认：
+```haskell
+data AuditOutcome = AuditComplete | RepairAudit | AuditHandoff GoalHandoffReason
 
-- 每个 roadmap item 都是 `done`，或有理由 `dropped`。
-- 每个 feature acceptance `doc_type=feature-acceptance` 且 `status=passed`。
-- 每个 review `status=passed`，没有 unresolved blocking。
-- 每个 QA `status=passed`，没有 unresolved failed / blocked。
-- checklist steps 全 `done`，checks 全 `passed`。
-- residual risk 没有隐藏核心验收缺口。
-- provider unavailable 有 fallback reason，provider warning 已被 review / QA / audit 解释。
-- 核心完成判断不能只靠 H-only evidence；H-only core checks 非空时必须 handoff 或记录用户显式接受。
-- architecture / requirement / roadmap 回写已处理或明确不适用。
+auditPassed :: AuditEvidence -> Bool
+auditPassed a = and
+  [ allItemsTerminal a             -- done | dropped(reason)
+  , allFeatureArtifactsPassed a    -- review + QA + acceptance
+  , allChecklistPassed a           -- steps done + checks passed
+  , noCoreResidualRisk a
+  , providerRisksExplained a
+  , noUnapprovedHOnlyCoreCheck a
+  , writebacksCompleteOrNA a
+  , consistencyGatePassed a
+  ]
+
+auditOutcome :: AuditEvidence -> AuditOutcome
+auditOutcome a
+  | auditPassed a                        = AuditComplete
+  | not (noUnapprovedHOnlyCoreCheck a)   = AuditHandoff UnapprovedHOnlyCoreCheck
+  | coreEnvironmentMissing a             = AuditHandoff CoreEvidenceUnavailable
+  | corePathUnverified a                 = AuditHandoff CorePathUnverified
+  | sameAuditFailureCount a >= 3         = AuditHandoff RepeatedFailure
+  | otherwise                            = RepairAudit
+```
 
 ## 3. 最终聚合命令
 
-按 goal-plan 执行 final aggregate commands。功能性核心命令不能因耗时跳过。外部网络、凭证、设备不可用时，判断是否属于核心验收路径；核心不可验证则 blocked。
+按 goal-plan 执行 final aggregate commands。功能性核心命令不能因耗时跳过。外部网络、凭证、设备不可用时，判断是否属于核心验收路径；核心不可验证则 `AuditHandoff CoreEvidenceUnavailable`。
 
 非功能性 roadmap 可用静态 / 一致性 / schema / 文档校验替代，但必须写明理由。
 

@@ -7,7 +7,7 @@
       "designStatus": "Approved",
       "designReviewStatus": "ReviewPassed",
       "goalRunState": "GoalComplete",
-      "driver_kind": "paseo",
+      "driver_kind": "host-agent",
       "driver_id": "run-123"
     }
   },

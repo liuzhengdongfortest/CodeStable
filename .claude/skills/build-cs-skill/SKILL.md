@@ -7,6 +7,10 @@ contracts:
   - grep: "full protocol refactor"
   - grep: "minimal hardening patch"
   - grep: "Runtime Alignment Gate"
+  - grep: "Haskell Contract Gate"
+  - grep: "Regression Ladder"
+  - grep: "Live Host Safety Gate"
+  - grep: "CompatibilityShim -> ShimRoute"
   - grep: "Measured Rules"
   - grep: "eval-cs-skill"
   - not-grep: "read `.codestable/attention.md` just to author"
@@ -33,8 +37,8 @@ Before changing a CodeStable skill, read the target `SKILL.md` and only the refe
 
 Load these files only when the current task needs that layer:
 
-- `references/cs-skill-spec-standard.md`: read when writing or refactoring `description`, `## Spec`, state models, failure behavior, or output contracts.
-- `references/cs-skill-quality-gates.md`: read when reviewing a skill for prompt-as-code quality, P1/P3 separation, contracts, progressive loading, or regression risk.
+- `references/cs-skill-spec-standard.md`: read when writing or refactoring `description`, `## Spec`, Haskell-style decision contracts, state models, failure behavior, or output contracts.
+- `references/cs-skill-quality-gates.md`: read when reviewing a skill for prompt-as-code quality, P1/P3 separation, contracts, progressive loading, regression risk, or test-host safety.
 - `references/cs-skill-fixture-patterns.md`: read when designing decision fixtures for routing, checkpoints, forbidden actions, failure paths, fastforward, or compatibility entries.
 
 ## Spec
@@ -67,7 +71,20 @@ data SkillKind
   = OperatorSkill       -- narrow trigger, concrete artifact, explicit state/branching
   | WorkflowSkill       -- orchestrates stages and loads references progressively
   | MethodologySkill    -- broad guidance; should expose an operator entry plus references
+  | CompatibilityShim  -- passes legacy intent to one canonical skill
   | ReferenceDoc        -- no stable user -> artifact path; should not be an active trigger
+
+data ValidationLayer
+  = Shape | ContractSemantics | CrossFile | Scenario | RuntimeConformance | ForwardTest
+
+data HostImpact = Hermetic | Isolated | LiveReadOnly | LiveMutating
+data ResourceBudget = Light | HeavySerial
+
+data ValidationPlan = ValidationPlan
+  { layers         : [ValidationLayer]
+  , hostImpact     : HostImpact
+  , resourceBudget : ResourceBudget
+  }
 
 data SkillShape = SkillShape
   { trigger        : TriggerContract
@@ -80,6 +97,7 @@ data SkillShape = SkillShape
   , failureModes   : [FailureMode]
   , contracts      : [MachineContract]
   , fixtures       : [DecisionFixture]
+  , validation     : ValidationPlan
   }
 
 data SkillWorkOutcome
@@ -94,12 +112,17 @@ selectRefactorDepth(intent)
   | otherwise               -> FullProtocolRefactor
 
 classifySkill :: SkillSource -> SkillKind
-selectProcessProtocol :: SkillKind -> ProcessProtocol
-selectProcessProtocol(kind) =
+selectProcessProtocol :: SkillKind -> SkillSource -> ProcessProtocol
+selectProcessProtocol kind source =
   case kind of
-    WorkflowSkill    -> WorkflowProtocol
-    OperatorSkill    -> OperationProtocol
+    WorkflowSkill
+      | lifecycleDriven source -> LifecycleProtocol
+      | otherwise              -> WorkflowProtocol
+    OperatorSkill
+      | algorithmic source -> AlgorithmProtocol
+      | otherwise          -> OperationProtocol
     MethodologySkill -> DomainProtocol
+    CompatibilityShim -> ShimRoute
     ReferenceDoc     -> ReferenceOnly
 
 buildSkillShape :: SkillSource -> UserIntent -> SkillShape
@@ -169,6 +192,8 @@ For target skills, include a preflight step when the skill touches `.codestable/
 
 For workflow skills, the process section should be shorter than the detailed decision rules and explain what the agent actually does from startup to recoverable exit. Do not replace it with only a type signature or only a routing table.
 
+Cross-skill handoffs target the canonical main entry and let that skill restore state and select its own stage/lane. Only compatibility shims may pass an explicit legacy `requested_stage` / `requested_mode` preset.
+
 Move long examples, templates, rationale, and pattern libraries to `references/` or late sections. Do not let background material precede the protocol.
 
 ### 6. Make state recoverable
@@ -181,7 +206,18 @@ repo facts -> state model -> next action
 
 Every stage transition must leave durable evidence on disk, such as a status field, review artifact, checklist, result file, marker, or note. "The previous assistant said so" is not recoverable state.
 
+For staged workflows, audit resume coverage end to end: every stage-level checkpoint answer must fit the canonical main entry's tagged resume domain and reach that stage unchanged. Every `Awaiting` outcome must persist a machine-readable state, reason, and external run id before returning, and the real router must restore them without chat memory.
+
 The routing function must cover the **complete lifecycle** from trigger to exit — including entry (grill/intake), rebuild/degrade branches, iteration, checkpoints, and completion. Guard order is priority order; an unreachable tail branch is a bug. Measured: a model that keeps picking "the nearest enum" on one branch usually signals a missing guard, not bad wording (cs-goal rt-g02: two wording rounds 0.33→0.33, one added entry guard →0.89 — see quality-gates Measured Rules 6).
+
+#### Haskell Contract Gate
+
+When adding or changing a Haskell-style block, read `references/cs-skill-spec-standard.md` and apply
+its Haskell Contract Standard. A fence alone is not a contract. A branched protocol must expose its
+entry signature, closed decision domains, prioritized and exhaustive decision function, explicit
+invalid/blocked outcome, and path-wide invariants or termination rule when they affect completion.
+Keep rationale in comments; keep executable branches in equations. Do not retain a prose routing
+table as a second source of truth.
 
 #### Runtime Alignment Gate
 
@@ -227,7 +263,17 @@ For `build-cs-skill` itself, return `NeedsHuman` when the target/output is ambig
 
 Prefer a short `SKILL.md` plus references over a large always-loaded file. Rule of thumb: active protocol in the first 150-250 lines; examples and templates go to references; detailed rationale to docs; deterministic checks and repeated transformations to scripts.
 
-### 12. Verify with measured evaluation
+### 12. Plan validation and verify
+
+Create a `ValidationPlan` before running commands. Apply the `Regression Ladder` and
+`Live Host Safety Gate` in `references/cs-skill-quality-gates.md`: start with the cheapest hermetic
+layer, isolate integration state, and run heavy suites/builders serially. Never overlap full pytest,
+Go validation, multi-target builders, or package installs on a live developer host.
+
+Tests must not stop, restart, archive, close, signal, or rewrite a host-managed agent service.
+Cleanup is limited to processes created by the current test and revalidated immediately before the
+signal; uncertain ownership means preserve the process and report the leak. If a required layer
+cannot respect those bounds, mark it unrun with the reason instead of weakening the safety gate.
 
 Structural tests are necessary but not sufficient. After refactoring a core workflow/operator skill:
 

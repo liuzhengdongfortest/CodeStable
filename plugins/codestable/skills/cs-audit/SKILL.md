@@ -64,7 +64,7 @@ data CheckpointReason
 ```haskell
 selectAuditStep :: AuditState -> AuditRequest -> AuditOutcome
 selectAuditStep(s, req)
-  | attentionMissing                                   -> NeedsHuman "route to cs-onboard"
+  | attentionMissing req                               -> NeedsHuman "route to cs-onboard"
   | hasSelectedFinding(req)                            -> RoutedTo (recommendedAction req.selectedFinding)
   | wholeRepoBlindScan(req)                            -> HumanCheckpoint WholeRepoRefused
   | not s.scopeConfirmed                                -> HumanCheckpoint ConfirmScope
@@ -173,7 +173,7 @@ index.md 末尾给优先级建议：
 | `cs-refactor` | 用户指已知优化点 | audit 发现可优化点后建议开 `cs-refactor` |
 | `cs-keep` | 沉淀单点经验 / 决策 | audit 是批量扫多维度发现新问题，cs-keep 是把已知的事写下来 |
 | `cs-domain` | 维护 ADR / CONTEXT.md | cs-domain 写决策，cs-audit 检查代码是否偏离已拍板的 ADR |
-| `cs-security-review` | 安全审查 | audit 的安全维度是轻量扫描，深度安全审查走专项 |
+| 宿主专项安全审查 | 深度安全审查 | audit 的安全维度是轻量扫描；深审使用宿主当前可用的专项能力 |
 
 ---
 
@@ -203,7 +203,7 @@ index.md 末尾给优先级建议：
 ## 退出条件
 
 - [ ] 审计范围已和用户确认
-- [ ] 各维度扫描完成，至少有一个发现（若零发现：告知用户此范围内未发现明显问题）
+- [ ] 各维度扫描完成；有发现则逐条落盘，零发现则在 index 明确记录“未发现明显问题”
 - [ ] index.md 含完整交叉分类表
 - [ ] 每条发现 file:line + evidence + confidence
 - [ ] 每种维度 ≤ 5 条

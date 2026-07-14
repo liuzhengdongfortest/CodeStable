@@ -369,7 +369,8 @@ def test_build_routing_prompt_contains_state_and_json_contract():
     assert "只输出一个 JSON 对象" in prompt
     assert "result_type" in prompt
     assert "DispatchGoalDriver" in prompt
-    assert "ReportDriver" in prompt
+    assert "Awaiting" in prompt
+    assert "ReportDriver" not in prompt
 
 
 def test_api_post_retries_on_504(monkeypatch):

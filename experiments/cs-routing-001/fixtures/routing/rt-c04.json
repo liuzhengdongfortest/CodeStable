@@ -9,7 +9,7 @@
     "utterance": "帮我改一下"
   },
   "expect": {
-    "result_type": "HumanCheckpoint",
-    "target_any": ["ClarifyRoute", "clarify route", "bug / feature / refactor"]
+    "result_type": "NeedsHuman",
+    "target_any": ["ActionIntentMissing", "missing action intent", "need more detail"]
   }
 }

@@ -6,12 +6,12 @@
     "state": {
       "allDesignApproved": true,
       "goalRunState": "GoalComplete",
-      "driver_kind": "paseo",
+      "driver_kind": "host-agent",
       "driver_id": "run-epic-123"
     }
   },
   "expect": {
     "result_type": "Completed",
-    "must_not_target": "ReportDriver"
+    "must_not_target": "report-visible-driver"
   }
 }

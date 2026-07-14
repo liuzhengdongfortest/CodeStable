@@ -1,14 +1,49 @@
 # Epic Goal Package Protocol
 
-## 目标
+## Spec
 
-把一个大需求变成可审阅、可恢复、可自动推进的 CodeStable roadmap 执行包：
+```haskell
+data ChildReviewState
+  = ChildReviewsMissing | ChildReviewsPassed
+  | ChildReviewsAwaiting AgentRef | ChildReviewsNeedOwnerApproval Reason
+  | ChildReviewerFailed Reason | ChildReviewsBlocked Reason
 
-1. 先按 `cs-epic` planning 阶段规范澄清需求并创建 / 更新一份 roadmap，运行 `cs-epic` review 阶段并处理到通过。
-2. 用户确认 roadmap 后，为 roadmap items 里的每个子 feature 进入 `cs-feat` design 阶段，并带内部上下文 `epic_child_batch: true`；生成 design + checklist，运行 `cs-feat` design-review 阶段并处理到通过。
-3. 用户确认所有 feature design 后，输出一条可直接粘贴的 `/goal` 指令，并优先尝试用可见 Task agent goal driver 派发。
-4. `/goal` 会话按顺序循环执行每个 feature：`cs-feat` implementation 阶段 → `cs-code-review` → 必要时 review-fix → `cs-feat` QA 阶段 → 必要时 qa-fix 后重跑 review/QA → `cs-feat` acceptance 阶段 → 更新状态 → 下一个 feature。
-5. 全部 feature 验收后，做整个 roadmap 的最终审计；只有审计通过才打印完成标记。
+data PackageState = PackageState
+  { roadmapReviewState :: RoadmapReviewState, roadmapConfirmed :: Bool
+  , childReviewState :: ChildReviewState, childDesignsConfirmed :: Bool
+  , packagePersisted :: Bool, baselineTracked :: Bool
+  }
+data PackageOutcome
+  = Route Stage | Awaiting WaitReason | HumanCheckpoint CheckpointReason
+  | WriteGoalPackage | DispatchGoalDriver Command | GoalHandoff Command
+  | Blocked Reason
+
+buildEpicGoal :: PackageState -> AgentEnv -> PackageOutcome
+buildEpicGoal s env
+  | roadmapReviewState s == ReviewMissing                         = Route Review
+  | roadmapReviewState s == ReviewChangesRequested                = Route Planning
+  | roadmapReviewState s is ReviewAwaiting agent                  = Awaiting (RoadmapReviewerRunning agent)
+  | roadmapReviewState s is ReviewNeedsOwnerApproval reason       = HumanCheckpoint (ApproveReviewFallback reason)
+  | roadmapReviewState s is ReviewerFailed reason                 = Blocked reason
+  | roadmapReviewState s is ReviewBlocked reason                  = Blocked reason
+  | not (roadmapConfirmed s)                                      = HumanCheckpoint ConfirmRoadmap
+  | childReviewState s == ChildReviewsMissing                     = Route ChildDesignBatch
+  | childReviewState s is ChildReviewsAwaiting agent              = Awaiting (RoadmapReviewerRunning agent)
+  | childReviewState s is ChildReviewsNeedOwnerApproval reason    = HumanCheckpoint (ApproveReviewFallback reason)
+  | childReviewState s is ChildReviewerFailed reason              = Blocked reason
+  | childReviewState s is ChildReviewsBlocked reason              = Blocked reason
+  | not (childDesignsConfirmed s)                                 = HumanCheckpoint ConfirmAllChildDesign
+  | not (packagePersisted s)                                      = WriteGoalPackage
+  | otherwise                                                     = fromDriverDecision (selectGoalDriver s env)
+
+fromDriverDecision :: DriverDecision -> PackageOutcome
+fromDriverDecision StartHostDriver          = DispatchGoalDriver "/goal"
+fromDriverDecision (PrintGoal command)      = GoalHandoff command
+fromDriverDecision (DriverBlocked reason)   = Blocked reason
+```
+
+落盘后按共享 `selectGoalDriver` 派发同一条 literal `/goal`；driver 内循环为
+implementation → review/fix → QA/fix → acceptance，全部 accepted 后才进入 final audit。
 
 注意：不要把长任务正文塞进 `/goal` 参数。长协议和 feature 执行规格写入 roadmap 自己的目录，`/goal` 只引用这些文件和终止标记。
 
@@ -126,7 +161,7 @@ batch loop 的推进与退出纪律（每轮运行 `codestable-workflow-next.py 
 roadmap: "{slug}"
 status: ready-to-dispatch      # ready-to-dispatch|handoff|complete
 baseline_ref: "{git rev-parse HEAD 或 no-git}"
-driver_kind: none            # paseo|native|none，派发成功后写回
+driver_kind: none            # host-agent|none，派发成功后写回
 driver_id: ""
 handoff_reason: ""           # status=handoff 时必填
 handoff_next: ""             # status=handoff 时必填
@@ -200,7 +235,7 @@ features:
 
 然后按 `.codestable/reference/agent-conventions.md` 的 Goal driver 派发规则执行：
 
-- 有可见 Paseo subagent 或可见 native Task/Agent 时，用上面生成的同一条 literal `/goal` 指令作为 driver 初始任务启动 driver，并把 agent id / run id / 查看方式告诉用户。
+- 有满足共享契约的可见 host Agent 时，用上面生成的同一条 literal `/goal` 指令作为 driver 初始任务启动 driver，并把 agent id / run id / 查看方式告诉用户。
 - driver 不可见、不可追踪、缺授权或派发失败时，不启动后台任务，只打印 fenced `/goal`，让用户粘贴到新的 agent 会话执行。
 - 主 agent 不能仅凭“已派发”宣布 roadmap 完成；完成必须由 goal 产物和 transcript 标记证明。
 

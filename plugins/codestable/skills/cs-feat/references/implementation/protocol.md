@@ -6,6 +6,36 @@
 
 **推进原则**：实现阶段要让任务随时可恢复、可归因、可审计。开始前先确认基线；每步完成就更新 checklist 和证据；失败只修当前失败标准；每步都检查清洁度；遇到用户中断就在 step 边界停；学到会影响后续 feature 的知识先记录为候选，交给 acceptance 收尾沉淀。
 
+## Spec
+
+```haskell
+data ImplementationMode = Normal | ReviewFixMode | QAFixMode | GoalMode
+modeForFix :: FixKind -> ImplementationMode
+modeForFix CompleteFeature         = Normal
+modeForFix QAFix                   = QAFixMode
+modeForFix OwnerRequestedChanges   = ReviewFixMode
+data StepResult = NotRun | Passed | Failed Int
+data ImplementationOutcome
+  = RunCurrentStep | DiagnoseCurrentStep | RunNarrowFix | PersistAndContinue
+  | RunCodeReview | RunCodeReviewThenQA | RunGatesThenCodeReview
+  | HumanCheckpoint Reason | Blocked Reason
+advanceStep :: ImplementationState -> ImplementationOutcome
+advanceStep s
+  | approvedDesignGap s            = HumanCheckpoint UpdateDesign
+  | stepResult s == NotRun         = RunCurrentStep
+  | stepResult s == Passed         = PersistAndContinue
+  | stepResult s == Failed 1       = DiagnoseCurrentStep
+  | stepResult s == Failed 2       = RunNarrowFix
+  | otherwise                      = Blocked RepeatedStepFailure
+afterAllSteps :: ImplementationMode -> ImplementationOutcome
+afterAllSteps Normal               = RunCodeReview
+afterAllSteps ReviewFixMode        = RunCodeReview
+afterAllSteps QAFixMode            = RunCodeReviewThenQA
+afterAllSteps GoalMode             = RunGatesThenCodeReview
+mayComplete :: ImplementationState -> Bool
+mayComplete s = allStepsDone s && allStepEvidencePresent s && finalAuditPassed s
+```
+
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节。
 
 ---
@@ -14,7 +44,7 @@
 
 CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入实现前先确认 design、checklist、基线验证和当前 dirty scope，避免把无关改动混入本 feature。
 
-实现完成、输出汇报前必须进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行，不由 feature implementation 协议隐式创建分支或切换检出。
+实现完成、输出汇报前必须进入 `cs-code-review` 做独立 diff 评审；`blocking` / `important` 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行，不由 feature implementation 协议隐式创建分支或切换检出。
 
 ---
 
@@ -47,13 +77,9 @@ frontmatter：`doc_type=feature-design` / `feature` 一致 / `status=approved` /
 **标准 design**（节 0/1/2/3/4）：
 - 第 0 节有内容；第 1 节含"明确不做"和复杂度档位
 - 第 2.1 名词层用"现状 → 变化"两段式，每个新增/变更接口至少一个示例 + 来源位置
-- 第 2.2 编排层开头有主流程图，"现状 → 变化"齐全，流程级约束已记
+- 第 2.2 编排层有可执行的主流程表示：复杂编排有图，简单线性流程有顺序和免图理由；"现状 → 变化"与流程级约束齐全
 - 第 2.3 挂载点按"删了它 feature 是否消失"判据，没把内部代码改动误列进来
 - 第 3 节有关键场景清单 + 反向核对项（不含测试代码 / framework 选型）
-
-**Fastforward design**（节 0/1/2/3）：
-- 第 0 含"明确不做"；第 1 有改动点（文件 + 函数/类型名）
-- 第 2 验收标准每条可验证；第 3 推进步骤有退出信号
 
 任一项不达标 → 退回 `cs-feat` design 阶段 补齐。原因：方案漏的项实现时一定要现场补，等于绕过 checkpoint。
 
@@ -62,14 +88,14 @@ frontmatter：`doc_type=feature-design` / `feature` 一致 / `status=approved` /
 ### 2. {slug}-checklist.yaml 在不在
 
 - 文件存在，`feature` 字段一致
-- `steps` 非空（design 已产出，paradigm 维度切片，4-8 步）；`checks` 非空
+- `steps` 非空（design 已按工作自然切片；超过 8 步时已复查是否应拆为 Epic 子 feature）；`checks` 非空
 - 不存在 → 退回 `cs-feat` design 阶段 生成
 
 ### 3. 把上下文读全
 
 - 方案 doc 全文（标准 design 重点：第 1 节、2.1/2.2/2.3/2.4、3）
 - `{slug}-checklist.yaml`、需求来源（用户描述 + brainstorm note）、`.codestable/attention.md`
-- 第 2.1 节接口示例的来源位置 / fastforward 第 1 节改动点提到的代码文件——读相关函数即可
+- 第 2.1 节接口示例的来源位置和本 step 涉及的代码文件——读相关函数即可
 - 如果是 review-fix：读取 `{slug}-review.md`，只把 unresolved `blocking` findings 作为本轮目标
 - 如果是 qa-fix：读取 `{slug}-qa.md`，只把 failed / blocked QA items 作为本轮目标
 
@@ -160,8 +186,6 @@ design 给的 `steps` 是 paradigm 维度切片（编排骨架 → 计算节点 
 
 **标准 design**：新写的类型 / 函数 / 变量名都要去方案 doc 第 0 节对照，不允许出现 doc 里没有的新概念。要引入新概念 → 先停下来改第 0 节、grep 防冲突、用户确认。
 
-**Fastforward design**：没有正式术语表，但要新起概念名时也要 grep 一下当前代码防冲突。
-
 代价：术语冲突意味着同概念两个名字 / 同名字两个概念——后者会让搜索完全失效。
 
 ### 出现"补丁分支"的冲动时停下来
@@ -170,19 +194,9 @@ design 给的 `steps` 是 paradigm 维度切片（编排骨架 → 计算节点 
 
 ### Step 失败恢复：诊断 → 窄修复 → 交还
 
-某个 step 的退出信号或相关测试失败时，不直接推进下一步，也不把失败掩进最终汇报。按三段处理：
-
-1. **第一次失败：失败诊断**
-   写清失败项、实际错误、刚改过的范围、根因假设；只围绕当前 step 做一次重试。重试前不要扩大 scope。
-2. **第二次失败：窄范围修复说明**
-   如果重试仍失败，在 feature 目录写一份临时 `{slug}-step-N-fix.md`（或在完成汇报中等价记录）：
-   - 失败的 exit_signal / checks
-   - 根因判断
-   - 只允许改哪些文件 / 行为
-   - 修复后必须重跑哪些验证
-   执行这份窄修复，成功后回到原 step 的验证，不直接标 done。
-3. **第三次失败：交还用户**
-   仍失败就停下来，报告三次尝试、证据、当前风险和建议下一步。不要为了"完成流程"继续改大范围代码。
+退出信号或相关测试失败时按 `advanceStep` 处理，不推进下一步。第一次写失败项、错误、改动范围和
+根因假设；第二次写 `{slug}-step-N-fix.md`，锁定失败标准、允许范围和必跑验证；第三次交还用户，
+列三次证据、风险与下一步。窄修复成功后回原 step 验证，不能直接标 done。
 
 这个机制只处理当前 step 的失败，不是绕过 design 的许可证。发现设计缺口仍然回 `cs-feat` design 阶段，不是用窄范围修复说明现场拍板。
 
@@ -267,10 +281,10 @@ Goal 模式例外（本轮按 feature / roadmap 目录下 `goal-protocol.md` 长
 
 - [ ] 所有 steps 的 status 都 `done`，且每步有退出信号证据。
 - [ ] 行为代码 step 有 TDD evidence；不适用时有 `TDD exception` 和替代证据。
-- [ ] 完成汇报已输出，用户 review 通过（或 review-fix / qa-fix 汇报已输出，等待重跑对应 gate；goal 模式为汇报落盘留档后按 goal 协议继续）。
+- [ ] 完成汇报已输出；Standard / review-fix 直接进入 code review，qa-fix 进入 code review 后再 QA，Goal 按 goal 协议继续。
 - [ ] 没有未处理的"需要叫停"信号、方案外改动或清洁度缺口。
 - [ ] 开始前做过基线预检；完成前做过最后一轮本地审计。
-- [ ] 第 3 节关键场景每条都有证据 / 测试覆盖（fastforward 对照第 2 节）。
+- [ ] 第 3 节关键场景每条都有证据 / 测试覆盖。
 
 ---
 

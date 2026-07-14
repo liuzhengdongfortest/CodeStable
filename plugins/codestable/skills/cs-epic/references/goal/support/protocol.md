@@ -25,14 +25,31 @@
 
 用户粘贴 `/goal`，或主流程按 Goal driver 派发规则启动可见 Task agent，代表授权 goal 会话连续执行各 feature 的 impl / review / QA / accept。普通流程中逐 feature 停等用户确认的 checkpoint，在 goal 模式下改为写入报告、状态和审计记录。
 
-仍必须 handoff 的情况：
+```haskell
+data GoalHandoffReason
+  = OwnerStop | ScopeChange | IndependentReviewUnavailable
+  | UnapprovedHOnlyCoreCheck | CoreEvidenceUnavailable
+  | CorePathUnverified | RepeatedFailure
+data GoalRun = RunFeature Index | RunFinalAudit | Complete | Handoff GoalHandoffReason
 
-- 需要改变已批准 design、roadmap item、接口契约或 feature 范围。
-- 独立 Task agent reviewer pending / failed / blocked，且没有用户明确降级。
-- 同一失败项三轮修复仍不通过。
-- 外部凭证或环境缺失导致核心行为无法判断。
-- 功能性核心路径或 roadmap 级核心验收路径无法验证。
-- 用户主动要求暂停、改方向或终止。
+handoffReason :: GoalState -> Maybe GoalHandoffReason
+handoffReason s
+  | ownerStopped s                   = Just OwnerStop
+  | approvedScopeChanged s           = Just ScopeChange
+  | reviewerBlocked s                = Just IndependentReviewUnavailable
+  | unapprovedHOnlyCoreCheck s       = Just UnapprovedHOnlyCoreCheck
+  | coreEnvironmentMissing s         = Just CoreEvidenceUnavailable
+  | corePathUnverified s             = Just CorePathUnverified
+  | sameFailureCount s >= 3          = Just RepeatedFailure
+  | otherwise                        = Nothing
+
+nextGoal :: GoalState -> GoalRun
+nextGoal s
+  | Just reason <- handoffReason s    = Handoff reason
+  | Just i <- nextPendingFeature s    = RunFeature i
+  | not (finalAuditPassed s)          = RunFinalAudit
+  | otherwise                         = Complete
+```
 
 ## 4. 启动标记
 
@@ -47,12 +64,9 @@ Protocol: {roadmap-path}/goal-protocol.md
 
 ## 5. 执行顺序
 
-1. 按 `goal-state.yaml.current_feature_index` 找到下一个 pending feature。
-2. 读取对应 `goal-features/<feature-slug>.md`、design、checklist。
-3. 按 `goal-protocol-feature-loop.md` 执行 feature loop。
-4. 每个阶段按 `goal-protocol-gates.md` 执行 Gate Policy。
-5. 每个 feature accepted 后更新 `goal-state.yaml` 和 roadmap items，立即 scoped-commit；`git status --short` 干净后才进入下一 feature。
-6. 所有 feature accepted 后按 `goal-protocol-audit.md` 做最终审计。
+`nextGoal` 是顺序真相。`RunFeature i` 读取 goal-feature/design/checklist，执行 feature loop 与
+stage gates；accepted 后更新 state/items、scoped-commit，工作树干净才推进 index。
+`RunFinalAudit` 执行 `goal-protocol-audit.md`。
 
 ## 6. 完成标记
 

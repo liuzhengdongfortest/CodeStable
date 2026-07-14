@@ -25,6 +25,31 @@ evidence、consequence 和 next action，就可以满足此规则。例如：
 
 需要上下文的决策，不要只问裸多选题。
 
+## Spec
+
+```haskell
+data ApprovalTrigger
+  = InterviewCheckpoint | RouteChoice | ReviewAuthorization
+  | RuntimeOverride | GateOverride | DestructiveAction | SecretUse
+  | ExternalPurchase | MergeOrDeploy | RiskAcceptance | BlockerDecision
+  | RepairOrDeferDecision
+data ApprovalStatus = Pending | Approved | Rejected | Superseded
+data ApprovalSurface = CanonicalStageReport Path | ApprovalReport Path | NeedUnitIdentity
+
+selectSurface :: Unit -> Maybe StageReport -> ApprovalSurface
+selectSurface unit stageReport
+  | coversDecisionContract stageReport = CanonicalStageReport (path stageReport)
+  | Just path <- approvalPath unit      = ApprovalReport path
+  | otherwise                          = NeedUnitIdentity
+
+recordAnswer :: ApprovalReport -> OwnerAnswer -> Date -> ApprovalReport
+recordAnswer report answer date = report
+  { status = decisionStatus answer
+  , decisionHistory = appendDecision answer date (decisionHistory report)
+  , pendingSections = nextDecisionOrEmpty report answer
+  }
+```
+
 正文语言遵守 `.codestable/attention.md` 的报告语言策略。若 attention 没有报告语言策略，
 使用 owner 当前对话语言。标题名保持稳定，便于 agent 可靠解析。
 
@@ -45,14 +70,8 @@ evidence、consequence 和 next action，就可以满足此规则。例如：
 
 ## 触发条件
 
-以下情况写 `approval-report.md`：
-
-- 答案会改变 route、scope 或 next work 的 interview / grill checkpoint。
-- 在多个可行 workflow 或 canonical spec 之间做 route choice。
-- review authorization、implementation Task agent authorization 或 inline-review fallback。
-- 执行环境 override、gate override、破坏性操作、secrets、外部购买、merge、deploy 或风险接受。
-- blocker / owner-stop 决策。
-- 选择要修复、延期、丢弃、迁移或修复历史文档的内容。
+命中任一 `ApprovalTrigger` 就调用 `selectSurface`。已有 canonical stage report 只有完整包含
+decision、互斥 options、recommendation、tradeoffs、evidence、consequence 和 next action 时才可复用。
 
 ## 模板
 
@@ -92,12 +111,8 @@ deploy、重写长期 specs 或接受风险。
 
 ## Approval 之后
 
-owner 回答后：
-
-1. 把 `status` 更新为 `approved`、`rejected` 或 `superseded`。
-2. 记录选中的 option 和 answer date。
-3. 从 `After You Answer` 继续。
-4. 保留报告作为历史，不要删除。
+owner 回答后按 `recordAnswer` 更新状态、选择项、日期与历史，再从 `After You Answer` 继续；
+报告作为历史保留，不删除。
 
 如果同一个 unit 后续还需要 approval，复用 `approval-report.md` 作为唯一 approval 表面：
 先为旧回答添加带日期的 decision-history 记录，再用新决策替换 pending sections。不要静默

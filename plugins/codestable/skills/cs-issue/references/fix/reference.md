@@ -53,6 +53,7 @@
 ---
 doc_type: issue-fix
 issue: {issue 目录名}
+status: confirmed
 path: standard
 fix_date: YYYY-MM-DD
 related: [{slug-analysis.md 相对路径}]
@@ -61,13 +62,17 @@ tags: []
 
 # {问题简述} 修复记录
 
-## 1. 实际采用方案
+## 1. 根因摘要
 
-## 2. 改动文件清单
+{从 analysis 提炼的已确认根因；保留关键 file:line}
 
-## 3. 验证结果
+## 2. 实际采用方案
 
-## 4. 遗留事项
+## 3. 改动文件清单
+
+## 4. 验证结果
+
+## 5. 遗留事项
 ```
 
 ## 4. `{slug}-fix-note.md` 快速通道模板
@@ -76,6 +81,7 @@ tags: []
 ---
 doc_type: issue-fix
 issue: {issue 目录名}
+status: confirmed
 path: fast-track
 fix_date: YYYY-MM-DD
 tags: []

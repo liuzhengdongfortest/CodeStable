@@ -38,14 +38,16 @@ contracts:
 ## Spec
 
 ```haskell
-data IntakeMode = Execute | Advise | Explain | Ambiguous
+data Ambiguity = MissingActionIntent | RouteChoice [SkillName]
+data IntakeMode = Execute | Advise | Explain | Ambiguous Ambiguity
+data RouterBlocker = ActionIntentMissing | TargetUnavailable
 
 data RouterOutcome
   = RoutedTo SkillName
   | Completed Recommendation
   | Completed Overview
   | HumanCheckpoint ClarifyRoute
-  | NeedsHuman TargetUnavailable
+  | NeedsHuman RouterBlocker
 
 route :: Request -> RouterOutcome
 route request = classifyIntake request >>= selectTarget >>= dispatch
@@ -53,7 +55,8 @@ route request = classifyIntake request >>= selectTarget >>= dispatch
 Execute   -> RoutedTo target
 Advise    -> Completed Recommendation
 Explain   -> Completed Overview
-Ambiguous -> HumanCheckpoint ClarifyRoute
+Ambiguous MissingActionIntent -> NeedsHuman ActionIntentMissing
+Ambiguous (RouteChoice _)     -> HumanCheckpoint ClarifyRoute
 ```
 
 模式判定：
@@ -63,9 +66,10 @@ Ambiguous -> HumanCheckpoint ClarifyRoute
 | “修复 / 实现 / 更新 / 扫描 / 继续”等明确行动 | Execute | 选唯一主入口并同轮转交 |
 | “该用哪个 skill / 应该走什么流程 / 你建议怎么做” | Advise | 只推荐，不启动 workflow |
 | 只说 `cs`、请求介绍 CodeStable、没有具体诉求 | Explain | 输出体系速读 |
-| 有行动意图，但信息不足以区分相邻流程 | Ambiguous | 只问一个能区分路线的问题 |
+| 只有“帮我改一下”等字样，连行动类型都无法判断 | `Ambiguous MissingActionIntent` | 返回 `NeedsHuman ActionIntentMissing`，只问缺失事实 |
+| 已知有多个可行路线或多个活动单元，需要 owner 选一个 | `Ambiguous (RouteChoice candidates)` | 返回 `HumanCheckpoint ClarifyRoute`，只问一个路线选择 |
 
-不要只按问句形式判断。比如“能帮我修这个报错吗”仍是 Execute；“这种报错该走哪个 skill”是 Advise；“帮我改一下”无法区分 bug / feature / refactor，是 Ambiguous。
+不要只按问句形式判断。比如“能帮我修这个报错吗”仍是 Execute；“这种报错该走哪个 skill”是 Advise；“帮我改一下”连行动类型都缺，属于 `MissingActionIntent`，不是 owner route approval。
 
 ## 路由优先级
 
@@ -109,7 +113,8 @@ Dispatch: continuing-current-run | recommendation-only
 - Execute：输出 `continuing-current-run` 后，按已安装 skill 名称加载目标协议，原始诉求原样传递，并在当前 run 继续；route brief 不是最终答复。
 - Advise：输出 `recommendation-only` 后结束，不加载目标协议、不写产物。
 - Explain：直接输出体系速读，不伪造 route brief。
-- Ambiguous：直接返回 `HumanCheckpoint ClarifyRoute`，不伪造 route brief；用户回答后同轮继续判定与转交，不要求重新调用命令。
+- `Ambiguous MissingActionIntent`：返回 `NeedsHuman ActionIntentMissing`，不伪造 route brief；用户补充事实后同轮继续判定。
+- `Ambiguous (RouteChoice _)`：返回 `HumanCheckpoint ClarifyRoute`；owner 选择后同轮转交，不要求重新调用命令。
 - 目标 skill 无法加载时返回 `NeedsHuman TargetUnavailable`，报告目标与失败原因，不在 `cs` 内模拟目标流程。
 
 `cs-onboard` 是串行前置 gate：未接入仓库收到 Execute 时，先判明原目标，再同轮加载 `cs-onboard`。onboard 自身的确认与写入 checkpoint 完整生效；完成后保留原始诉求和原目标，串行加载原目标 skill。若会话停在 checkpoint，本轮不越过它；后续轮次恢复时继续携带原始诉求和原目标，缺失时先向用户确认而不硬猜。

@@ -4,18 +4,56 @@
 
 **核心原则：只记现象不记根因**。用户说"我觉得是 XX 组件的问题"——记下"用户怀疑 XX 组件"作为线索，但不顺着聊根因。根因要在阶段 2 通过实际读代码确认，不靠脑子里猜。混进根因猜测的报告会带偏阶段 2，让分析人围着错误线索绕。
 
+## Spec
+
+```haskell
+data ReportQuestion = Symptom | Reproduction | ExpectedVsActual | Environment | Severity
+data ReportPath = Standard | FastPath
+data ReportNext = AnalyzeNext | FixNext
+data ReportOutcome
+  = RouteFeature | Ask ReportQuestion | ProposeFastPath RootCause FixPlan
+  | PersistDraftAndCheckpoint CheckpointReason
+  | PersistAndRoute IssuePath ReportNext
+
+selectPath :: ReportFacts -> ReportOutcome
+selectPath facts
+  | describesNewCapability facts                    = RouteFeature
+  | rootCauseHasFileLine facts
+  , fixPoints facts <= 2
+  , not (crossModuleRisk facts)                     = ProposeFastPath (rootCause facts) (fixPlan facts)
+  | otherwise                                       = Ask Symptom
+
+nextQuestion :: ReportAnswers -> Maybe ReportQuestion
+nextQuestion answers = firstMissing [Symptom, Reproduction, ExpectedVsActual, Environment, Severity] answers
+
+advance :: ReportPath -> ReportAnswers -> Maybe CheckpointAnswer -> ReportOutcome
+advance _ answers _
+  | Just q <- nextQuestion answers  = Ask q
+advance Standard _ (Just ApproveCheckpoint) = PersistAndRoute StandardPath AnalyzeNext
+advance Standard _ _                = PersistDraftAndCheckpoint ConfirmReport
+advance FastPath _ (Just ApproveCheckpoint) = PersistAndRoute FastPathApproved FixNext
+advance FastPath _ (Just RejectCheckpoint)  = PersistAndRoute FastPathRejected AnalyzeNext
+advance FastPath _ _                = PersistDraftAndCheckpoint ConfirmFixPlan
+```
+
+`PersistDraftAndCheckpoint` 先写 `status: draft` 的 report，并按 approval 约定把同一 decision 写成
+pending；只有持久状态成功后才返回 `HumanCheckpoint`。因此 standard / fast-track 的 owner 回复都能
+从仓库恢复，不依赖聊天历史。两条路径共用第一条 `nextQuestion` guard，fast-track 不得绕过五问。
+
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节和 `cs-issue` 的"文件放哪儿"。
 
 ---
 
 ## 启动检查
 
-1. **确认是 bug 不是新功能需求**——描述"想加 X 功能"的告诉他走 `cs-feat`
-2. **看有没有相关 issue 目录**——Glob `.codestable/issues/`，有同类问题先和用户确认是新建还是更新
-3. **快速通道判断（唯一正式判定点）**——按用户线索**读一下相关代码**（Grep / Read 定位）：
-   - **能一眼确定根因**（能给出 `{文件}:{行号}`、修复改动小 1-2 处、无跨模块影响风险）→ 告诉用户"我已看到问题所在，可以走快速通道：直接告知根因和修复方案，你确认后我立刻修，修完你验证，只写一份 `{slug}-fix-note.md`"。同意后进入 `cs-issue` fix 阶段（快速通道模式）
-   - **不能**（根因有多个候选 / 不确定 / 需要更多复现信息）→ 走标准路径做完整问题报告。进入标准路径后默认不再二次改判
-4. **确定 issue 目录名**——跟用户商定 slug，日期前缀用今天（环境信息 `currentDate`）。目录不存在就创建。快速通道也要建 issue 目录，`{slug}-fix-note.md` 放那
+1. 按 `selectPath` 确认是 bug 并做唯一一次快速通道判定；必须实际读相关代码。
+2. 检查 `.codestable/issues/` 是否已有同类目录，有则让用户选择新建或更新。
+3. 和用户确定 slug，日期前缀用 `currentDate`；两种路径都创建 issue 目录。
+
+进入 Standard 后不二次改判。`ProposeFastPath` 必须先向用户展示 file:line 根因与小范围方案，
+并按 approval 约定写 `approval-report.md`；得到 `ConfirmFixPlan` 后把报告写成 `status: confirmed`、
+`issue_path: fast-track`，记录 fast-path 已批准再进入 fix。用户拒绝则记录 `Rejected`，把
+`issue_path` 写成 `standard`，写 confirmed report 后进入 analyze。普通路径同样写 `standard`。
 ---
 
 ## 必答 5 问
@@ -72,6 +110,7 @@
 doc_type: issue-report
 issue: {issue 目录名}
 status: draft
+issue_path: undecided # undecided | standard | fast-track
 severity: P0 | P1 | P2 | P3
 summary: {问题现象一句话}
 tags: []
@@ -117,7 +156,7 @@ tags: []
 
 ## 退出条件
 
-- [ ] frontmatter 完整（`doc_type=issue-report` / `issue` 一致 / `severity` 和 `summary` 非空 / `tags` ≥ 1）
+- [ ] frontmatter 完整（`doc_type=issue-report` / `issue` 一致 / `issue_path` 合法 / `severity` 和 `summary` 非空 / `tags` ≥ 1）
 - [ ] 5 问都有具体答案（环境中相关文件可"待定"）
 - [ ] 问题现象是纯现象描述，没混入根因推测
 - [ ] 期望 vs 实际显式分开写

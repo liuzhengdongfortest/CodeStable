@@ -113,6 +113,47 @@ def test_valid_plugin_package_passes(tmp_path: Path) -> None:
     assert checker.check_repo(repo) == []
 
 
+def test_skills_only_install_keeps_cs_entrypoints_without_agent_mcp(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    plugin = repo / "plugins/codestable"
+
+    assert not (plugin / ".mcp.json").exists()
+    assert not (plugin / "bin").exists()
+    assert (plugin / "skills/cs/SKILL.md").is_file()
+    assert (plugin / "skills/cs-feat/SKILL.md").is_file()
+    assert checker.check_repo(repo) == []
+
+
+def test_source_plugin_must_remain_skills_only(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    write_json(repo / "plugins/codestable/.mcp.json", {"mcpServers": {"agent-runtime": {}}})
+    bin_dir = repo / "plugins/codestable/bin"
+    bin_dir.mkdir()
+    (bin_dir / "agent-runtime").write_text("binary placeholder", encoding="utf-8")
+
+    findings = checker.check_repo(repo)
+    finding_messages = messages(findings)
+
+    assert any("source plugin must remain skills-only" in message for message in finding_messages)
+    assert any("source plugin must not contain bundled runtime binary" in message for message in finding_messages)
+
+
+def test_source_plugin_manifests_must_not_register_agent_mcp(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    for relative in (
+        "plugins/codestable/.codex-plugin/plugin.json",
+        "plugins/codestable/.claude-plugin/plugin.json",
+    ):
+        path = repo / relative
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["mcpServers"] = {"agent-runtime": {"command": "./bin/agent-runtime"}}
+        write_json(path, payload)
+
+    findings = checker.check_repo(repo)
+
+    assert sum("source plugin manifest must remain skills-only" in message for message in messages(findings)) == 2
+
+
 def test_missing_version_fails(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     (repo / "VERSION").unlink()

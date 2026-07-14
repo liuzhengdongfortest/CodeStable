@@ -5,7 +5,7 @@
     "kind": "routing",
     "state": {
       "roadmapStatus": "Draft",
-      "roadmapReviewStatus": "ReviewBlocking",
+      "roadmapReviewState": "ReviewChangesRequested",
       "goalRunState": "GoalMissing"
     }
   },
