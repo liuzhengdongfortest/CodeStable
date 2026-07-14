@@ -1,7 +1,7 @@
 ---
 doc_type: goal
 goal: fix-skills-update-and-standalone-version
-status: active
+status: complete
 ---
 
 # 修复多 Skill 更新与 Standalone 版本发现
@@ -36,8 +36,8 @@ PR #48 已合并到 `main`，本 goal 从 merge commit `c2572f4` 建立分支 `f
 
 ## Current State
 
-Goal 已激活，尚未修改生产实现。
+实现、回归、独立 code review、功能验收与交付均已完成。修复 commit `db36f82` 已推送到独立分支，PR [#49](https://github.com/codestable/CodeStable/pull/49) 已创建并关联 #45/#47。
 
 ## Next Action
 
-检查 package discovery、安装/更新测试、版本发现、release bump 与 plugin checker 的现有实现，先建立能复现两项问题的 RED 测试。
+等待 PR #49 的仓库 review 与 merge；本 goal 无剩余实现动作。

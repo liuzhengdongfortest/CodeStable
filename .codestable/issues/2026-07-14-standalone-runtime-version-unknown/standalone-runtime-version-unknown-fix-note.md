@@ -31,4 +31,4 @@ tags: [runtime, versioning, standalone-install]
 
 ## 4. 遗留事项
 
-无 blocking/important 遗留；独立 code review 与 goal 功能验收仍需执行。
+无 blocking/important 遗留；独立 code review 与 goal 功能验收均已通过，交付 PR 为 [#49](https://github.com/codestable/CodeStable/pull/49)。

@@ -1,6 +1,6 @@
 schema_version: 1
 goal: "fix-skills-update-and-standalone-version"
-status: active
+status: complete
 objective: "修复 GitHub Issues #45 和 #47，使多 skill 更新保留 CodeStable sibling skills，standalone 安装可写入真实 runtime 版本，并提交独立 PR。"
 start_point: "main 已包含 PR #48，当前位于独立分支 fix/issues-45-47-install-runtime；#45 与 #47 尚未实现回归修复。"
 acceptance:
@@ -15,8 +15,8 @@ non_goals:
 budget:
   kind: none
   limit: null
-current_iteration: 1
-next_action: "启动独立 code review，处理全部 blocking/important 后执行终端功能验收。"
+current_iteration: 2
+next_action: "Goal complete; PR #49 is open for repository review and merge."
 blocker_signature: null
 blocker_count: 0
 owner_stop: null
