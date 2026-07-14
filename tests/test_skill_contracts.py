@@ -162,6 +162,11 @@ def test_goal_routing_fixtures_use_current_state_schema() -> None:
     assert feat["rt-f12"]["expect"]["result_type"] == "GoalHandoff"
     assert feat["rt-f13"]["expect"]["result_type"] == "NeedsHuman"
     assert feat["rt-f14"]["expect"]["result_type"] == "HumanCheckpoint"
+    assert feat["rt-f15"]["expect"]["target"] == "FastForward"
+    assert feat["rt-f16"]["expect"]["target"] == "Implementation"
+    assert feat["rt-f16"]["expect"]["must_not_target"] == "GoalPackage"
+    assert feat["rt-f17"]["expect"]["target"] == "GoalPackage"
+    assert feat["rt-f18"]["expect"]["target"] == "FastForward"
 
     assert epic["rt-p09"]["expect"]["result_type"] == "DispatchGoalDriver"
     assert epic["rt-p11"]["expect"]["result_type"] == "ReportDriver"

@@ -13,7 +13,7 @@
 | Epic | `cs-epic` | 大需求端到端入口：规划、review、子 feature design、goal 包和可见 driver 派发 |
 | 目标驱动 | `cs-goal` | 给定起点与期望终态后自主迭代到验收 |
 | 讨论入口 | `cs-brainstorm` | 想法模糊时分诊到 feature、epic 或 brainstorm note |
-| 特性流程 | `cs-feat` | 新特性端到端入口：design、review、goal 包、impl、code review、QA、accept |
+| 特性流程 | `cs-feat` | 按风险自动选择 Quick / Standard / Goal；Goal 仅用于显式长程执行或 Epic |
 | 问题流程 | `cs-issue` | 问题修复端到端入口：report、analyze、fix、review |
 | 重构流程 | `cs-refactor` | 行为等价重构入口：标准模式或 fastforward mode |
 | 横切审查 | `cs-code-review` | 实现完成后的只读代码审查 gate |

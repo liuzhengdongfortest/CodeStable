@@ -10,7 +10,7 @@
 | issue | `issue-review` | `issue: YYYY-MM-DD-slug` |
 | refactor / refactor-ff | `refactor-review` | `refactor: YYYY-MM-DD-slug` |
 
-`status` / `reviewed` / `round` 各来源通用。`reviewer` 是 gate 锚点字段，按本轮实际启动的独立 Task agent reviewer / OCR 组合写：
+`status` / `reviewed` / `round` 各来源通用。`reviewer` 是首次或最近一次完整独立审查的 gate 锚点；focused closure 保留它，不伪造新 reviewer：
 
 | 值 | 含义 |
 |---|---|
@@ -42,6 +42,7 @@ round: 1
 - DoD results: {path / none}
 - Implementation evidence: {实现汇报 / 对话 / 文件}
 - Diff basis: {git status / git diff 摘要}
+- Review mode: initial | full-rereview | focused-closure
 - Baseline dirty files: {none / 列表 + 归因}
 
 ### Independent Review
@@ -112,7 +113,14 @@ round: 1
 ## 7. Verdict
 
 - Status: passed|changes-requested|blocked
-- Next: 按「进入来源」表的通过后去向（feature→`cs-feat` QA 阶段，其余→各自验收/提交） | 来源实现技能 review-fix | 等独立 Task agent reviewer 完成 / 用户确认降级后重跑本审查 | 补齐输入后重跑本审查
+- Next: 按「进入来源」表的 lane-aware 去向（Standard feature→accept-inline；Goal feature→QA；其余→验收/提交） | 来源实现技能 review-fix | 等 reviewer / 补输入后重跑
+
+## 8. Focused Closure（无则写 none）
+
+- Closed findings: {REV ids}
+- Attributed delta: {files / hunks}
+- Targeted verification: {commands + results}
+- Classification: {为什么是 test/docs/type/metadata/nit-only，且未改变行为、公开契约、安全、数据、并发或架构}
 ```
 
 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。

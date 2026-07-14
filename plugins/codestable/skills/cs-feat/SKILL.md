@@ -1,9 +1,10 @@
 ---
 name: cs-feat
-description: "Feature 主入口。用于新功能或功能改造，从需求恢复并推进 design、design-review、goal package、implementation、code review、QA、acceptance。不要用于单纯 bug 修复(cs-issue)、行为等价重构(cs-refactor)、对外文档(cs-docs)、大需求拆解(cs-epic)。"
-argument-hint: "[--stage design|design-review|impl|qa|accept|goal-package] [--mode fastforward] <feature>"
+description: "Feature 主入口。用于新功能或功能改造，先按风险自动选择 Quick、Standard 或 Goal lane，再恢复并推进对应流程。不要用于单纯 bug 修复(cs-issue)、行为等价重构(cs-refactor)、对外文档(cs-docs)、大需求拆解(cs-epic)。"
+argument-hint: "[--stage design|design-review|impl|qa|accept|goal-package] [--mode quick|standard|goal|fastforward] <feature>"
 contracts:
   - grep: "restoreFeatureStage"
+  - grep: "classifyExecutionLane"
   - grep: "DispatchGoalDriver"
   - grep: "progressive reference loading"
   - grep: "must not auto-approve design"
@@ -20,7 +21,7 @@ contracts:
 
 动作前先跑 CodeStable preflight：读 `.codestable/attention.md`（缺失先 `cs-onboard`）；不要用 `AGENTS.md`/`CLAUDE.md` 等外部入口代替它；细则见 `.codestable/reference/execution-conventions.md`。
 
-`cs-feat` 是 feature 的唯一推荐入口，是一个 workflow skill：从仓库事实恢复当前阶段、加载对应阶段协议、在人工 checkpoint 停下。用户只需持续调用本技能；本技能在 design gate 停下来等用户确认。确认 design 后默认生成单 feature goal 包，并尝试通过可见 Task agent goal driver 长程执行；派发失败则打印 `/goal` 指令让用户粘贴执行。真正的 design/QA/acceptance 怎么做由各阶段 protocol 负责（见下方 Progressive Reference Loading）。
+`cs-feat` 是 feature 的唯一推荐入口。它先按任务事实选择执行 lane，再从仓库事实恢复阶段：Quick 直接实现；Standard 在当前 run 完成 design、implementation、review 和 accept-inline；Goal 才生成 goal package 并尝试通过可见 Task agent goal driver 长程执行。Standard / Goal 仍在 design gate 停下来等用户确认。真正的各阶段动作由对应 protocol 负责（见 Progressive Reference Loading）。
 
 ## 入口意图
 
@@ -36,11 +37,38 @@ contracts:
 | `--stage qa` | `requested_stage: qa` |
 | `--stage accept` | `requested_stage: acceptance` |
 | `--stage goal-package` | `requested_stage: goal-package` |
-| `--mode fastforward` | `requested_mode: fastforward` |
+| `--mode quick` / `--mode fastforward` | `requested_mode: quick`（fastforward 是兼容别名） |
+| `--mode standard` | `requested_mode: standard` |
+| `--mode goal` | `requested_mode: goal` |
 
 入口意图只是偏好；**仓库事实优先**（`restoreFeatureStage`），也优先于聊天历史。
 
 无参数默认行为：没有 flag / 需求描述时，不猜阶段；扫描 `.codestable/features/`、目标产物与当前 git diff，用状态机恢复下一步。没有可恢复 feature 且用户原话也无新功能目标时，返回 `NeedsHuman` 问处理哪个 feature。
+
+## 风险分级
+
+```haskell
+data ExecutionLane = Quick | Standard | Goal
+
+classifyExecutionLane :: FeatureState -> EntryIntent -> ExecutionLane
+classifyExecutionLane(s, intent)
+  | s.epicChildBatch || hasGoalState(s) || hasRoadmapOwner(s)          = Goal
+  | hasExistingDesign(s)                                               = recordedLaneOrConfirmedReclassification(s, intent)
+  | explicitlyRequestsGoal(intent)                                     = Goal
+  | explicitlyRequestsStandard(intent)                                = Standard
+  | explicitlyRequestsQuick(intent) && quickEligible(s, intent)       = Quick
+  | explicitlyRequestsQuick(intent)                                   = Standard
+  | quickEligible(s, intent)                                           = Quick
+  | otherwise                                                          = Standard
+```
+
+`quickEligible` 必须同时满足：需求与验收行为明确；改动局部且挂载点已知；复用既有公开契约，不新增或改变跨系统协议；目标验证入口已知；不涉及 requirement/ADR 边界、迁移、权限/安全、并发或高风险数据语义。任一项未知就选 Standard，不按模型名称、推理档位或所谓“智商”选 lane。
+
+Standard 用于需要新契约、跨模块决策或正式 design，但适合当前 run 完成的单 feature。Goal lane 只在用户明确要求长程自主执行、显式 `--stage goal-package` / `--mode goal`、已有 `goal-state.yaml`，或 Epic 批量上下文时选择；任务较大本身不自动等于 Goal。
+
+用户说“这是小改动”“流程太重”“文档比代码多”或同义反馈时，必须暂停继续建产物并重新分类。满足 Quick 就立即降级；仍有风险条件时逐条说明为什么不能降级，不得沿既定流程无视反馈。
+
+已有 design 时不允许入口参数静默越过已记录 lane。用户明确要求降级且重新核对仍满足 `quickEligible` 时，先把 `execution_lane: quick` 和降级原因写回 design，再进入 FastForward；已有 `goal-state.yaml` 时不得原地降级，必须先按 Goal 协议安全 handoff，再由 owner 决定是否重分类。
 
 ## Spec
 
@@ -49,7 +77,7 @@ csFeat :: FeatureRequest -> FeatureOutcome
 
 data FeatureRequest = FeatureRequest
   { requestedStage : Maybe Stage
-  , requestedMode  : Maybe Mode          -- fastforward
+  , requestedMode  : Maybe Mode          -- quick | standard | goal；fastforward -> quick
   , userGoal       : Maybe Text
   , repoFacts      : RepoFacts           -- 优先于 args / 聊天历史
   }
@@ -57,6 +85,13 @@ data FeatureRequest = FeatureRequest
 data Stage = Design | DesignReview | GoalPackage | Implementation | CodeReview | QA | Acceptance | FastForward
 
 data DesignReviewStatus = ReviewMissing | ReviewPassed | ChangesRequested | ReviewBlocked
+
+data QuickRunState = QuickImplementationPending | QuickReviewReady | QuickReviewFixing | QuickComplete
+
+data StandardRunState
+  = StandardImplementationPending
+  | StandardReviewReady | StandardReviewFixing
+  | StandardAcceptanceReady | StandardComplete
 
 data GoalRunState                        -- 从 goal-state.yaml 的 stage/status/driver 字段恢复
   = GoalMissing
@@ -70,11 +105,15 @@ data GoalRunState                        -- 从 goal-state.yaml 的 stage/status
   | GoalHandoffBlocked Reason            -- handoff / blocked；优先于残留 driver 元数据
   | GoalUnknown Text
 
-data FeatureState = FeatureState          -- 全部从 .codestable/features/{slug}/ 恢复
+data FeatureState = FeatureState          -- 从 feature 目录及 parent roadmap items / goal-state 恢复
   { featureDir         : Maybe Path
+  , executionLane      : Maybe ExecutionLane
   , designStatus       : Missing | Draft | Approved
   , designReviewStatus : DesignReviewStatus
+  , quickRunState      : QuickRunState
+  , standardRunState   : StandardRunState
   , goalRunState       : GoalRunState
+  , roadmapOwner       : Maybe EpicOwnership
   , epicChildBatch     : Bool             -- cs-epic 批量上下文，非公开参数
   }
 
@@ -97,28 +136,39 @@ restoreFeatureStage :: FeatureState -> EntryIntent -> FeatureOutcome
 restoreFeatureStage(s, intent)
   | ambiguousTarget(s, intent)                     -> NeedsHuman "which feature?"
   | changesApprovedScope(s, intent)                -> HumanCheckpoint ConfirmScopeChange
-  | wantsFastForward(intent) && ffEligible(s)      -> RoutedTo FastForward
-  | wantsFastForward(intent) && not ffEligible(s)  -> RoutedTo Design            -- 不合格（含跨公开契约/大范围）：结果是 RoutedTo Design（不是 NeedsHuman、不是 checkpoint），在推进 design 的同时说明降级原因
+  | lane == Quick && s.quickRunState == QuickImplementationPending -> RoutedTo FastForward
+  | lane == Quick && s.quickRunState == QuickReviewReady           -> RoutedTo CodeReview
+  | lane == Quick && s.quickRunState == QuickReviewFixing          -> RoutedTo FastForward
+  | lane == Quick && s.quickRunState == QuickComplete               -> Completed summary
   | s.designStatus == Missing                      -> RoutedTo Design
   | s.designStatus == Approved && s.designReviewStatus /= ReviewPassed
       -> NeedsHuman "approved design lacks passed design-review"
   | s.designReviewStatus in [ChangesRequested, ReviewBlocked] -> RoutedTo Design
   | s.designStatus == Draft && s.designReviewStatus == ReviewMissing -> RoutedTo DesignReview
+  | hasRoadmapOwner(s) && s.designReviewStatus == ReviewPassed -> RoutedTo <return-to-cs-epic>
   | s.designReviewStatus == ReviewPassed && s.designStatus /= Approved
       -> if s.epicChildBatch then RoutedTo <return-to-cs-epic> else HumanCheckpoint ConfirmDesign
-  | s.goalRunState == GoalMissing                  -> RoutedTo GoalPackage
-  | s.goalRunState == GoalComplete                 -> Completed summary
-  | s.goalRunState is GoalHandoffBlocked reason    -> GoalHandoff (handoffCommand reason)
-  | s.goalRunState is GoalDriverActive driver      -> ReportDriver driver
-  | s.goalRunState == GoalReadyToDispatch          -> DispatchGoalDriver "/goal"
-  | s.goalRunState == GoalImplementationRunning    -> RoutedTo Implementation
-  | s.goalRunState == GoalReviewReady              -> RoutedTo CodeReview
-  | s.goalRunState == GoalReviewFixing             -> RoutedTo Implementation   -- review-fix
-  | s.goalRunState == GoalQAReady                  -> RoutedTo QA
-  | s.goalRunState == GoalQAFixing                 -> RoutedTo Implementation   -- qa-fix，修完重跑 review+QA
-  | s.goalRunState == GoalAcceptanceReady          -> RoutedTo Acceptance
-  | s.goalRunState is GoalUnknown raw              -> NeedsHuman ("unknown goal-state: " <> raw)
+  | lane == Standard && s.standardRunState == StandardImplementationPending -> RoutedTo Implementation
+  | lane == Standard && s.standardRunState == StandardReviewReady           -> RoutedTo CodeReview
+  | lane == Standard && s.standardRunState == StandardReviewFixing          -> RoutedTo Implementation
+  | lane == Standard && s.standardRunState == StandardAcceptanceReady       -> RoutedTo Acceptance
+  | lane == Standard && s.standardRunState == StandardComplete              -> Completed summary
+  | lane == Goal && s.goalRunState == GoalMissing -> RoutedTo GoalPackage
+  | lane == Goal && s.goalRunState == GoalComplete              -> Completed summary
+  | lane == Goal && s.goalRunState is GoalHandoffBlocked reason -> GoalHandoff (handoffCommand reason)
+  | lane == Goal && s.goalRunState is GoalDriverActive driver   -> ReportDriver driver
+  | lane == Goal && s.goalRunState == GoalReadyToDispatch       -> DispatchGoalDriver "/goal"
+  | lane == Goal && s.goalRunState == GoalImplementationRunning -> RoutedTo Implementation
+  | lane == Goal && s.goalRunState == GoalReviewReady           -> RoutedTo CodeReview
+  | lane == Goal && s.goalRunState == GoalReviewFixing          -> RoutedTo Implementation
+  | lane == Goal && s.goalRunState == GoalQAReady               -> RoutedTo QA
+  | lane == Goal && s.goalRunState == GoalQAFixing              -> RoutedTo Implementation
+  | lane == Goal && s.goalRunState == GoalAcceptanceReady       -> RoutedTo Acceptance
+  | lane == Goal && s.goalRunState is GoalUnknown raw           -> NeedsHuman ("unknown goal-state: " <> raw)
+  where lane = classifyExecutionLane(s, intent)
 ```
+
+QuickRunState 从 `{slug}-ff-note.md` 和 `{slug}-review.md` 恢复：无 ff-note→FastForward，review 缺失/blocked→code review，changes-requested→Quick review-fix，有独立 reviewer 锚点的 passed→complete。StandardRunState 从 checklist、review、可选 QA 和 acceptance 恢复；failed/blocked QA 先 qa-fix，passed review 必须有独立 reviewer 锚点。旧 design 缺 `execution_lane` 且没有 goal state 时按 Standard；已有 goal state 始终按 Goal。
 
 ## Workflow
 
@@ -144,8 +194,9 @@ exitRecoverable     -- artifact 已落盘 / next stage 明确 / checkpoint reaso
 .codestable/features/{YYYY-MM-DD}-{slug}/
 ├── {slug}-design.md / {slug}-checklist.yaml
 ├── {slug}-design-review.md
-├── goal-plan.md / goal-state.yaml / goal-protocol.md
-├── {slug}-review.md / {slug}-qa.md / {slug}-acceptance.md
+├── goal-plan.md / goal-state.yaml / goal-protocol.md  # 仅 Goal
+├── {slug}-review.md / {slug}-acceptance.md
+├── {slug}-qa.md                                      # Goal 或用户显式要求
 └── {slug}-ff-note.md          # 仅 fastforward
 ```
 
@@ -168,7 +219,7 @@ stageProtocol FastForward    = "references/fastforward/protocol.md"
 -- 禁止：启动即读全部 references；用 implementation 协议做 design；code review 未过就进 QA
 ```
 
-design-review **gate 必需独立 Task agent reviewer**：主 agent 本地审查不得定稿 review、不得给 `passed`；design 修订后的**每一轮重审同样适用**（round 2+ 不得以"本地重审"代替），降级须 approval-report + 用户明确授权（细则见 protocol）。
+design-review 首轮和实质变化后的复审必须使用独立 Task agent reviewer；只改文字、编号、链接、格式或不改变契约的映射时走 focused closure，不启动新 reviewer。无法确定是否实质变化时完整独立复审，细则见 protocol。
 
 ## Human Checkpoints
 
@@ -182,7 +233,7 @@ onCheckpoint ConfirmScopeChange     = 停等用户确认范围变更
   -- 入口阶段的 fastforward 不合格 / 大范围需求不触发本 checkpoint，直接 RoutedTo Design
 ```
 
-implementation / code review / QA / acceptance 的普通阻塞优先由 goal driver 按协议循环修复，不在每个阶段默认打断用户。
+Goal lane 的 implementation / code review / QA / acceptance 阻塞由 goal driver 按协议循环修复。Standard 在当前 run 继续，review passed 后直接进入带 Inline Verification Matrix 的 acceptance；独立 QA 报告不是默认阶段。
 driver 不可见、派发失败或 driver 返回 handoff 时走 `GoalHandoff`，不是 `HumanCheckpoint` / `NeedsHuman` 的第二种写法。
 
 ## Failure Behavior
@@ -211,15 +262,17 @@ mustStop     (ReportDriver _)        = True
 mustStop     (Completed _)           = True
 ```
 
-退出或交接时必须报告：feature 目录、恢复出的 `goalRunState`、本轮写入文件、下一动作或 checkpoint、已运行验证。`DispatchGoalDriver` 不得直接退化成 `/goal`：先按 agent conventions 尝试可见 driver，只有不可用或派发失败才输出 `GoalHandoff`。
+退出或交接时必须报告：feature 目录、`executionLane`、对应 run state、本轮写入文件、下一动作或 checkpoint、已运行验证。Goal 的 `DispatchGoalDriver` 不得直接退化成 `/goal`：先按 agent conventions 尝试可见 driver，只有不可用或派发失败才输出 `GoalHandoff`。
 
-## Fastforward
+完成 marker：Quick 为 `CS_FEATURE_QUICK_COMPLETE`，Standard 为 `CS_FEATURE_STANDARD_COMPLETE`，Goal 为 `CS_FEATURE_GOAL_COMPLETE`；Standard 的 accept-inline 模式通过公开入口 `cs-feat --stage accept` 进入。
 
-`requested_mode: fastforward` 只是模式请求，不是跳过安全的许可。进入前确认范围小、需求清楚、无跨系统术语/契约风险；不合格则解释原因并回标准 design 流程。产物固定 `{slug}-ff-note.md`，不生成标准 design/checklist/QA/acceptance 套件。`cs-feat-ff` 是兼容入口，不再单独维护快速模式规则。
+## Quick / Fastforward
+
+Quick 默认按任务事实自动选择；`requested_mode: quick|fastforward` 只是显式偏好，不是跳过安全的许可。不合格则解释命中的风险条件并进入 Standard design。新 Quick 的业务产物只有 `{slug}-ff-note.md`；从已有 design 降级时保留历史 design 并记录 `execution_lane: quick`，不再维护 checklist/QA/acceptance，但已存在的 QA/acceptance 只有 `passed` 可兼容保留，其他状态必须先解决冲突。横切 review 仍写 `{slug}-review.md`。`cs-feat-ff` 是兼容入口。
 
 ## Epic 子 Feature 批量上下文
 
-`cs-epic` 批量生成子 feature design 时以内部上下文 `epicChildBatch: true` 调用（非公开参数，不写入 argument-hint）。**该上下文还表示 CONTEXT / adrs / compound 等全局输入已由 `cs-epic` 在批量开始时统一加载，design 阶段复用、不重复读取这些全局输入**（幂等，省掉 N 个子 feature 各扫一遍）。此时：design-review passed 后 design 保持 `draft`、**不执行单 feature 的人工整体 review checkpoint**、不改 approved；design-review passed 但未 approved 时**不在这里停，回到 `cs-epic` 继续下一个子 feature**，等所有 design 统一确认；回写 design/checklist/design-review/items.yaml 后返回 `cs-epic`，**不得用 final answer 要用户确认单个 child**；退出前运行 `python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --epic-child-batch --json`，若输出 `final_answer_allowed: false` 按 `next_action` 交回 `cs-epic`。单独调用 `cs-feat` 或无该上下文时，仍按普通 checkpoint 停。
+`cs-epic` 批量生成子 feature design 时以内部上下文 `epicChildBatch: true` 调用；该上下文强制 Goal lane，并表示 CONTEXT / adrs / compound 已由 `cs-epic` 统一加载，design 阶段不重复读取这些全局输入。design-review passed 后 design 保持 `draft`，不执行单 feature 的人工整体 review checkpoint；不在这里停，回到 `cs-epic` 继续下一个子 feature，最终由 Epic 批量确认。不得用 final answer 要用户确认单个 child。恢复 child 时，design 的 `roadmap` / `roadmap_item` 必须同时为空或成对存在；成对 metadata 经 parent `items.yaml` 唯一条目及其 `feature` 指针证明，或 parent items 按同一指针/精确目录 slug、roadmap goal-state 按 `features[].feature_dir` 反向唯一认领当前目录时，即使没有 batch flag 也必须交回 `cs-epic`；错误 items/goal-state 结构或路径、forward/reverse 不一致、任意第二 claim 都 fail-closed。退出前运行 `codestable-workflow-next.py feature --epic-child-batch`，按 `next_action` 交回 `cs-epic`。
 
 ## 兼容入口
 
@@ -232,8 +285,11 @@ mayExit :: State -> Bool
 mayExit s = artifactPersistedAndRecoverable s   -- 当前阶段产物已落盘，状态可由 restoreFeatureStage 从仓库事实恢复
          && nextClearlyStated s                 -- 阻塞项、HumanCheckpoint 或下一阶段已明确说明
 
-fullyDone :: FeatureState -> Bool               -- 标准流程最终门槛
-fullyDone s = designApproved s && reviewPassed s && qaPassed s && acceptancePassed s
+fullyDone :: FeatureState -> Bool
+fullyDone s = case executionLane s of
+  Quick    -> ffNoteWritten s && reviewPassed s
+  Standard -> designApproved s && reviewPassed s && acceptancePassed s
+  Goal     -> designApproved s && reviewPassed s && qaPassed s && acceptancePassed s
 ```
 
 需要外部文档提示 `cs-docs`；阶段收尾/记忆同步提示 `cs-docs-neat`。

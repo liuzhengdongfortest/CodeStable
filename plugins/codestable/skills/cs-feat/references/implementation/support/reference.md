@@ -90,7 +90,7 @@ coding feature / coding step 改变代码行为且可自动化观察时，默认
 
 Goal 模式不要停在这句汇报；按 goal 协议更新 `goal-state.yaml` 后进入 before_review gates 和 `cs-code-review`。如果需要改变 approved design、feature 范围、公开契约或 roadmap item，打印 `CS_FEATURE_GOAL_HANDOFF` / `CS_ROADMAP_GOAL_HANDOFF` 并交还用户。
 
-如果本轮是 review-fix，告诉用户："review blocking 已按范围修复。下一步重跑 cs-code-review；复审通过后再进入 `cs-feat` QA 阶段。"
+如果本轮是 review-fix，告诉用户："review blocking 已按范围修复。下一步回到 cs-code-review，由 gate 判断 focused closure 或完整独立复审；Standard 通过后 accept-inline，Goal 通过后 QA。"
 
 如果本轮是 qa-fix，告诉用户："QA 失败项已按范围修复。下一步重跑 cs-code-review；review 通过后重跑 `cs-feat` QA 阶段，再进入 `cs-feat` acceptance 阶段。"
 

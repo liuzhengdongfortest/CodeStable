@@ -1,0 +1,20 @@
+{
+  "id": "rt-f16",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "executionLane": "Standard",
+      "designStatus": "Approved",
+      "designReviewStatus": "ReviewPassed",
+      "standardRunState": "StandardImplementationPending",
+      "goalRunState": "GoalMissing"
+    }
+  },
+  "expect": {
+    "result_type": "RoutedTo",
+    "target": "Implementation",
+    "must_not_target": "GoalPackage"
+  },
+  "_provenance": "GitHub #43：普通单 feature 的 approved design 应在当前 run 实现，不默认创建 goal package。"
+}

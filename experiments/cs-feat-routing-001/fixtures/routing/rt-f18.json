@@ -1,0 +1,26 @@
+{
+  "id": "rt-f18",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "designStatus": "Missing",
+      "designReviewStatus": "ReviewMissing",
+      "goalRunState": "GoalMissing"
+    },
+    "intent": {
+      "requirementClear": true,
+      "localChange": true,
+      "reusesExistingPublicContract": true,
+      "targetedVerificationKnown": true,
+      "highRisk": false
+    },
+    "utterance": "这是小改动，流程太重了，文档已经比代码多；请重新分类后直接完成"
+  },
+  "expect": {
+    "result_type": "RoutedTo",
+    "target": "FastForward",
+    "must_not_target": "Design"
+  },
+  "_provenance": "GitHub #43：用户明确反馈流程过重必须触发重新分类，而不是继续生成全量产物。"
+}

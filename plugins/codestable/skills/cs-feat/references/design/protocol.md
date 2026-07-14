@@ -18,6 +18,8 @@
 退出前必须运行 `codestable-workflow-next.py feature --epic-child-batch`，用 hook 输出确认
 本轮只能交回 `cs-epic`，不能停在单个 child design 确认。
 
+本阶段初次起草只接收 `cs-feat` 已判定的 Standard 或 Goal lane，并把它写入 design frontmatter 的 `execution_lane`。普通单 feature 默认 `standard`；用户明确要求长程自主执行、显式 goal 模式或 Epic 上下文才写 `goal`。`quick` 只用于已有 design 经 owner 明确要求、重新核对风险后降级的持久化记录；同时写 `execution_lane_reason`，保留历史 design，不再继续维护 checklist/QA/acceptance。已有 goal-state 时必须先安全 handoff，不得仅改 frontmatter 绕过 driver。执行 lane 只描述推进方式，不改变 approved public contract；Standard 不创建 goal package。
+
 **设计原则**：design 不是实现前的散文说明，而是后续实现和验收的可执行契约。它必须把"做好"翻译成可观察证据，把 steps 切成独立可验证单元，把风险和依赖前置暴露，并在交给用户前做一次自我批判，修掉含糊标准、混合步骤和薄弱依赖。
 
 **推进原则**：design 要把后续执行需要的"操作手册"写到位：当前基线怎么确认、每步完成后看什么证据、哪些命令必须重跑、哪些交付物要真实落盘、失败时回到哪个契约修。否则 implement 只能临场判断，review 没有稳定契约可审，QA 不知道该跑什么证据，acceptance 也只能相信实现汇报。

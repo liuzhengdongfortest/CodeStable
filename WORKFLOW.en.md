@@ -28,6 +28,8 @@ The vertical layout is layering, not strict time order. Long-lived records are r
 
 The event entries are `cs-feat` for new capability, `cs-issue` for bugs, `cs-refactor` for behavior-preserving cleanup, and `cs-docs` for outward documentation. `cs-code-review` remains the cross-cutting implementation review gate.
 
+`cs-feat` selects a lane from task risk, never from model identity: Quick is for clear local changes that reuse existing contracts and have targeted verification; Standard adds design and inline acceptance while staying in the current run; Goal is opt-in for explicit long-range execution, existing goal state, or Epic children.
+
 The knowledge and feedback loop remains cross-cutting: `cs-keep` compounds knowledge; explicit `cs-feedback` calls produce local-private incidents/triage and require separate preview confirmation before upload; `cs-docs-neat` handles milestone hygiene.
 
 Old stage skills remain long-term compatibility entries:

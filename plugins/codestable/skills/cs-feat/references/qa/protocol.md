@@ -2,6 +2,8 @@
 
 本阶段是 review 通过后、acceptance 前的 QA gate。它只读代码和产物、运行验证命令 / 浏览器 / API / 手工检查，并写 `{slug}-qa.md`。默认不改代码、不改 checklist、不改 design；发现失败后回到 `cs-feat` implementation 阶段的 qa-fix。
 
+本阶段默认只用于 Goal lane，或用户在 Standard lane 明确要求独立 QA 报告的情况。Standard 默认把同等强度验证合并进 accept-inline；Quick 不生成独立 QA 报告。
+
 QA 的目标不是再做一遍 code review，也不是最终归档验收报告。它回答一个问题：在当前工作区里，design 承诺的关键行为是否有足够的运行证据，review 指出的测试焦点和 residual risk 是否被实际覆盖。
 
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节。

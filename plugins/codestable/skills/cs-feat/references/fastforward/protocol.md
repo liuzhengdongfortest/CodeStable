@@ -1,6 +1,6 @@
 # Feature Fastforward Protocol
 
-用户让你做小功能时本来 AI 就会直接动手——这个技能**不改变这件事**。它只做一件事：动手前把项目里已沉淀的 CodeStable 知识指给你，按需搜一下，写出来的代码就比裸写多一层保护；动手后回写一份**最简的 `{slug}-ff-note.md`** 让这次工作可追溯、可被 cs-req / cs-domain backfill 看到、能纳入 scoped-commit 提交。
+用户让你做小功能时本来 AI 就会直接动手——Quick 默认按任务事实自动选择，不要求用户事先知道 `--mode fastforward`。本协议只多做两件事：动手前按需读取已沉淀的 CodeStable 知识；动手后回写一份**最简的 `{slug}-ff-note.md`**，让实现与验证可追溯。
 
 很轻：没有 design doc / checklist / 验收清单 / 动手前的用户确认。看完指引，该读代码读、该写代码写、写完回写一段话。
 
@@ -37,7 +37,9 @@ Glob `.codestable/` 发现可用目录和文档，按需取用：
 
 fastforward 直接按当前检出环境改项目源码；CodeStable 不决定分支或检出策略。动手前先确认当前 dirty scope，只把和本次小功能相关的改动纳入结果。
 
-ff-note 落盘、收尾提交前进入 `cs-code-review` 做独立 diff 评审；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
+ff-note 落盘、收尾提交前做首次独立代码审查；Critical/Important 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
+
+断点恢复以 ff-note + review 为准：没有 ff-note 就继续 Quick 实现；ff-note 已有但 review 缺失/blocked 就回 `cs-code-review`；`changes-requested` 时读取 findings 做窄 review-fix、更新 ff-note 验证记录，再回 review；只有 `reviewer: subagent|subagent+ocr` 的 passed review 才打印 `CS_FEATURE_QUICK_COMPLETE`。已有 design 的显式降级必须先按 `cs-feat` 主契约持久化 `execution_lane: quick`，不能只生成 ff-note。
 
 ---
 
@@ -149,8 +151,9 @@ tags: [...]
 ## 不做什么
 
 - **不写 design doc / checklist / acceptance**——这就是 fastforward 的意义。要写就去 `cs-feat` design 阶段
+- **不生成独立 QA / acceptance 报告**——目标测试、构建和必要烟测写进 ff-note，首次独立代码审查仍保留
 - **不跟用户确认方案**——用户让你做小功能就是不想等你开会
-- **不在 `.codestable/` 里留 `{slug}-ff-note.md` 之外的新文件**——除非发现值得沉淀的坑 / 技巧，另起对话用 `cs-keep` 写
+- **不生成标准 feature 套件**——业务流程只写 `{slug}-ff-note.md`；横切 `cs-code-review` 仍按 gate 写 `{slug}-review.md`，知识沉淀另走 `cs-keep`
 
 ---
 
@@ -171,6 +174,7 @@ tags: [...]
 
 - [ ] 代码写完且用户确认效果 OK
 - [ ] `{slug}-ff-note.md` 已落盘且四节填齐（顺手发现可省）
+- [ ] `{slug}-review.md` 已由独立 reviewer 审查通过
 - [ ] 没有未对齐的"顺手发现"（都进 ff-note 末节，留给后续）
 
 ---
@@ -182,7 +186,7 @@ tags: [...]
 - **提交范围**：本次代码改动 + `{slug}-ff-note.md`
 - ff-note 落盘后告诉用户"已就绪，是否代为 commit？"，用户明确同意才执行
 
-收尾 commit 前先进入 `cs-code-review` 做一轮独立 diff 评审，Critical / Important 未清零不进 commit；scoped-commit 发起权归 `cs-code-review`。
+收尾 commit 前先进入 `cs-code-review` 做首次独立 diff 评审，Critical / Important 未清零不进 commit；scoped-commit 发起权归 `cs-code-review`。
 
 按 `shared-conventions.md` 第 3 节"feature-ff"收尾推荐顺序逐项一句话提示（用户"不用"立即跳过）：
 

@@ -28,6 +28,12 @@ cs
 
 第 3 层是事件入口：新需求走 `cs-feat`，bug 走 `cs-issue`，腐化走 `cs-refactor`，对外文档走 `cs-docs`。`cs-code-review` 是横切代码审查 gate，feature / issue / refactor 链路都经它产 `{slug}-review.md`。
 
+`cs-feat` 内部按风险而不是模型名称分三条 lane：
+
+- Quick：需求明确、改动局部、复用既有契约且有目标验证入口；直接实现、验证、首次独立 review，只写 ff-note。
+- Standard：需要 design 或跨模块决策，但适合当前 run 完成；不默认建 goal package，review 后用 accept-inline 聚合验证。
+- Goal：用户明确要求长程自主执行、已有 goal state 或来自 Epic；保留 goal driver、独立 QA 和完整 acceptance。
+
 横切层是知识与反馈飞轮：`cs-keep` 沉淀 compound；`cs-feedback` 仅在显式调用后生成 local-private incident/triage，public preview 经确认后才可上报；`cs-docs-neat` 在里程碑收尾时同步文档与记忆。
 
 旧阶段技能仍是长期兼容入口，但不再作为主路径展示：

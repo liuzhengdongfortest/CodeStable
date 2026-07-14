@@ -174,14 +174,21 @@ def feature_dir(repo: Path, slug: str) -> Path:
     return repo / ".codestable/features" / f"2026-07-02-{slug}"
 
 
-def write_feature_design(repo: Path, slug: str, status: str = "draft", roadmap: str | None = None) -> Path:
+def write_feature_design(
+    repo: Path,
+    slug: str,
+    status: str = "draft",
+    roadmap: str | None = None,
+    execution_lane: str = "standard",
+) -> Path:
     directory = feature_dir(repo, slug)
     roadmap_fields = ""
     if roadmap:
         roadmap_fields = f"roadmap: {roadmap}\nroadmap_item: {slug}\n"
     write(
         directory / f"{slug}-design.md",
-        f"---\ndoc_type: feature-design\nfeature: 2026-07-02-{slug}\n{roadmap_fields}status: {status}\n---\n# Design\n",
+        f"---\ndoc_type: feature-design\nfeature: 2026-07-02-{slug}\n{roadmap_fields}"
+        f"execution_lane: {execution_lane}\nstatus: {status}\n---\n# Design\n",
     )
     write(
         directory / f"{slug}-checklist.yaml",
@@ -219,7 +226,9 @@ def feature_next(repo: Path, slug: str) -> Action:
     if not design.exists():
         return Action("load-reference", "cs-feat/references/design/protocol.md")
 
-    design_status = frontmatter(design).get("status")
+    design_meta = frontmatter(design)
+    design_status = design_meta.get("status")
+    execution_lane = design_meta.get("execution_lane", "standard")
     review_status = frontmatter(review).get("status")
     if design_status == "approved" and review_status != "passed":
         return Action("blocked", "invalid-approved-design-review")
@@ -230,7 +239,9 @@ def feature_next(repo: Path, slug: str) -> Action:
     if review_status == "passed" and design_status != "approved":
         return Action("user-checkpoint", "feature-design-confirmation")
     if design_status == "approved" and not goal_state.exists():
-        return Action("load-reference", "cs-feat/references/goal/protocol.md")
+        if execution_lane == "goal":
+            return Action("load-reference", "cs-feat/references/goal/protocol.md")
+        return Action("load-reference", "cs-feat/references/implementation/protocol.md")
 
     state = top_level_yaml(goal_state)
     stage = state.get("stage")
@@ -430,7 +441,10 @@ def code_review_next(repo: Path, feature_slug: str | None = None, range_arg: str
         if frontmatter(review).get("status") == "passed":
             diff = git(repo, "diff", "--stat").stdout
             if not diff:
-                return Action("downstream", "cs-feat QA")
+                design = directory / f"{feature_slug}-design.md"
+                lane = frontmatter(design).get("execution_lane", "standard")
+                downstream = "cs-feat QA" if lane == "goal" else "cs-feat acceptance-inline"
+                return Action("downstream", downstream)
         diff = git(repo, "diff", "--stat").stdout
         if diff:
             return Action("run-review", f".codestable/features/2026-07-02-{feature_slug}")
@@ -548,7 +562,7 @@ def test_feature_long_range_scenario_simulates_human_design_confirmation(tmp_pat
         "cs-feat",
         "SKILL.md",
         "design gate 停下来等用户确认",
-        "默认生成单 feature goal 包",
+        "Goal lane",
         "可见 Task agent goal driver 长程执行",
     )
     assert_doc_contains(
@@ -562,7 +576,7 @@ def test_feature_long_range_scenario_simulates_human_design_confirmation(tmp_pat
     slug = "export-csv"
 
     assert feature_next(repo, slug) == Action("load-reference", "cs-feat/references/design/protocol.md")
-    write_feature_design(repo, slug, status="draft")
+    write_feature_design(repo, slug, status="draft", execution_lane="goal")
     assert feature_next(repo, slug) == Action("load-reference", "cs-feat/references/design-review/protocol.md")
     write_feature_design_review(repo, slug, status="passed")
     assert feature_next(repo, slug) == Action("user-checkpoint", "feature-design-confirmation")
@@ -575,6 +589,64 @@ def test_feature_long_range_scenario_simulates_human_design_confirmation(tmp_pat
     assert feature_next(repo, slug) == Action("dispatch-goal-driver", "feature")
     write_feature_goal_state(repo, slug, "implementation", "running", driver="paseo")
     assert feature_next(repo, slug) == Action("report-visible-driver", "paseo-123")
+
+
+def test_feature_quick_lane_is_default_for_clear_local_work_and_can_reclassify() -> None:
+    assert_doc_contains(
+        "cs-feat",
+        "SKILL.md",
+        "classifyExecutionLane",
+        "Quick",
+        "Standard",
+        "Goal",
+        "复用既有公开契约",
+        "目标验证入口",
+        "流程太重",
+        "重新分类",
+        "data QuickRunState",
+        "CS_FEATURE_QUICK_COMPLETE",
+        "CS_FEATURE_STANDARD_COMPLETE",
+        "先把 `execution_lane: quick`",
+        "已有 `goal-state.yaml` 时不得原地降级",
+    )
+    assert_doc_contains(
+        "cs-feat",
+        "references/fastforward/protocol.md",
+        "默认按任务事实自动选择",
+        "首次独立代码审查",
+        "不生成独立 QA / acceptance 报告",
+    )
+
+
+def test_feature_spec_routes_roadmap_owned_children_to_epic() -> None:
+    assert_doc_contains(
+        "cs-feat",
+        "SKILL.md",
+        "roadmapOwner",
+        "hasRoadmapOwner(s)",
+        "parent `items.yaml`",
+        "精确目录 slug",
+        "features[].feature_dir",
+        "RoutedTo <return-to-cs-epic>",
+    )
+
+
+def test_feature_review_restarts_only_for_material_changes() -> None:
+    assert_doc_contains(
+        "cs-feat",
+        "references/design-review/protocol.md",
+        "实质变化",
+        "focused closure",
+        "文字、编号、链接、格式",
+    )
+    assert_doc_contains(
+        "cs-code-review",
+        "SKILL.md",
+        "test/docs/type/metadata/nit-only",
+        "focused closure",
+        "行为、公开契约、安全、数据、并发或架构",
+        "完整独立复审",
+    )
 
 
 @pytest.mark.parametrize("review_status", ["changes-requested", "blocked"])
@@ -858,7 +930,7 @@ def test_code_review_scenario_handles_feature_diff_and_ad_hoc_range(tmp_path: Pa
     )
     git(repo, "add", ".")
     git(repo, "commit", "-m", "add review")
-    assert code_review_next(repo, feature_slug=slug) == Action("downstream", "cs-feat QA")
+    assert code_review_next(repo, feature_slug=slug) == Action("downstream", "cs-feat acceptance-inline")
 
 
 @pytest.mark.parametrize("entry,expected", sorted(COMPATIBILITY_ENTRIES.items()))

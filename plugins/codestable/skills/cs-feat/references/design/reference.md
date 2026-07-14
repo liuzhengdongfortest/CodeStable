@@ -11,16 +11,21 @@ feature: 2026-04-12-user-auth
 requirement: user-auth-email
 roadmap: permission-system           # 可选：本 feature 从某 roadmap 条目起头时填
 roadmap_item: permission-rbac-core   # 可选：对应 roadmap items.yaml 里的 slug
+execution_lane: standard             # standard | goal；已有 design 降级时可记录 quick
+execution_lane_reason: ""            # 可选；重分类时必填原因
 status: draft
 summary: 支持用户通过邮箱验证码登录后台
 tags: [auth, email, login]
 ---
 ```
 
-必填：`doc_type` / `feature` / `status` / `summary` / `tags`。
+必填：`doc_type` / `feature` / `execution_lane` / `status` / `summary` / `tags`。
 
 - `requirement`：填对应 req 的 slug；纯重构 / 技术债允许留空
 - `roadmap` / `roadmap_item`：从 roadmap 条目起头时才填，两个一起填或一起空
+- `execution_lane`：普通单 feature 默认 `standard`；只有用户明确要求长程执行或 Epic 上下文才写 `goal`；`quick` 仅表示已有 design 已被明确降级
+- `execution_lane_reason`：初始 Standard/Goal 可省略；重分类 Quick 时记录 owner 信号与风险复核结论
+- 兼容旧 artifact：字段缺失且没有 `goal-state.yaml` 时按 `standard` 恢复；已有 goal state 始终按 `goal` 恢复
 
 ## 2. 顶层节锚点
 

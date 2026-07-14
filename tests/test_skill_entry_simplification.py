@@ -201,7 +201,7 @@ MAIN_ENTRY_SKILLS = [
 MAIN_ENTRY_ARGUMENT_HINTS = {
     "cs": "[request]",
     "cs-onboard": "[--mode refresh-runtime]",
-    "cs-feat": "[--stage design|design-review|impl|qa|accept|goal-package] [--mode fastforward] <feature>",
+    "cs-feat": "[--stage design|design-review|impl|qa|accept|goal-package] [--mode quick|standard|goal|fastforward] <feature>",
     "cs-issue": "[--stage report|analyze|fix] <issue>",
     "cs-refactor": "[--stage scan|design|apply] [--mode standard|fastforward] <target>",
     "cs-docs": "[--mode tutorial|api] <topic>",
@@ -359,6 +359,27 @@ def test_feat_and_epic_document_goal_driver_dispatch() -> None:
     assert "派发失败" in epic_goal
     assert "fenced `/goal`" in feat_goal
     assert "fenced `/goal`" in epic_goal
+
+
+def test_feature_contract_classifies_quick_standard_and_goal_lanes() -> None:
+    feat = (SKILLS / "cs-feat/SKILL.md").read_text(encoding="utf-8")
+    router = (SKILLS / "cs/SKILL.md").read_text(encoding="utf-8")
+    fastforward = (SKILLS / "cs-feat/references/fastforward/protocol.md").read_text(encoding="utf-8")
+    design_reference = (SKILLS / "cs-feat/references/design/reference.md").read_text(encoding="utf-8")
+    code_review = (SKILLS / "cs-code-review/SKILL.md").read_text(encoding="utf-8")
+
+    assert "data ExecutionLane = Quick | Standard | Goal" in feat
+    assert "classifyExecutionLane" in feat
+    assert "quickEligible" in feat
+    assert "用户明确要求长程自主执行" in feat
+    assert "已有 `goal-state.yaml`" in feat
+    assert "这是小改动" in feat and "文档比代码多" in feat
+    assert "风险分级" in router
+    assert "默认按任务事实自动选择" in fastforward
+    assert "execution_lane: standard" in design_reference
+    assert "focused closure" in code_review
+    assert "test/docs/type/metadata/nit-only" in code_review
+    assert "无法确定" in code_review and "完整独立复审" in code_review
 
 
 def test_goal_mode_overrides_stage_user_waits() -> None:

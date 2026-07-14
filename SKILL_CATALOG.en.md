@@ -13,7 +13,7 @@ Main entries accept optional stage / mode flags (for example `/cs-feat --stage q
 | Epic | `cs-epic` | Large-demand entry: planning, review, child feature design, goal package, and visible driver dispatch |
 | Goal | `cs-goal` | Autonomous iteration from a defined start state to accepted end state |
 | Brainstorm | `cs-brainstorm` | Triage unclear ideas into feature, epic, or brainstorm notes |
-| Feature flow | `cs-feat` | End-to-end feature entry: design, review, goal package, impl, code review, QA, accept |
+| Feature flow | `cs-feat` | Risk-based Quick / Standard / Goal entry; Goal is reserved for explicit long-range execution or Epic |
 | Issue flow | `cs-issue` | End-to-end issue entry: report, analyze, fix, review |
 | Refactor flow | `cs-refactor` | Behavior-preserving refactor entry with standard and fastforward modes |
 | Cross-cutting review | `cs-code-review` | Read-only implementation review gate |

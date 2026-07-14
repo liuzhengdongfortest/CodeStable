@@ -37,15 +37,15 @@
 5. 如果已有 `{slug}-design-review.md`：
    - `status: passed` 且 design/checklist 未变化：提示可进入用户整体 review。
    - `status: changes-requested` / `blocked`：读取旧 findings，确认是否复审。
-   - design/checklist 已变化：重新 review，并在报告里记录轮次。
+   - design/checklist 已变化：先按下方“实质变化 vs focused closure”分类，再决定是否增加 review 轮次。
 
 ---
 
 ## 独立 Task agent reviewer gate
 
-本阶段必须优先启动独立 Task agent reviewer；本规则对**每一轮 review 都成立**——设计/规划修订后的 round 2+ 重审不得以主 agent 本地重审代替独立审查；当前 agent 的本地审查只能作为合并与事实核验，不能替代独立审查。只有运行时确实没有 Task agent 能力、provider 不可用且无法配置，或用户在看到降级风险后明确授权，才允许 `local-only` / `skipped-by-user`。批量 design、赶时间、主 agent 自认为风险低，都不是降级理由；需要授权降级时，先按 `.codestable/reference/approval-conventions.md` 写 `approval-report.md`，再让用户选择。
+首次 design review 必须优先启动独立 Task agent reviewer。修订后先分类：行为、公开契约、架构边界、验收语义或范围发生**实质变化**时，启动新的完整独立复审；只改文字、编号、链接、格式，或修正不改变上述契约的映射时走 `focused closure`，由主 agent 核对本轮可归因 diff、目标校验和原 finding，追加 closure evidence，不启动新 reviewer、不增加 round。无法确定分类、跨会话无法归因修改，或修订夹带实现/范围变化时，fail-closed 做完整独立复审。
 
-一旦本轮应该启动或已经启动独立 Task agent reviewer，它就是本轮 review gate 的输入。主 agent 可以先做本地审查草稿，但不能在 reviewer 返回前定稿 `{slug}-design-review.md`、不能给出 `passed`、不能把 design 交给用户确认。reviewer 卡住、失败、权限阻塞或耗时过长时，只能把本轮标成 `blocked` / `independent-review-pending`，让用户决定继续等待、重试 reviewer，或明确降级为 local-only review。
+完整独立审查一旦应该启动或已经启动，reviewer 就是 gate 输入；返回前不能定稿 `passed`。focused closure 只适用于首次独立 reviewer 已完成且原 finding 可窄验证的同一修订链，不得借它绕过首次审查或关闭实质 finding。运行时确实没有 Task agent 能力时，仍须 approval-report + 用户明确授权才可降级。
 
 **检测由主 agent 在运行时自检自己的工具**，不靠脚本猜环境——主 agent 最清楚自己手上有哪些工具。按 Task agent 选择规则启动独立 Task agent reviewer（**plan / read-only 等价 mode 只读启动**，mode 名按 provider capability 发现、一步到位不要先默认 mode 再重起，细则见 agent-conventions「启动 mode」；优先 Paseo subagent，否则当前宿主原生 Codex/Claude Task/Agent）：
 
@@ -247,6 +247,13 @@ Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
 
 - Status: passed|changes-requested|blocked
 - Next: 交给用户整体 review | 回 `cs-feat` design 阶段 修订后重跑 `cs-feat` design-review 阶段 | 等独立 Task agent reviewer 完成 / 用户确认降级后重跑
+
+## 8. Focused Closure（无则写 none）
+
+- Closed findings: {finding ids}
+- Attributed delta: {只含文字、编号、链接、格式或非契约映射的文件/位置}
+- Verification: {目标检查与结果}
+- Classification: {为什么没有改变行为、公开契约、架构边界、验收语义或范围}
 ```
 
 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。
@@ -258,7 +265,7 @@ Summary: E={n}, C={n}, H={n}, H-only core checks={列表或 none}。
 - [ ] 已读取 attention、design、checklist、相关 intent / brainstorm / roadmap / req / arch / compound。
 - [ ] 已按 design 声明核验必要代码、接口、类型、组件或命令事实。
 - [ ] 已确认 checklist 可解析，steps/checks 都可追溯。
-- [ ] 已按 Task agent 选择规则启动独立 reviewer；若未启动，已记录确无能力 / provider 不可用 / 用户授权降级。
+- [ ] 首次/实质复审已按规则启动独立 reviewer；focused closure 已证明首次 reviewer 完成、增量可归因且类别合格。
 - [ ] 如果启动了独立 Task agent reviewer，已等到 completed 并逐条本地核验合并 / 驳回 findings；否则报告 `status: blocked`，没有进入用户 review。
 - [ ] 已审查需求边界、术语、名词层、编排层、挂载点、结构健康度、验收契约、steps/checks、基线、交付物、清洁度。
 - [ ] 已检查 Acceptance Coverage Matrix、Feature Design Review Invariants 和 Evidence Confidence Ledger。

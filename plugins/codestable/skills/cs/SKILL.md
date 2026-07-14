@@ -92,6 +92,8 @@ Ambiguous -> HumanCheckpoint ClarifyRoute
 | 开发者 / 用户指南、API 参考 | `cs-docs` |
 | 阶段收尾、全局文档与记忆卫生 | `cs-docs-neat` |
 
+`cs` 只决定工作类型；转交 `cs-feat` 后由它做风险分级，自动选择 Quick、Standard 或 Goal。不要因为请求属于“新功能”就预设完整 design/goal 流程。
+
 一个请求同一时刻只转交一个主入口。若用户同时给出两个独立诉求，返回 `HumanCheckpoint ClarifyRoute` 询问先后顺序，不并行加载两个目标。
 
 ## 转交协议
@@ -118,7 +120,7 @@ Dispatch: continuing-current-run | recommendation-only
 
 体系速读保持简短，并只介绍推荐主入口：
 
-- 生命周期：`cs-feat` 覆盖 design、design-review、goal 包、impl、code review、QA、accept，并可由可见 driver 长程执行；另有 `cs-issue`、`cs-refactor`、`cs-epic`。
+- 生命周期：`cs-feat` 先做风险分级；Quick 走实现/验证/一次 review，Standard 在当前 run 走 design/impl/review/accept-inline，Goal 才走 goal 包、impl、code review、QA、accept 并可由可见 driver 长程执行；另有 `cs-issue`、`cs-refactor`、`cs-epic`。
 - 横切能力：`cs-code-review`、`cs-audit`、`cs-docs`、`cs-docs-neat`、`cs-feedback`。
 - 需求与知识：`cs-req`、`cs-domain`、`cs-keep`、`cs-note`。
 - 启动与探索：`cs-onboard`、`cs-brainstorm`、`cs-goal`。

@@ -1,0 +1,21 @@
+{
+  "id": "rt-f17",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "executionLane": "Goal",
+      "designStatus": "Approved",
+      "designReviewStatus": "ReviewPassed",
+      "goalRunState": "GoalMissing"
+    },
+    "intent": {
+      "requestedStage": "goal-package"
+    }
+  },
+  "expect": {
+    "result_type": "RoutedTo",
+    "target": "GoalPackage"
+  },
+  "_provenance": "GitHub #43：用户明确要求长程 Goal 时仍保留完整 goal package 路径。"
+}

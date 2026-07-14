@@ -86,12 +86,12 @@ def make_repo(tmp_path: Path) -> Path:
         (repo / readme).write_text(
             "\n".join(
                 [
-                    "codex plugin marketplace add liuzhengdongfortest/CodeStable",
+                    "codex plugin marketplace add codestable/CodeStable",
                     "codex plugin add codestable@codestable",
                     "codex plugin marketplace upgrade codestable",
                     "/plugin marketplace update",
                     "/plugin update codestable@codestable",
-                    "npx skills@latest add liuzhengdongfortest/CodeStable",
+                    "npx skills@latest add codestable/CodeStable",
                     "npx skills@latest update",
                     "",
                 ]

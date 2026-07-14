@@ -164,7 +164,7 @@ CodeStable 顺着软件编码的真实流程来设计，把开发活动建模成
 
 | 流程 | 推荐主入口 | 说明 |
 |------|------------|------|
-| **特性引入** | `cs-feat` | 一个入口端到端推进 design → design-review → 用户确认 → goal 包长程执行 implementation → `cs-code-review` → QA → acceptance |
+| **特性引入** | `cs-feat` | 按风险自动选择：Quick 直接实现/验证/review；Standard 在当前 run 走 design/impl/review/accept-inline；Goal 才生成 goal 包并执行 QA/acceptance |
 | **大需求端到端** | `cs-epic` | 大需求规划 → 规划审查 → 用户确认 → 子 feature design/review → goal 执行包 → 派发可见 goal driver（失败则输出 `/goal` 指令） |
 | **目标达成** | `cs-goal` | 限定起点/终点 → grill 写起点报告 → 自主实现/验证/迭代 → subagent 功能验收 |
 | **问题修改** | `cs-issue` | 一个入口端到端推进 report → analyze → fix → `cs-code-review` |
@@ -187,7 +187,7 @@ CodeStable 顺着软件编码的真实流程来设计，把开发活动建模成
 | Epic | `cs-epic` | 大需求端到端：规划、review、子 feature design、goal 包 |
 | 讨论入口 | `cs-brainstorm` | 想法模糊时分诊到 feature、epic 或 brainstorm note |
 | 目标 | `cs-goal` | 限定起点/终点后自主迭代到验收 |
-| 特性流程 | `cs-feat` | 新特性端到端：design、review、impl、code review、QA、accept |
+| 特性流程 | `cs-feat` | 新特性按 Quick / Standard / Goal lane 推进，Goal 仅显式长程执行时启用 |
 | 问题流程 | `cs-issue` | 问题修复端到端：report、analyze、fix、review |
 | 重构流程 | `cs-refactor` | 行为等价重构，含标准模式和 fastforward mode |
 | 横切审查 | `cs-code-review` | 实现完成后、commit 前的只读代码审查 gate |
@@ -213,7 +213,7 @@ CodeStable 顺着软件编码的真实流程来设计，把开发活动建模成
 
 ## 工作流与运行时
 
-CodeStable 是分层、事件驱动的：`cs` 先判入口模式，行动请求同轮直转，咨询请求只给建议；`cs-feat` / `cs-issue` / `cs-refactor` 按仓库事实恢复阶段并经过 `cs-code-review`，其中 issue / refactor 在 review、blocking 或用户确认 checkpoint 停下；`cs-epic` 编排 planning、批量子 design 和 goal driver；旧阶段技能只保留为兼容入口。
+CodeStable 是分层、事件驱动的：`cs` 先判入口模式，行动请求同轮直转，咨询请求只给建议；`cs-feat` 再按任务风险选择 Quick / Standard / Goal，并按仓库事实恢复阶段；`cs-issue` / `cs-refactor` 同样经过 `cs-code-review`，并在 review、blocking 或用户确认 checkpoint 停下，不默认进入 feature QA。`cs-epic` 继续编排 planning、批量子 design 和 goal driver；旧阶段技能只保留为兼容入口。
 
 `cs-onboard` 在项目根生成 `.codestable/`，集中保存 requirements、roadmap、goals、features、issues、refactors、audits、feedback、compound、gates 与共享 reference。Python 工具脚本从已安装的 `cs-onboard` skill 包运行，不再复制到每个 repo。
 

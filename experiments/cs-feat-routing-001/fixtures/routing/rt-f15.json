@@ -1,0 +1,27 @@
+{
+  "id": "rt-f15",
+  "answerType": "routing-decision",
+  "task": {
+    "kind": "routing",
+    "state": {
+      "designStatus": "Missing",
+      "designReviewStatus": "ReviewMissing",
+      "goalRunState": "GoalMissing"
+    },
+    "intent": {
+      "requirementClear": true,
+      "localChange": true,
+      "reusesExistingPublicContract": true,
+      "targetedVerificationKnown": true,
+      "changesRequirementOrAdr": false,
+      "highRisk": false
+    },
+    "utterance": "在现有页面保存后调用已经存在的桥接方法，并补对应目标测试"
+  },
+  "expect": {
+    "result_type": "RoutedTo",
+    "target": "FastForward",
+    "must_not_target": "Design"
+  },
+  "_provenance": "GitHub #43：需求明确、局部、复用既有契约且有目标验证的小功能应默认进入 Quick。"
+}
