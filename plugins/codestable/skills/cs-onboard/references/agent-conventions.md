@@ -22,7 +22,7 @@ data AgentRun = NotStarted | Active AgentRef | Finished Findings | Failed Reason
 data OwnerApproval = ApproveLocalOnly
 data AgentDecision
   = Launch AgentCapability AgentConfig
-  | Await | MergeVerified Findings | LocalReview
+  | Await AgentRef | MergeVerified Findings | LocalReview
   | NeedOwnerApproval Reason | Blocked Reason
 data ReviewLane = IndependentLane | OwnerApprovedLocalLane
 data ReviewVerdict = Passed | ChangesRequested | ReviewBlocked Reason
@@ -50,7 +50,7 @@ selectTaskAgent r e
 
 reviewGate :: AgentSelection -> AgentRun -> Maybe OwnerApproval -> AgentDecision
 reviewGate _ (Finished findings) _ = MergeVerified findings
-reviewGate _ (Active _) _ = Await
+reviewGate _ (Active ref) _ = Await ref
 reviewGate _ (Failed _) (Just ApproveLocalOnly) = LocalReview
 reviewGate _ (Failed reason) _ = Blocked reason
 reviewGate (SelectionBlocked reason) NotStarted _ = Blocked reason
@@ -62,7 +62,7 @@ toReviewLane :: AgentDecision -> Either Reason ReviewLane
 toReviewLane (MergeVerified _) = Right IndependentLane
 toReviewLane LocalReview = Right OwnerApprovedLocalLane
 toReviewLane (Launch _ _) = Left LaneNotStarted
-toReviewLane Await = Left LaneStillPending
+toReviewLane (Await _) = Left AgentLaneNotReturned
 toReviewLane (NeedOwnerApproval reason) = Left reason
 toReviewLane (Blocked reason) = Left reason
 
@@ -87,6 +87,8 @@ review 优先选择与主 agent provider 或 model family 不同的 `Heterogeneo
 
 每轮 review 都调用同一 `selectTaskAgent` / `reviewGate`。批量、赶时间、已自查或自评低风险
 都不构成 `ApproveLocalOnly`；降级前按 `approval-conventions.md` 取得 owner 明确授权。
+`Launch` 成功后必须先持久化宿主返回的 `AgentRef` 为 `Active ref`；只有该状态可恢复为
+`Await ref`。缺 id 的旧 blocked/pending 状态不能证明已有运行，不得据此等待、消费结果或重复启动。
 
 ## Task Agent 生命周期
 

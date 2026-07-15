@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -53,34 +54,13 @@ def init_repo(tmp_path: Path) -> Path:
 
 
 def install_runtime(repo: Path) -> None:
-    for path in [
-        ".codestable/attention.md",
-        ".codestable/reference/execution-conventions.md",
-        ".codestable/reference/shared-conventions.md",
-        ".codestable/reference/agent-conventions.md",
-        ".codestable/reference/tools.md",
-        ".codestable/runtime-manifest.json",
-        ".codestable/gates/roadmap-goal-gates.yaml",
-    ]:
-        target = repo / path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if target.name == "runtime-manifest.json":
-            target.write_text(
-                json.dumps(
-                    {
-                        "schema_version": 1,
-                        "plugin": "codestable",
-                        "plugin_version": CURRENT_PLUGIN_VERSION,
-                        "runtime_version": CURRENT_PLUGIN_VERSION,
-                        "tool_runtime": "skill-global",
-                        "managed_paths": [".codestable/gates", ".codestable/reference"],
-                    }
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-        else:
-            target.write_text("runtime\n", encoding="utf-8")
+    source = ROOT / "plugins/codestable/skills/cs-onboard"
+    (repo / ".codestable").mkdir(parents=True)
+    (repo / ".codestable/attention.md").write_text("# Attention\n", encoding="utf-8")
+    shutil.copytree(source / "references", repo / ".codestable/reference")
+    shutil.copytree(source / "gates", repo / ".codestable/gates")
+    shutil.copy2(source / "codestable.gitignore", repo / ".codestable/.gitignore")
+    runtime_tool.write_manifest(repo, CURRENT_PLUGIN_VERSION)
 
 
 def make_feature_unit(repo: Path) -> Path:
@@ -175,6 +155,209 @@ def test_runtime_manifest_without_version_is_treated_as_needing_sync(tmp_path: P
     assert "runtime sync" in runtime["hint"]
 
 
+def test_runtime_health_detects_template_drift_at_same_version(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    target = repo / ".codestable/reference/agent-conventions.md"
+    target.write_text("stale runtime copy\n", encoding="utf-8")
+
+    runtime = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=ROOT / "plugins/codestable/skills/cs-onboard",
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+
+    assert runtime["ok"] is False
+    assert runtime["status"] == "runtime-drift"
+    assert runtime["drifted_paths"] == [".codestable/reference/agent-conventions.md"]
+
+
+def test_runtime_sync_removes_target_only_managed_asset_and_restores_health(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    target = repo / ".codestable/reference/obsolete-managed.md"
+    target.write_text("stale package asset\n", encoding="utf-8")
+    run(repo, "add", target.relative_to(repo).as_posix())
+    run(repo, "commit", "-m", "add stale managed asset")
+    source = ROOT / "plugins/codestable/skills/cs-onboard"
+
+    before = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=source,
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+    result = runtime_tool.sync_runtime(repo, source)
+
+    assert before["status"] == "runtime-drift"
+    assert before["drifted_paths"] == [".codestable/reference/obsolete-managed.md"]
+    assert result["ok"] is True
+    assert result["removed_paths"] == [".codestable/reference/obsolete-managed.md"]
+    assert result["health"]["status"] == "ok"
+    assert not target.exists()
+
+
+def test_nested_legacy_filename_is_not_runtime_allowlisted(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    target = repo / ".codestable/reference/nested/worktree-conventions.md"
+    target.parent.mkdir()
+    target.write_text("stale nested package asset\n", encoding="utf-8")
+    run(repo, "add", target.relative_to(repo).as_posix())
+    run(repo, "commit", "-m", "add nested legacy-named asset")
+    source = ROOT / "plugins/codestable/skills/cs-onboard"
+
+    before = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=source,
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+    result = runtime_tool.sync_runtime(repo, source)
+
+    expected = ".codestable/reference/nested/worktree-conventions.md"
+    assert before["drifted_paths"] == [expected]
+    assert result["ok"] is True
+    assert result["removed_paths"] == [expected]
+    assert not target.exists()
+
+
+def test_runtime_sync_does_not_delete_target_assets_when_source_directory_is_missing(
+    tmp_path: Path,
+) -> None:
+    repo = init_repo(tmp_path)
+    source = tmp_path / "incomplete-source"
+    shutil.copytree(ROOT / "plugins/codestable/skills/cs-onboard", source)
+    shutil.rmtree(source / "references")
+    target = repo / ".codestable/reference/agent-conventions.md"
+    before = target.read_text(encoding="utf-8")
+
+    health = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=source,
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+    result = runtime_tool.sync_runtime(repo, source, plugin_version=CURRENT_PLUGIN_VERSION)
+
+    assert health["ok"] is False
+    assert health["status"] == "runtime-incomplete"
+    assert health["capabilities"]["runtime-assets"]["missing_skill_tools"] == ["references"]
+    assert result["ok"] is False
+    assert result["status"] == "runtime-incomplete"
+    assert result["removed_paths"] == []
+    assert result["missing_source_assets"] == ["references"]
+    assert target.read_text(encoding="utf-8") == before
+
+
+def test_runtime_sync_rejects_symlinked_codestable_root_without_touching_external_files(
+    tmp_path: Path,
+) -> None:
+    repo = init_repo(tmp_path)
+    runtime_root = repo / ".codestable"
+    external = tmp_path / "external-codestable"
+    shutil.move(runtime_root, external)
+    sentinel = external / "reference/external-sentinel.md"
+    sentinel.write_text("do not delete\n", encoding="utf-8")
+    os.symlink(external, runtime_root, target_is_directory=True)
+    source = ROOT / "plugins/codestable/skills/cs-onboard"
+
+    health = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=source,
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+    result = runtime_tool.sync_runtime(repo, source, plugin_version=CURRENT_PLUGIN_VERSION, force=True)
+
+    assert health["ok"] is False
+    assert health["status"] == "unsafe-runtime-root"
+    assert health["drifted_paths"] == [".codestable"]
+    assert result["ok"] is False
+    assert result["status"] == "unsafe-runtime-root"
+    assert result["removed_paths"] == []
+    assert runtime_root.is_symlink()
+    assert sentinel.read_text(encoding="utf-8") == "do not delete\n"
+
+
+def test_runtime_sync_replaces_managed_directory_symlink_without_touching_external_target(
+    tmp_path: Path,
+) -> None:
+    repo = init_repo(tmp_path)
+    reference = repo / ".codestable/reference"
+    shutil.rmtree(reference)
+    external = tmp_path / "external-reference"
+    external.mkdir()
+    sentinel = external / "sentinel.md"
+    sentinel.write_text("do not touch\n", encoding="utf-8")
+    os.symlink(external, reference, target_is_directory=True)
+    run(repo, "add", "-A", ".codestable/reference")
+    run(repo, "commit", "-m", "replace managed directory with symlink")
+    source = ROOT / "plugins/codestable/skills/cs-onboard"
+
+    before = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=source,
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+    result = runtime_tool.sync_runtime(repo, source)
+
+    assert before["ok"] is False
+    assert before["drifted_paths"] == [".codestable/reference"]
+    assert result["ok"] is True
+    assert reference.is_dir() and not reference.is_symlink()
+    assert sentinel.read_text(encoding="utf-8") == "do not touch\n"
+
+
+def test_runtime_sync_replaces_gitignore_symlink_without_touching_external_target(
+    tmp_path: Path,
+) -> None:
+    repo = init_repo(tmp_path)
+    target = repo / ".codestable/.gitignore"
+    target.unlink()
+    external = tmp_path / "outside-user-file"
+    external.write_text("outside-original\n", encoding="utf-8")
+    os.symlink(external, target)
+    run(repo, "add", "-A", ".codestable/.gitignore")
+    run(repo, "commit", "-m", "replace managed gitignore with symlink")
+    source = ROOT / "plugins/codestable/skills/cs-onboard"
+
+    before = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=source,
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+    result = runtime_tool.sync_runtime(repo, source)
+
+    assert before["drifted_paths"] == [".codestable/.gitignore"]
+    assert result["ok"] is True
+    assert target.is_file() and not target.is_symlink()
+    assert target.read_bytes() == (source / "codestable.gitignore").read_bytes()
+    assert external.read_text(encoding="utf-8") == "outside-original\n"
+
+
+def test_runtime_sync_replaces_manifest_symlink_without_touching_external_target(
+    tmp_path: Path,
+) -> None:
+    repo = init_repo(tmp_path)
+    target = repo / ".codestable/runtime-manifest.json"
+    external_data = json.loads(target.read_text(encoding="utf-8"))
+    external_data["outside_sentinel"] = "preserve"
+    external = tmp_path / "outside-user-manifest"
+    external.write_text(json.dumps(external_data) + "\n", encoding="utf-8")
+    target.unlink()
+    os.symlink(external, target)
+    run(repo, "add", "-A", ".codestable/runtime-manifest.json")
+    run(repo, "commit", "-m", "replace managed manifest with symlink")
+    source = ROOT / "plugins/codestable/skills/cs-onboard"
+
+    before = runtime_tool.runtime_health(
+        repo,
+        source_skill_dir=source,
+        plugin_version=CURRENT_PLUGIN_VERSION,
+    )
+    result = runtime_tool.sync_runtime(repo, source)
+
+    assert before["drifted_paths"] == [".codestable/runtime-manifest.json"]
+    assert result["ok"] is True
+    assert target.is_file() and not target.is_symlink()
+    assert json.loads(target.read_text(encoding="utf-8"))["plugin_version"] == CURRENT_PLUGIN_VERSION
+    assert json.loads(external.read_text(encoding="utf-8"))["outside_sentinel"] == "preserve"
+
+
 def test_runtime_sync_refreshes_managed_assets_manifest_and_preserves_legacy_assets(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     for legacy in [
@@ -208,7 +391,13 @@ def test_runtime_sync_refreshes_managed_assets_manifest_and_preserves_legacy_ass
     ]:
         (source / f"tools/{tool}").write_text(f"{tool}\n", encoding="utf-8")
     (source / "tools/codestable-worktree-gate.py").write_text("should not copy\n", encoding="utf-8")
-    (source / "references/tools.md").write_text("new tools\n", encoding="utf-8")
+    for reference in [
+        "agent-conventions.md",
+        "execution-conventions.md",
+        "shared-conventions.md",
+        "tools.md",
+    ]:
+        (source / f"references/{reference}").write_text(f"new {reference}\n", encoding="utf-8")
     (source / "references/worktree-conventions.md").write_text("should not copy\n", encoding="utf-8")
     (source / "codestable.gitignore").write_text("__pycache__/\n", encoding="utf-8")
     (source / ".codex-plugin").mkdir()
@@ -264,7 +453,7 @@ def test_runtime_sync_without_version_fails_closed(tmp_path: Path) -> None:
 def test_runtime_sync_refuses_dirty_managed_paths_without_force(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     source = tmp_path / "source-skill"
-    (source / "references").mkdir(parents=True)
+    shutil.copytree(ROOT / "plugins/codestable/skills/cs-onboard", source)
     (source / "references/tools.md").write_text("new\n", encoding="utf-8")
     (repo / ".codestable/reference/tools.md").write_text("local edit\n", encoding="utf-8")
 
@@ -280,8 +469,15 @@ def test_runtime_sync_does_not_block_on_dirty_preserved_legacy_assets(tmp_path: 
     source = tmp_path / "source-skill"
     for directory in ["gates", "tools", "references"]:
         (source / directory).mkdir(parents=True)
+    (source / "codestable.gitignore").write_text("# managed\n", encoding="utf-8")
     (source / "gates/roadmap-goal-gates.yaml").write_text("version: 2\n", encoding="utf-8")
-    (source / "references/tools.md").write_text("new tools\n", encoding="utf-8")
+    for reference in [
+        "agent-conventions.md",
+        "execution-conventions.md",
+        "shared-conventions.md",
+        "tools.md",
+    ]:
+        (source / f"references/{reference}").write_text(f"new {reference}\n", encoding="utf-8")
     for tool in [
         "validate-yaml.py",
         "search-yaml.py",

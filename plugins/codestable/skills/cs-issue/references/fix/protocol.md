@@ -36,6 +36,8 @@ advance s
   | verification s /= Passed     = afterVerification (verification s)
   | not (fixNoteExists s)        = Run WriteFixNote
   | not (codeReviewPassed s)     = Run CodeReview
+  | fixCompletionApproval s is ApprovalRevisionRequested _
+                                    = Run Apply
   | fixCompletionApproval s == ApprovalMissing
                                     = PersistCheckpoint ConfirmFixCompletion
   | fixCompletionApproval s == ApprovalPending
@@ -46,7 +48,8 @@ advance s
 ```
 
 `PersistCheckpoint` 先复用 `approval-report.md` 写 pending `ConfirmFixCompletion`，再返回
-`HumanCheckpoint`；owner 的批准 / 拒绝分别恢复为 `ApprovalApproved` / `ApprovalRejected`。
+`HumanCheckpoint`；owner 的批准 / 拒绝分别恢复为 `ApprovalApproved` / `ApprovalRejected`，`ReviseCheckpoint feedback` 恢复为 `ApprovalRevisionRequested feedback` 并回 `Apply`。
+该状态变化只消费主入口已与 `ConfirmFixCompletion` 匹配的 `ResumeIssueCheckpoint`。
 
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节和 `cs-issue` 的"文件放哪儿"。
 

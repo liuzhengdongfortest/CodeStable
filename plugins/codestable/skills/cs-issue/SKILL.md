@@ -38,6 +38,7 @@ csIssue :: IssueRequest -> IssueOutcome
 data IssueRequest = IssueRequest
   { requestedStage : Maybe Stage         -- report | analyze | fix
   , userGoal       : Maybe Text
+  , checkpointResume : Maybe IssueResume
   , repoFacts      : RepoFacts           -- 优先于 args / 聊天历史
   }
 
@@ -45,7 +46,7 @@ data Stage = Report | Analyze | Fix | CodeReview | FastPath
 data RouteTarget = IssueStage Stage | ExternalSkill SkillName
 data ArtifactStatus = ArtifactMissing | ArtifactDraft | ArtifactConfirmed
 data IssuePath = PathUndecided | StandardPath | FastPathPending | FastPathApproved | FastPathRejected
-data ApprovalStatus = ApprovalMissing | ApprovalPending | ApprovalApproved | ApprovalRejected
+data ApprovalStatus = ApprovalMissing | ApprovalPending | ApprovalApproved | ApprovalRejected | ApprovalRevisionRequested Feedback
 data RootCauseStatus = RootCauseUnknown | RootCauseClear
 data CodeStatus = NotStarted | Changed
 data ReviewStatus = Missing | Passed | Blocking
@@ -60,6 +61,7 @@ data IssueState = IssueState             -- 全部从 .codestable/issues/{slug}/
   , hasFixNote   : Bool
   , reviewStatus : ReviewStatus
   , pendingCheckpoint : Maybe CheckpointReason -- approval-report.md 当前 pending decision
+  , rejectedCheckpoint : Maybe CheckpointReason
   , fixCompletionApproval : ApprovalStatus     -- review passed 后的最终 owner sign-off
   }
 
@@ -71,10 +73,21 @@ data IssueOutcome
   | Blocked Reason
 
 data CheckpointReason = ConfirmReport | ConfirmFixPlan | ConfirmFixCompletion
-data CheckpointAnswer = ApproveCheckpoint | RejectCheckpoint | ReviseCheckpoint
+data CheckpointAnswer = ApproveCheckpoint | RejectCheckpoint | ReviseCheckpoint Feedback
+data IssueResume = ResumeIssueCheckpoint CheckpointReason CheckpointAnswer
 
-resumeCheckpoint :: IssueState -> CheckpointAnswer -> IssueState
-resumeCheckpoint s answer = persistApprovalAnswer s.pendingCheckpoint answer s
+resumeCheckpoint :: IssueState -> CheckpointReason -> CheckpointAnswer -> IssueState
+resumeCheckpoint s reason answer = persistApprovalAnswer reason answer s
+
+applyIssueResume :: Maybe IssueResume -> IssueState -> Either Reason IssueState
+applyIssueResume Nothing s = Right s
+applyIssueResume (Just (ResumeIssueCheckpoint reason answer)) s
+  | s.pendingCheckpoint == Just reason = Right (resumeCheckpoint s reason answer)
+  | otherwise                          = Left InvalidCheckpointResume
+
+-- persistApprovalAnswer 按 reason 更新机器状态：ConfirmReport reject -> rejectedCheckpoint；
+-- ConfirmFixPlan reject 在 fast-path pending 时 -> FastPathRejected，否则 -> rejectedCheckpoint；
+-- revise 保持对应 report/analysis 为 draft；ConfirmFixCompletion revise -> ApprovalRevisionRequested feedback。
 
 normalizeIssuePath :: IssueReport -> Maybe ApprovalReport -> IssuePath
 normalizeIssuePath report (Just approval)
@@ -95,6 +108,7 @@ restoreIssueStage(s, intent)
   | ambiguousTarget(s, intent)                          -> NeedsHuman "which issue?"
   | isNewCapability(intent)                             -> RoutedTo (ExternalSkill "cs-feat")
   | Just reason <- s.pendingCheckpoint                 -> HumanCheckpoint reason
+  | Just reason <- s.rejectedCheckpoint                -> Blocked (OwnerRejectedIssueCheckpoint reason)
   | s.hasFixNote && s.reviewStatus == Missing           -> RoutedTo (IssueStage CodeReview)
   | s.hasFixNote && s.reviewStatus == Blocking          -> RoutedTo (IssueStage Fix)
   | s.hasFixNote && s.reviewStatus == Passed
@@ -104,12 +118,13 @@ restoreIssueStage(s, intent)
   | s.hasFixNote && s.reviewStatus == Passed
   , s.fixCompletionApproval == ApprovalRejected         -> Blocked "fix completion rejected"
   | s.hasFixNote && s.reviewStatus == Passed
+  , s.fixCompletionApproval is ApprovalRevisionRequested _ -> RoutedTo (IssueStage Fix)
+  | s.hasFixNote && s.reviewStatus == Passed
   , s.fixCompletionApproval == ApprovalApproved         -> Completed summary
   | not s.hasFixNote && s.reviewStatus /= Missing       -> Blocked "review exists without fix-note"
   | s.reportStatus /= ArtifactConfirmed                -> RoutedTo (IssueStage Report)
-  | s.codeStatus == Changed && not s.hasFixNote        -> RoutedTo (IssueStage Fix)
   | s.issuePath == PathUndecided                        -> NeedsHuman "confirmed report lacks path decision"
-  | s.issuePath == FastPathPending                      -> RoutedTo (IssueStage Report)
+  | s.issuePath == FastPathPending                      -> Blocked "pending fast-path approval lacks checkpoint state"
   | s.issuePath == FastPathApproved && not (fastPathEligible s)
                                                             -> NeedsHuman "approved fast path is no longer eligible"
   | s.issuePath == FastPathApproved                     -> RoutedTo (IssueStage FastPath)
@@ -128,12 +143,16 @@ restoreIssueStage(s, intent)
 
 ```haskell
 workflow :: IssueRequest -> IssueOutcome
-workflow = preflight >=> parseEntryIntent >=> restoreIssueStage
-       >=> loadStageProtocol >=> executeOrRoute >=> exitRecoverable
+workflow req = do
+  intent <- preflight req >>= parseEntryIntent
+  state <- restoreIssueState req.repoFacts
+  resumed <- fromEither Blocked (applyIssueResume req.checkpointResume state)
+  executeOrRoute (restoreIssueStage resumed intent) >>= exitRecoverable
 
 preflight         -- 读 .codestable/attention.md；缺失 -> route to cs-onboard；不得用 AGENTS.md/CLAUDE.md 代替
 parseEntryIntent  -- flag > compat-preset > utterance；repoFacts override requestedStage；空参不推断 stage
-restoreIssueStage -- 扫 .codestable/issues/ + artifact + git diff 恢复 IssueState，选 next stage（见 Spec）；
+restoreIssueState -- preflight 后扫 .codestable/issues/ + artifact + git diff 恢复 IssueState；typed resume 精确匹配 pending checkpoint 后先持久化
+restoreIssueStage -- 从已应用 resume 的 state 选 next stage（见 Spec）；
                   -- 新增能力（非 bug）-> route to cs-feat
 loadStageProtocol -- stageProtocol 映射（见下节）；进 stage 才加载该 stage 一个 protocol
 executeOrRoute    -- report/analyze 落盘 artifact；fix 循环修复+验证+写 fix-note；遇 HumanCheckpoint 必停
@@ -180,7 +199,7 @@ stageProtocol FastPath   = stageProtocol Fix              -- 确认后直接 fix
 ## 人工 checkpoint
 
 三个 checkpoint 都必须先把候选 artifact 和 pending decision 写入 `approval-report.md`；顶层只消费
-`pendingCheckpoint`，owner 回答后先更新 approval 状态和目标 artifact，再恢复路由：
+`pendingCheckpoint`，owner 回答必须以 `ResumeIssueCheckpoint reason answer` 进入 request；reason 匹配后先更新 approval 状态和目标 artifact，再恢复路由：
 
 ```haskell
 onCheckpoint :: CheckpointReason -> Action

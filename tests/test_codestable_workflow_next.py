@@ -106,6 +106,12 @@ def write_goal_state(
     driver_id: str = "",
     handoff_reason: str = "",
     handoff_next: str = "",
+    acceptance_authorization: str | None = "approved",
+    acceptance_authorization_ref: str = "approval-report.md#goal-acceptance",
+    approval_decision_status: str | None = "approved",
+    commit_authorization: str | None = "approved",
+    commit_authorization_ref: str = "approval-report.md#goal-commits",
+    commit_decision_status: str | None = "approved",
 ) -> None:
     lines = [f"status: {status}"]
     if stage is not None:
@@ -118,7 +124,33 @@ def write_goal_state(
             f'handoff_next: "{handoff_next}"',
         ]
     )
+    if acceptance_authorization is not None:
+        lines.extend(
+            [
+                f"acceptance_authorization: {acceptance_authorization}",
+                f'acceptance_authorization_ref: "{acceptance_authorization_ref}"',
+            ]
+        )
+    if commit_authorization is not None:
+        lines.extend(
+            [
+                f"commit_authorization: {commit_authorization}",
+                f'commit_authorization_ref: "{commit_authorization_ref}"',
+            ]
+        )
     write(directory / "goal-state.yaml", "\n".join(lines) + "\n")
+    approval_rows: list[str] = []
+    if acceptance_authorization == "approved" and approval_decision_status is not None:
+        approval_rows.append(f"  goal-acceptance: {approval_decision_status}")
+    if commit_authorization == "approved" and commit_decision_status is not None:
+        approval_rows.append(f"  goal-commits: {commit_decision_status}")
+    if approval_rows:
+        write(
+            directory / "approval-report.md",
+            "---\ndoc_type: approval-report\nstatus: approved\napprovals:\n"
+            + "\n".join(approval_rows)
+            + "\n---\n# Approval\n",
+        )
 
 
 def write_code_review(
@@ -143,20 +175,58 @@ def write_ff_note(feature: Path, slug: str) -> None:
     )
 
 
-def write_roadmap_goal_state(roadmap: Path, *, feature_slug: str = "api-seed") -> None:
-    write(
-        roadmap / "goal-state.yaml",
-        "roadmap: billing-system\n"
-        "status: ready-to-dispatch\n"
-        "driver_kind: host-agent\n"
-        'driver_id: "epic-run-123"\n'
-        "current_feature_index: 0\n"
-        "features:\n"
-        f"  - slug: {feature_slug}\n"
-        f"    roadmap_item: {feature_slug}\n"
-        f"    feature_dir: .codestable/features/2026-07-02-{feature_slug}\n"
-        "    status: implementing\n",
+def write_roadmap_goal_state(
+    roadmap: Path,
+    *,
+    feature_slug: str = "api-seed",
+    acceptance_authorization: str | None = "approved",
+    approval_decision_status: str | None = "approved",
+    commit_authorization: str | None = "approved",
+    commit_decision_status: str | None = "approved",
+) -> None:
+    lines = [
+        "roadmap: billing-system",
+        "status: ready-to-dispatch",
+        "driver_kind: host-agent",
+        'driver_id: "epic-run-123"',
+    ]
+    if acceptance_authorization is not None:
+        lines.extend(
+            [
+                f"acceptance_authorization: {acceptance_authorization}",
+                'acceptance_authorization_ref: "approval-report.md#goal-acceptance"',
+            ]
+        )
+    if commit_authorization is not None:
+        lines.extend(
+            [
+                f"commit_authorization: {commit_authorization}",
+                'commit_authorization_ref: "approval-report.md#goal-commits"',
+            ]
+        )
+    lines.extend(
+        [
+            "current_feature_index: 0",
+            "features:",
+            f"  - slug: {feature_slug}",
+            f"    roadmap_item: {feature_slug}",
+            f"    feature_dir: .codestable/features/2026-07-02-{feature_slug}",
+            "    status: implementing",
+        ]
     )
+    write(roadmap / "goal-state.yaml", "\n".join(lines) + "\n")
+    approval_rows = []
+    if acceptance_authorization == "approved" and approval_decision_status is not None:
+        approval_rows.append(f"  goal-acceptance: {approval_decision_status}")
+    if commit_authorization == "approved" and commit_decision_status is not None:
+        approval_rows.append(f"  goal-commits: {commit_decision_status}")
+    if approval_rows:
+        write(
+            roadmap / "approval-report.md",
+            "---\ndoc_type: approval-report\nstatus: approved\napprovals:\n"
+            + "\n".join(approval_rows)
+            + "\n---\n# Approval\n",
+        )
 
 
 def write_reverse_owner_state(
@@ -217,6 +287,272 @@ def test_epic_continues_when_only_first_child_design_review_passed(tmp_path: Pat
     assert result["must_continue"] is True
     assert result["final_answer_allowed"] is False
     assert result["evidence"]["next_item"]["item"] == "ui-seed"
+
+
+def test_epic_child_batch_design_admits_dependent_after_predecessor_review(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\n"
+        "items:\n"
+        "  - slug: api-seed\n"
+        "    status: in-progress\n"
+        "    feature: null\n"
+        "  - slug: ui-seed\n"
+        "    status: planned\n"
+        "    depends_on: [api-seed]\n"
+        "    feature: null\n",
+    )
+    write_feature(repo, "api-seed", include_roadmap=True)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "continue"
+    assert result["next_action"] == "cs-feat design/design-review"
+    assert result["evidence"]["next_item"]["item"] == "ui-seed"
+    assert result["evidence"]["design_admission"] == {
+        "dependencies": [
+            {
+                "item": "api-seed",
+                "item_status": "in-progress",
+                "design_review_status": "passed",
+                    "design_ready": True,
+                    "ready_by": "design-review",
+                    "reason": None,
+            }
+        ],
+        "ready": True,
+        "review_state": "missing",
+        "review_reason": None,
+    }
+
+
+def test_epic_child_batch_selects_unblocked_predecessor_from_unsorted_dag(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\n"
+        "items:\n"
+        "  - slug: ui-seed\n"
+        "    status: planned\n"
+        "    depends_on: [api-seed]\n"
+        "    feature: null\n"
+        "  - slug: api-seed\n"
+        "    status: planned\n"
+        "    feature: null\n",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "continue"
+    assert result["evidence"]["next_item"]["item"] == "api-seed"
+
+
+def test_epic_child_batch_blocks_cyclic_design_dependencies(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\n"
+        "items:\n"
+        "  - slug: api-seed\n"
+        "    status: planned\n"
+        "    depends_on: [ui-seed]\n"
+        "    feature: null\n"
+        "  - slug: ui-seed\n"
+        "    status: planned\n"
+        "    depends_on: [api-seed]\n"
+        "    feature: null\n",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "fix-roadmap-items"
+    assert result["evidence"]["cycle_items"] == ["api-seed", "ui-seed"]
+
+
+def test_epic_blocks_cycle_even_when_all_design_reviews_passed(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\nitems:\n"
+        "  - slug: api-seed\n    status: in-progress\n    depends_on: [ui-seed]\n"
+        "  - slug: ui-seed\n    status: in-progress\n    depends_on: [api-seed]\n",
+    )
+    write_feature(repo, "api-seed", include_roadmap=True)
+    write_feature(repo, "ui-seed", include_roadmap=True)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "fix-roadmap-items"
+    assert "cycle" in result["reason"]
+
+
+@pytest.mark.parametrize(
+    ("depends_on", "reason"),
+    [
+        ("[missing-seed]", "missing item missing-seed"),
+        ('"api-seed"', "must be a list"),
+        ("[api-seed, api-seed]", "must not contain duplicate"),
+    ],
+)
+def test_epic_rejects_invalid_dependency_graph(
+    tmp_path: Path,
+    depends_on: str,
+    reason: str,
+) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\nitems:\n"
+        "  - slug: api-seed\n    status: planned\n"
+        f"  - slug: ui-seed\n    status: planned\n    depends_on: {depends_on}\n",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "fix-roadmap-items"
+    assert reason in result["reason"]
+
+
+def test_epic_rejects_duplicate_item_slug(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\nitems:\n"
+        "  - slug: api-seed\n    status: planned\n"
+        "  - slug: api-seed\n    status: planned\n",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "fix-roadmap-items"
+    assert "duplicate roadmap item slug" in result["reason"]
+
+
+def test_epic_rejects_whitespace_padded_item_slug_without_traceback(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        'roadmap: billing-system\nitems:\n  - slug: " api-seed "\n    status: planned\n',
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "continue"
+    assert result["evidence"]["next_item"]["item"] == " api-seed "
+
+
+def test_epic_dependency_ambiguous_feature_lookup_fails_closed(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\nitems:\n"
+        "  - slug: ui-seed\n    status: planned\n    depends_on: [api-seed]\n"
+        "  - slug: api-seed\n    status: in-progress\n",
+    )
+    (repo / ".codestable/features/2026-07-01-api-seed").mkdir(parents=True)
+    (repo / ".codestable/features/2026-07-02-api-seed").mkdir(parents=True)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "fix-roadmap-items"
+    assert "multiple feature directories" in result["reason"]
+
+
+@pytest.mark.parametrize("dependency_status", ["done", "dropped"])
+def test_epic_design_admits_terminal_dependency_state(tmp_path: Path, dependency_status: str) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\nitems:\n"
+        f"  - slug: api-seed\n    status: {dependency_status}\n"
+        "  - slug: ui-seed\n    status: planned\n    depends_on: [api-seed]\n",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "continue"
+    assert result["evidence"]["next_item"]["item"] == "ui-seed"
+    assert result["evidence"]["design_admission"]["dependencies"][0]["ready_by"] == dependency_status
+
+
+def test_epic_blocks_dropped_dependency_before_batch_confirmation(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\nitems:\n"
+        "  - slug: api-seed\n    status: dropped\n"
+        "  - slug: ui-seed\n    status: in-progress\n    depends_on: [api-seed]\n",
+    )
+    write_feature(repo, "ui-seed", include_roadmap=True)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "resolve-dropped-implementation-dependencies"
+    assert result["evidence"]["dependency_blockers"] == [
+        {"item": "ui-seed", "dropped_dependencies": ["api-seed"]}
+    ]
+
+
+def test_feature_implementation_gate_requires_all_dependencies_done(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write(
+        roadmap / "billing-system-items.yaml",
+        "roadmap: billing-system\nitems:\n"
+        "  - slug: api-seed\n    status: in-progress\n"
+        "  - slug: ui-seed\n    status: in-progress\n    depends_on: [api-seed]\n"
+        "    feature: .codestable/features/2026-07-02-ui-seed\n",
+    )
+    feature = write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+
+    blocked = workflow_next.feature_next(feature, False, require_implementation_ready=True)
+    assert blocked["status"] == "blocked"
+    assert blocked["next_action"] == "complete-roadmap-dependencies-before-implementation"
+    assert blocked["evidence"]["implementation_dependencies"][0]["status"] == "in-progress"
+
+    items = roadmap / "billing-system-items.yaml"
+    write(items, items.read_text(encoding="utf-8").replace("status: in-progress", "status: done", 1))
+    ready = workflow_next.feature_next(feature, False, require_implementation_ready=True)
+    assert ready["ok"] is True
+    assert ready["evidence"]["implementation_ready"] is True
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            (TOOLS_DIR / "codestable-workflow-next.py").as_posix(),
+            "feature",
+            "--feature",
+            feature.as_posix(),
+            "--require-implementation-ready",
+            "--json",
+        ],
+        cwd=repo,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={"PYTHONDONTWRITEBYTECODE": "1"},
+        timeout=10,
+    )
+    assert completed.returncode == 0
+    assert json.loads(completed.stdout)["evidence"]["implementation_ready"] is True
 
 
 def test_epic_user_gate_only_after_all_child_design_reviews_passed(tmp_path: Path) -> None:
@@ -1282,6 +1618,263 @@ def test_feature_goal_state_overrides_reclassified_quick_lane(tmp_path: Path) ->
     assert result["evidence"]["execution_lane_source"] == "feature-goal-state"
 
 
+def test_feature_goal_state_requires_explicit_acceptance_authorization(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(repo, "api-seed", design_status="approved", execution_lane="goal")
+    write_goal_state(
+        feature,
+        stage="implementation",
+        status="ready-to-dispatch",
+        acceptance_authorization=None,
+    )
+
+    missing = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert missing["status"] == "user_gate"
+    assert missing["next_action"] == "authorize-feature-goal-acceptance"
+
+    write_goal_state(
+        feature,
+        stage="implementation",
+        status="ready-to-dispatch",
+        acceptance_authorization="rejected",
+    )
+    rejected = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert rejected["status"] == "handoff"
+    assert rejected["next_action"] == "CS_FEATURE_GOAL_HANDOFF"
+
+    write_goal_state(
+        feature,
+        stage="complete",
+        status="passed",
+        acceptance_authorization=None,
+    )
+    legacy_complete = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert legacy_complete["status"] == "user_gate"
+    assert legacy_complete["next_action"] == "authorize-feature-goal-acceptance"
+
+    write_goal_state(
+        feature,
+        stage="implementation",
+        status="running",
+        driver_kind="host-agent",
+        driver_id="feature-run-123",
+        acceptance_authorization=None,
+    )
+    unauthorized_driver = workflow_next.feature_next(feature, epic_child_batch=False)
+    assert unauthorized_driver["status"] == "user_gate"
+    assert unauthorized_driver["next_action"] == "authorize-feature-goal-acceptance"
+
+
+@pytest.mark.parametrize(
+    ("reference", "approval_status", "reason"),
+    [
+        ("does-not-exist.md#goal-acceptance", "approved", "unit approval-report.md"),
+        ("approval-report.md#goal-acceptance", None, "goal-acceptance is not approved"),
+        ("approval-report.md#goal-acceptance", "pending", "is not approved"),
+    ],
+)
+def test_feature_goal_state_validates_acceptance_approval_artifact(
+    tmp_path: Path,
+    reference: str,
+    approval_status: str | None,
+    reason: str,
+) -> None:
+    repo = init_repo(tmp_path)
+    feature = write_feature(repo, "api-seed", design_status="approved", execution_lane="goal")
+    write_goal_state(
+        feature,
+        stage="implementation",
+        status="ready-to-dispatch",
+        acceptance_authorization_ref=reference,
+        approval_decision_status=approval_status,
+    )
+
+    result = workflow_next.feature_next(feature, epic_child_batch=False)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "authorize-feature-goal-acceptance"
+    assert reason in result["reason"]
+
+
+@pytest.mark.parametrize(
+    ("authorization", "expected_status", "expected_action"),
+    [
+        (None, "user_gate", "authorize-epic-goal-acceptance"),
+        ("rejected", "handoff", "CS_ROADMAP_GOAL_HANDOFF"),
+    ],
+)
+def test_epic_goal_state_requires_explicit_acceptance_authorization(
+    tmp_path: Path,
+    authorization: str | None,
+    expected_status: str,
+    expected_action: str,
+) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_roadmap_goal_state(roadmap, acceptance_authorization=authorization)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == expected_status
+    assert result["next_action"] == expected_action
+
+
+def test_epic_legacy_complete_goal_state_still_requires_acceptance_authorization(
+    tmp_path: Path,
+) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_goal_state(roadmap, status="complete", acceptance_authorization=None)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "authorize-epic-goal-acceptance"
+
+
+def test_epic_goal_state_rejects_unverifiable_acceptance_approval_ref(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_goal_state(
+        roadmap,
+        status="ready-to-dispatch",
+        acceptance_authorization_ref="missing.md#goal-acceptance",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "authorize-epic-goal-acceptance"
+    assert "unit approval-report.md" in result["reason"]
+
+
+@pytest.mark.parametrize(
+    ("authorization", "expected_status", "expected_action"),
+    [
+        (None, "user_gate", "authorize-epic-goal-commits"),
+        ("Approved", "user_gate", "authorize-epic-goal-commits"),
+        ("rejected", "handoff", "CS_ROADMAP_GOAL_HANDOFF"),
+    ],
+)
+def test_epic_goal_state_requires_independent_commit_authorization(
+    tmp_path: Path,
+    authorization: str | None,
+    expected_status: str,
+    expected_action: str,
+) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_roadmap_goal_state(roadmap, commit_authorization=authorization)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == expected_status
+    assert result["next_action"] == expected_action
+
+
+def test_epic_complete_state_still_requires_commit_authorization(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_goal_state(roadmap, status="complete", commit_authorization=None)
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "authorize-epic-goal-commits"
+
+
+def test_epic_goal_state_rejects_unapproved_commit_decision(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_goal_state(
+        roadmap,
+        status="ready-to-dispatch",
+        commit_decision_status="pending",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "authorize-epic-goal-commits"
+    assert "goal-commits is not approved" in result["reason"]
+
+
+@pytest.mark.parametrize(
+    ("reference", "reason"),
+    [
+        ("approval-report.md#goal-acceptance", "must be approval-report.md#goal-commits"),
+        ("../approval-report.md#goal-commits", "escapes the workflow unit"),
+    ],
+)
+def test_epic_goal_state_rejects_unverifiable_commit_approval_ref(
+    tmp_path: Path,
+    reference: str,
+    reason: str,
+) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_goal_state(
+        roadmap,
+        status="ready-to-dispatch",
+        commit_authorization_ref=reference,
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "user_gate"
+    assert result["next_action"] == "authorize-epic-goal-commits"
+    assert reason in result["reason"]
+
+
+def test_epic_goal_state_treats_named_commit_rejection_as_handoff(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_goal_state(
+        roadmap,
+        status="ready-to-dispatch",
+        commit_decision_status="rejected",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "handoff"
+    assert result["next_action"] == "CS_ROADMAP_GOAL_HANDOFF"
+
+
+def test_epic_goal_rejection_precedes_another_missing_authorization(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    roadmap = write_roadmap(repo)
+    write_feature(repo, "api-seed", design_status="approved", include_roadmap=True)
+    write_feature(repo, "ui-seed", design_status="approved", include_roadmap=True)
+    write_goal_state(
+        roadmap,
+        status="ready-to-dispatch",
+        acceptance_authorization=None,
+        commit_authorization="rejected",
+    )
+
+    result = workflow_next.epic_next(roadmap)
+
+    assert result["status"] == "handoff"
+    assert result["next_action"] == "CS_ROADMAP_GOAL_HANDOFF"
+
+
 def test_feature_standard_lane_recovers_without_goal_package_or_standalone_qa(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     feature = write_feature(repo, "api-seed", design_status="approved", execution_lane="standard")
@@ -1597,6 +2190,7 @@ def test_feature_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path:
     assert dispatch["status"] == "dispatch_goal"
     assert dispatch["next_action"] == "dispatch-feature-goal-driver-or-print-goal"
     assert dispatch["final_answer_allowed"] is False
+    assert dispatch["evidence"]["acceptance_authorization_ref"] == "approval-report.md#goal-acceptance"
 
     write_goal_state(
         feature,
@@ -1608,6 +2202,7 @@ def test_feature_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path:
     active = workflow_next.feature_next(feature, epic_child_batch=False)
     assert active["status"] == "awaiting"
     assert active["evidence"]["driver_id"] == "feature-run-123"
+    assert active["evidence"]["acceptance_authorization_ref"] == "approval-report.md#goal-acceptance"
 
 
 def test_feature_terminal_goal_states_override_stale_driver(tmp_path: Path) -> None:
@@ -1624,6 +2219,7 @@ def test_feature_terminal_goal_states_override_stale_driver(tmp_path: Path) -> N
     complete = workflow_next.feature_next(feature, epic_child_batch=False)
     assert complete["status"] == "complete"
     assert complete["next_action"] == "CS_FEATURE_GOAL_COMPLETE"
+    assert complete["evidence"]["acceptance_authorization_ref"] == "approval-report.md#goal-acceptance"
 
     write_goal_state(
         feature,
@@ -1633,6 +2229,7 @@ def test_feature_terminal_goal_states_override_stale_driver(tmp_path: Path) -> N
         driver_id="feature-run-123",
         handoff_reason="missing production credential",
         handoff_next="provide credential",
+        acceptance_authorization=None,
     )
     handoff = workflow_next.feature_next(feature, epic_child_batch=False)
     assert handoff["status"] == "handoff"
@@ -1652,6 +2249,8 @@ def test_epic_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path: Pa
     assert dispatch["status"] == "dispatch_goal"
     assert dispatch["next_action"] == "dispatch-epic-goal-driver-or-print-goal"
     assert dispatch["final_answer_allowed"] is False
+    assert dispatch["evidence"]["acceptance_authorization_ref"] == "approval-report.md#goal-acceptance"
+    assert dispatch["evidence"]["commit_authorization_ref"] == "approval-report.md#goal-commits"
 
     write_goal_state(
         roadmap,
@@ -1662,6 +2261,8 @@ def test_epic_goal_runtime_distinguishes_dispatch_and_active_driver(tmp_path: Pa
     active = workflow_next.epic_next(roadmap)
     assert active["status"] == "awaiting"
     assert active["evidence"]["driver_id"] == "epic-run-123"
+    assert active["evidence"]["acceptance_authorization_ref"] == "approval-report.md#goal-acceptance"
+    assert active["evidence"]["commit_authorization_ref"] == "approval-report.md#goal-commits"
 
 
 def test_epic_active_roadmap_requires_review_artifact_before_goal_state(tmp_path: Path) -> None:
@@ -1779,6 +2380,8 @@ def test_epic_terminal_goal_states_override_stale_driver(tmp_path: Path) -> None
     complete = workflow_next.epic_next(roadmap)
     assert complete["status"] == "complete"
     assert complete["next_action"] == "CS_ROADMAP_GOAL_COMPLETE"
+    assert complete["evidence"]["acceptance_authorization_ref"] == "approval-report.md#goal-acceptance"
+    assert complete["evidence"]["commit_authorization_ref"] == "approval-report.md#goal-commits"
 
     write_goal_state(
         roadmap,

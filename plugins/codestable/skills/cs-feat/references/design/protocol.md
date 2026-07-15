@@ -70,7 +70,7 @@ advance input state
 适用：用户说"开始做 roadmap 里的 {子 feature}"或指向 items.yaml 里某条 `planned` 条目。
 
 1. **读 roadmap 上下文**——打开 `{roadmap-slug}-roadmap.md` 和 `{roadmap-slug}-items.yaml`：
-   - 目标条目必须 `status: planned` + `depends_on` 前置全 `done`，否则停下来报告
+   - 按共享衔接协议核验 design admission：新目标为 `planned`，恢复时可为 `in-progress`；普通模式依赖全 `done`，`epic_child_batch: true` 才接受依赖 `done` / `dropped` / design-review `passed`，且不授权实现
    - **必读主文档第 3 节"模块拆分"和第 4 节"接口契约 / 共享协议"**——这是本 feature 的硬约束输入。契约不合理 / 漏了 → 停下来建议回 `cs-epic` planning/update 改，**不要在 design 里偷偷绕开**
 2. **slug 从 roadmap 取**，feature 目录 `YYYY-MM-DD-{roadmap 条目 slug}`，不另起
 3. **走"流程"一节**，frontmatter 加 `roadmap` / `roadmap_item` 两字段

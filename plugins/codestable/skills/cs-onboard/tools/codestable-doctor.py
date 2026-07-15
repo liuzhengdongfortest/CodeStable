@@ -94,16 +94,17 @@ def diagnose(root: Path) -> dict[str, object]:
 
     findings: list[Finding] = []
     if not runtime["ok"]:
-        message = (
-            "CodeStable onboarding is incomplete; run `cs-onboard`."
-            if runtime["status"] in {"not-onboarded", "onboard-incomplete"}
-            else "CodeStable runtime assets are incomplete or stale; run runtime sync."
-        )
+        if runtime["status"] in {"not-onboarded", "onboard-incomplete"}:
+            message = "CodeStable onboarding is incomplete; run `cs-onboard`."
+        elif runtime["status"] == "unsafe-runtime-root":
+            message = "CodeStable runtime root is a symlink; replace it with a real repository directory before sync."
+        else:
+            message = "CodeStable runtime assets are incomplete or stale; run runtime sync."
         findings.append(
             Finding(
                 severity="P1",
                 message=message,
-                path=", ".join(runtime["missing"]),
+                path=", ".join([*runtime["missing"], *runtime.get("drifted_paths", [])]),
             )
         )
     findings.extend(review_findings)

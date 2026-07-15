@@ -52,6 +52,8 @@ mayPublish :: ApiEntry -> Bool
 mayPublish entry = sourceReadIndependently entry && validated entry && ownerApproved entry
 ```
 
+manifest / entry / samples 的 owner 状态只由主入口验证并持久化的 `ResumeDocsCheckpoint` 更新；聊天回答或文件存在不能替代 typed resume。
+
 ---
 
 ## 和 doc-tutorial 的对比

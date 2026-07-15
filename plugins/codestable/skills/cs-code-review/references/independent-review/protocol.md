@@ -22,10 +22,13 @@ laneA env run approval = reviewGate (selectTaskAgent Review env) run approval
 
 data OcrLane
   = OcrNotAvailable | OcrSkippedByUser
-  | RunCommitted Range | RunWorkspace | LocalLineReview [Path]
-  | OcrActive | OcrFinished Findings | OcrFailed Reason
+  | OcrReady OcrCommand | OcrActive Text
+  | OcrFinished Findings | OcrFailed Reason
+data OcrCommand = RunCommitted Range | RunWorkspace | LocalLineReview [Path]
+data LaneCommand = TaskCommand AgentCapability AgentConfig | OcrLaneCommand OcrCommand
 data MergeOutcome
-  = MergeAwaiting Reason | MergeNeedsOwnerApproval Reason | MergeBlocked Reason | Merge Findings
+  = MergeLaunch LaneName LaneCommand | MergeAwaiting ReviewWait
+  | MergeNeedsOwnerApproval Reason | MergeBlocked Reason | Merge Findings
 data OcrPriority = High | Medium | Low
 data EvidenceStatus = Verified | Unverified
 data OcrDisposition = BlockingOrImportant | ResidualRisk | NitOrSuggestion | Discard
@@ -35,22 +38,15 @@ data MergeableDecision = IndependentFindings Findings | OwnerLocalReview
 selectLaneB :: Bool -> ReviewScope -> OcrLane
 selectLaneB available scope
   | not available                         = OcrNotAvailable
-  | Just range <- committedRange scope    = RunCommitted range
-  | dirtyPaths scope `isSubsetOf` currentScope scope = RunWorkspace
-  | otherwise                             = LocalLineReview (currentScope scope)
+  | Just range <- committedRange scope    = OcrReady (RunCommitted range)
+  | dirtyPaths scope `isSubsetOf` currentScope scope = OcrReady RunWorkspace
+  | otherwise                             = OcrReady (LocalLineReview (currentScope scope))
 
 mapOcr :: OcrPriority -> EvidenceStatus -> OcrDisposition
 mapOcr High   Verified   = BlockingOrImportant
 mapOcr High   Unverified = ResidualRisk
 mapOcr Medium _          = NitOrSuggestion
 mapOcr Low    _          = Discard
-
-pending :: OcrLane -> Bool
-pending (RunCommitted _)      = True
-pending RunWorkspace          = True
-pending (LocalLineReview _)   = True
-pending OcrActive             = True
-pending _                     = False
 
 failed :: OcrLane -> Bool
 failed (OcrFailed _) = True
@@ -74,15 +70,16 @@ verifiedFindings (IndependentFindings findings) laneB = findings <> ocrFindings 
 verifiedFindings OwnerLocalReview laneB             = ocrFindings laneB
 
 mergeGate :: AgentDecision -> OcrLane -> MergeOutcome
-mergeGate (Launch _ _) _ = MergeAwaiting LaneStillPending
-mergeGate Await _ = MergeAwaiting LaneStillPending
-mergeGate (NeedOwnerApproval reason) _ = MergeNeedsOwnerApproval reason
 mergeGate (Blocked reason) _ = MergeBlocked reason
+mergeGate _ laneB | failed laneB = MergeBlocked OcrReviewFailed
+mergeGate (Launch agent config) _ = MergeLaunch LaneA (TaskCommand agent config)
+mergeGate _ (OcrReady command) = MergeLaunch LaneB (OcrLaneCommand command)
+mergeGate (Await ref) _ = MergeAwaiting (LaneStillPending LaneA (TaskRunRef ref))
+mergeGate _ (OcrActive ref) = MergeAwaiting (LaneStillPending LaneB (OcrRunRef ref))
+mergeGate (NeedOwnerApproval reason) _ = MergeNeedsOwnerApproval reason
 mergeGate decisionA laneB
-  | pending laneB                       = MergeAwaiting LaneStillPending
-  | failed laneB                        = MergeBlocked OcrReviewFailed
-  | Just decision <- mergeableDecision decisionA
-                                        = Merge (verifiedFindings decision laneB)
+  | Just decision <- mergeableDecision decisionA = Merge (verifiedFindings decision laneB)
+  | otherwise = MergeBlocked InvalidReviewState
 
 reviewerField :: AgentDecision -> OcrLane -> ReviewerField
 reviewerField (MergeVerified _) laneB
@@ -93,11 +90,14 @@ reviewerField _ laneB
   | otherwise      = SelfOnly
 ```
 
-`Launch` 只启动一次 reviewer；`Await` / `MergeAwaiting` / `MergeBlocked` 不得定稿；`NeedOwnerApproval` 写 pending
-approval；`LocalReview` 需要 `ApproveLocalOnly`；只有 `MergeVerified` / `LocalReview` 可让环节 A 放行。
-`pending` 覆盖三种 `Run*` / `LocalLineReview` 启动作与 `OcrActive`；`OcrNotAvailable`、
-`OcrSkippedByUser` 不阻塞可选的环节 B，`OcrFailed` 才阻塞。前四条 `mergeGate` 已排除环节 A
-不可合并状态；`mergeableDecision` 只接受 `MergeVerified` / `LocalReview`。
+`MergeLaunch` 是一次性启动命令，不是 pending 状态：宿主成功启动后必须先把返回 id 写成环节 A 的
+`Active AgentRef` / 环节 B 的 `OcrActive id`，并把它们包装成 `TaskRunRef` / `OcrRunRef` 同步到报告，再次调用才可返回
+`MergeAwaiting`。`Await` 和 `OcrActive` 都携带确切 identity；缺失或不匹配的 ref 必须 blocked，
+不得重复启动。`OcrNotAvailable` / `OcrSkippedByUser` 不阻塞可选环节 B，`OcrFailed` 才阻塞。
+`NeedOwnerApproval` 写 pending approval；`LocalReview` 需要 `ApproveLocalOnly`；只有
+`MergeVerified` / `LocalReview` 可让环节 A 放行。
+
+本协议列出的 `ocr review` CLI 正常同步执行：`OcrReady command` 直接转 `OcrFinished` / `OcrFailed`，不写 pending/ref。只有宿主明确提供可观察异步 OCR run id 时才可写 `OcrActive id`；不得自行合成 id。
 
 独立 Task agent reviewer prompt（只给原始材料，不透露主 agent 的任何 review 结论）：
 

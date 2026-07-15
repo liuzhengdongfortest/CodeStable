@@ -153,6 +153,23 @@ def test_feedback_and_neat_use_shared_outcome_semantics() -> None:
     assert "HumanCheckpoint ConfirmExternalMemoryEdit" in neat
     assert "允许零改动完成" in neat
     assert "不制造格式 churn" in neat
+    assert "runRef    : NeatRunRef" in neat
+    assert "resolutions : [NeatResolution]" in neat
+    assert "ResolveLargeDocSplit NeatRunRef SplitDecision" in neat
+    assert "ResolveExternalMemoryEdit NeatRunRef ExternalMemoryDecision" in neat
+    assert "validResolutionSet (runRef req) (resolutions req)" in neat
+    assert "all ((== current) . resolutionRunRef) rs" in neat
+    assert "hasLargeDocResolution (resolutions req)" in neat
+    assert "hasExternalMemoryResolution (resolutions req)" in neat
+    assert "恢复取不到同一 ref 时不得消费旧 resolution" in neat
+    assert "applyResolutions req facts" in neat
+    assert_order(
+        neat,
+        "not (validResolutionSet (runRef req) (resolutions req))",
+        "largeDocSplitNeeded facts",
+        "externalMemoryEditNeeded facts",
+        "runPipeline [SizeCheck, Enumerate, ImpactMatrix, Edit, SelfCheck, Summary]",
+    )
 
 
 def test_onboard_does_not_assume_sibling_skills_or_overwrite_dirty_runtime() -> None:
@@ -186,6 +203,42 @@ def test_onboard_does_not_assume_sibling_skills_or_overwrite_dirty_runtime() -> 
         assert "plugins/codestable/skills/" not in reference
 
 
+def test_note_routes_semantic_owners_before_size_and_frequency() -> None:
+    note = skill("cs-note/SKILL.md")
+
+    assert_order(
+        note,
+        "needsDecisionRecord n               = RouteToDomain",
+        "lifetime n == Temporary             = RouteToWorkSpec",
+        "lineCount n > 2                     = RouteToKeep",
+        "frequency n /= EverySession         = RouteToKeep",
+    )
+
+
+def test_release_protocol_runs_all_repository_gates() -> None:
+    release = read(".claude/skills/eval-cs-skill/references/release/protocol.md")
+
+    for command in (
+        "python3 -m pytest -q tests -rs",
+        "check-plugin-package.py --root . --json",
+        "codestable-runtime-sync.py --root . --source-skill-dir plugins/codestable/skills/cs-onboard --check --json",
+        "codestable-doctor.py --root . --json",
+        "git diff --check",
+    ):
+        assert command in release
+    assert "任一 JSON gate 的 `ok` 非 true 都阻断发布" in release
+
+
+def test_epic_final_audit_requires_bijective_canonical_feature_evidence() -> None:
+    audit = skill("cs-epic/references/goal/support/protocol-audit.md")
+    gates = skill("cs-epic/references/goal/support/protocol-gates.md")
+
+    assert "roadmapFeatureBijection a" in audit
+    assert "canonicalFeatureEvidence a" in audit
+    assert "每个非 dropped item 恰好对应一个 feature" in gates
+    assert "frontmatter `doc_type` / `feature` 必须匹配当前 feature" in gates
+
+
 def test_requirement_index_is_owned_lazily_by_cs_req() -> None:
     req = skill("cs-req/SKILL.md")
     shared = skill("cs-onboard/references/shared-conventions.md")
@@ -205,6 +258,7 @@ def test_goal_stop_reason_vocabulary_matches_the_goal_skill() -> None:
         "RepeatedBlocker",
         "BudgetExhausted",
         "RiskAcceptanceNeeded",
+        "ReviewAgentUnavailable",
         "AcceptanceAgentUnavailable",
     }
     for reason in reasons:
@@ -250,7 +304,11 @@ def test_feature_and_acceptance_decision_domains_are_closed() -> None:
     assert "Awaiting (AwaitGoalDriver driver)" in feature
     assert "otherwise                                                   -> Blocked InvalidFeatureState" in feature
     assert "data FixKind = CompleteFeature | QAFix | OwnerRequestedChanges" in feature
-    assert "data AcceptanceInput = StartAcceptance | ResumeAcceptance AcceptanceDecision" in acceptance
+    assert "ResumeGoalAcceptance ApprovalRef" in acceptance
+    assert "goalAuthorizationMatches input s" in acceptance
+    assert "persistedGoalAuthorization s == AuthorizationApproved ref" in acceptance
+    assert 'approvalArtifactApproved s ref "goal-acceptance"' in acceptance
+    assert "not (goalMode s) && input /= ResumeAcceptance ApproveAcceptance" in acceptance
     assert "data DesignInput = Start DesignEntry | ResumeDesign DesignDecision" in design
     assert "data FastForwardInput = StartQuick | ResumeEffect EffectDecision" in fastforward
     assert "ownerRejectedCheckpoint s" in feature
@@ -308,7 +366,220 @@ def test_goal_status_keeps_stop_reason_in_the_owner_stop_state() -> None:
     assert "Blocked StopReason" not in conventions
 
 
+def test_goal_completion_requires_linked_final_iteration_and_typed_owner_resume() -> None:
+    goal = skill("cs-goal/SKILL.md")
+    reference = skill("cs-goal/reference.md")
+    conventions = skill("cs-onboard/references/goal-conventions.md")
+
+    for phrase in (
+        "resumeInput : Maybe GoalResume",
+        "ResolveGoalStop CheckpointReason GoalOwnerDecision",
+        "s.ownerStop == PendingStop reason",
+        "Left InvalidGoalResume",
+        "ApproveLocalReviewFallback ApprovalRef",
+        'approvalArtifactApproved s ref "goal-local-review"',
+        "validGoalDecision _ (ApproveLocalReviewFallback _) _ = False",
+        "completionEvidenceReady :: GoalState -> Bool",
+        "s.acceptanceFinalIteration == s.finalIterationReport",
+        "s.finalAcceptanceReport == s.acceptanceReport",
+        "recordFinalIterationAndComplete s",
+        'NeedsHuman "complete goal lacks linked acceptance/final-iteration evidence"',
+    ):
+        assert phrase in goal
+    assert "s.status == Active && s.acceptancePassed      -> Completed" not in goal
+    assert "显式 pin 的配置不可用时 owner-stop，不能降级" in goal
+    assert "不在 goal driver 主线程静默自审" in goal
+    assert "AcceptanceAgentUnavailable -- 终端验收 Task agent 无法启动" in goal
+    assert "含 `ReviewAgentUnavailable` / `AcceptanceAgentUnavailable`" in goal
+    assert "只有真实未完成动作写 `Follow-Up`，已完成交付写 `Delivery Record`" in goal
+
+    for phrase in (
+        "functional_acceptance: null # final iteration 必填 ../functional-acceptance.md",
+        "doc_type: goal-functional-acceptance",
+        'final_iteration: "iterations/{nnn}.md"',
+        "两份引用与 `state.yaml.current_iteration` 不一致时不得把 goal 标为 complete",
+        "`AcceptanceAgentUnavailable` 不接受 local/self 验收",
+    ):
+        assert phrase in reference
+    assert "&& finalIterationRecorded g" in conventions
+    assert "&& acceptanceAndFinalIterationCrossReference g" in conventions
+    assert "reviewAgentUnavailable g              = Just ReviewAgentUnavailable" in conventions
+
+
 def test_refactor_fails_closed_on_invalid_restored_state() -> None:
     refactor = skill("cs-refactor/SKILL.md")
     assert "| Blocked Reason" in refactor
     assert "otherwise                                        -> Blocked InvalidRefactorState" in refactor
+
+
+def test_code_review_lane_launch_wait_and_resume_preserve_run_identity() -> None:
+    review = skill("cs-code-review/SKILL.md")
+    protocol = skill("cs-code-review/references/independent-review/protocol.md")
+    report = skill("cs-code-review/references/report-template.md")
+    conventions = skill("cs-onboard/references/agent-conventions.md")
+
+    for phrase in (
+        "data ExternalRunRef = TaskRunRef AgentRef | OcrRunRef Text",
+        "| Launching LaneName",
+        "data ReviewWait = LaneStillPending LaneName ExternalRunRef",
+        "ResumeLane LaneName ExternalRunRef LaneResult",
+        "ResumeSelfReviewDowngrade ApprovalRef",
+        "restoreReviewState :: RepoFacts -> Either ReviewBlocker ReviewState",
+        "invalidPersistedLaneState facts = Left InvalidReviewResume",
+        "fullRereviewRequired facts = Right (resetLanesForNewRound facts)",
+        "restoreReviewState req.repoFacts >>= applyReviewResume req.resumeInput",
+        "pendingLaneRef lane s == Just ref",
+        'approvalArtifactApproved s ref "code-review-local-only"',
+        "InvalidReviewResume",
+        "旧 `status: blocked` 缺 lane/ref 或非法 enum 直接 `Left InvalidReviewResume`",
+    ):
+        assert phrase in review
+    for field in (
+        "lane_a_state:",
+        "lane_a_ref:",
+        "lane_a_reason:",
+        "lane_b_state:",
+        "lane_b_ref:",
+        "lane_b_reason:",
+    ):
+        assert field in report
+    assert "not-started|ready-to-launch|pending|completed|failed|skipped|unavailable" in report
+    assert "focused closure 复用同 round 的 completed；完整复审增加 round 并重置 lane" in report
+    assert "MergeLaunch LaneName LaneCommand" in protocol
+    assert "OcrActive Text" in protocol
+    assert "mergeGate (Await ref)" in protocol
+    assert "pending (RunCommitted _)" not in protocol
+    assert "正常同步执行" in protocol
+    assert "不得自行合成 id" in protocol
+    assert "| Await AgentRef" in conventions
+    assert "reviewGate _ (Active ref) _ = Await ref" in conventions
+    assert "toReviewLane (Await _) = Left AgentLaneNotReturned" in conventions
+    epic_review = skill("cs-epic/references/review/protocol.md")
+    design_review = skill("cs-feat/references/design-review/protocol.md")
+    assert "ref == awaitedRef" in epic_review
+    assert "(Await _)" in epic_review
+    assert "`Await ref` 必须把同一 `ref` 写入 `reviewer_id`" in design_review
+
+
+def test_primary_workflow_checkpoint_resumes_are_typed_matched_and_consumed() -> None:
+    issue = skill("cs-issue/SKILL.md")
+    refactor = skill("cs-refactor/SKILL.md")
+    docs = skill("cs-docs/SKILL.md")
+    audit = skill("cs-audit/SKILL.md")
+    epic = skill("cs-epic/SKILL.md")
+    planning = skill("cs-epic/references/planning/protocol.md")
+    feature = skill("cs-feat/SKILL.md")
+    qa = skill("cs-feat/references/qa/protocol.md")
+    acceptance = skill("cs-feat/references/acceptance/protocol.md")
+
+    for text, phrases in (
+        (
+            issue,
+            (
+                "checkpointResume : Maybe IssueResume",
+                "ResumeIssueCheckpoint CheckpointReason CheckpointAnswer",
+                "s.pendingCheckpoint == Just reason",
+                "Left InvalidCheckpointResume",
+            ),
+        ),
+        (
+            refactor,
+            (
+                "checkpointResume : Maybe RefactorResume",
+                "ResumeRefactorCheckpoint CheckpointReason CheckpointAnswer",
+                "s.pendingCheckpoint == Just reason && validRefactorAnswer reason answer",
+                "KeepPartialChanges, DiscardPartialChanges",
+                "Left InvalidCheckpointResume",
+            ),
+        ),
+        (
+            docs,
+            (
+                "resumeInput   : Maybe DocsResume",
+                "ResumeDocsCheckpoint CheckpointReason DocsDecision",
+                "s.pendingCheckpoint == Just reason",
+                "Left InvalidDocsResume",
+                "s.rejectedCheckpoint == Just ConfirmOverwrite",
+                "preservedExistingDocSummary s",
+            ),
+        ),
+        (
+            audit,
+            (
+                "resumeInput : Maybe AuditResume",
+                "resumeReason :: AuditResume -> CheckpointReason",
+                "s.pendingCheckpoint == Just (resumeReason resume)",
+                "validAuditResume resume",
+                "ArchDrift `notElem` dims",
+                "Left InvalidAuditResume",
+                "wholeRepoBlindScan(s)",
+                "archDriftRequested(s)",
+                "后续 blind-scan 与 arch-drift guards 只读该 state",
+            ),
+        ),
+    ):
+        for phrase in phrases:
+            assert phrase in text
+
+    issue_workflow = issue[issue.index("workflow :: IssueRequest"):issue.index("```", issue.index("workflow :: IssueRequest"))]
+    refactor_workflow = refactor[
+        refactor.index("workflow :: RefactorRequest"):refactor.index("```", refactor.index("workflow :: RefactorRequest"))
+    ]
+    for workflow_text, ordered in (
+        (issue_workflow, ("preflight req", "restoreIssueState", "applyIssueResume", "restoreIssueStage")),
+        (
+            refactor_workflow,
+            ("preflight req", "restoreRefactorState", "applyRefactorResume", "restoreRefactorStage"),
+        ),
+    ):
+        positions = [workflow_text.index(fragment) for fragment in ordered]
+        assert positions == sorted(positions)
+
+    assert 'csDocs req | attentionMissing req.repoFacts = NeedsHuman "route to cs-onboard"' in docs
+    assert "applyDocsResume req.resumeInput" in docs
+    assert 'csAudit req | attentionMissing req = NeedsHuman "route to cs-onboard"' in audit
+    assert "applyAuditResume req.resumeInput" in audit
+    audit_select = audit[audit.index("selectAuditStep(s, req)"):audit.index("```", audit.index("selectAuditStep(s, req)"))]
+    audit_order = ("attentionMissing req", "s.pendingCheckpoint", "hasSelectedFinding(req)")
+    assert [audit_select.index(item) for item in audit_order] == sorted(
+        audit_select.index(item) for item in audit_order
+    )
+
+    assert "ResumePlanningInput PlanningResume" in epic
+    assert "DelegatePlanningResume PlanningResume" in epic
+    assert "resumeCheckpoint (ResumePlanningInput resume)" in epic
+    for phrase in (
+        "pendingCheckpoint   : Maybe CheckpointReason",
+        "resumeMatches input reason",
+        "Left InvalidCheckpointResume",
+        "resumePlanning (planningState s) r",
+        "所有 `onCheckpoint` 都先把完整 reason 写入 canonical `approval-report.md` pending decision",
+    ):
+        assert phrase in epic
+    assert "data PlanningResume" in planning
+    assert "resumePlanning :: PlanningState -> PlanningResume -> Either Reason PlanningOutcome" in planning
+    assert "s.pendingCheckpoint == Just SelectOneRoadmap" in planning
+    assert "s.pendingCheckpoint == Just ReviewRoadmapDraft" in planning
+    assert "Left InvalidPlanningResume" in planning
+    for phrase in ("ResumeQARunner OwnerApproval", "ResumeAcceptanceAuditor OwnerApproval"):
+        assert phrase in feature
+    assert "data QAInput = StartQA | ResumeQARunner OwnerApproval" in qa
+    assert "selectQARunner :: QAInput -> QARequest" in qa
+    assert "case input of ResumeQARunner approval -> Just approval" in qa
+    assert "ResumeAcceptanceAuditor OwnerApproval" in acceptance
+    assert "selectAcceptanceAuditor :: AcceptanceInput -> Bool" in acceptance
+    assert "case input of ResumeAcceptanceAuditor approval -> Just approval" in acceptance
+
+    issue_report = skill("cs-issue/references/report/protocol.md")
+    issue_analyze = skill("cs-issue/references/analyze/protocol.md")
+    issue_fix = skill("cs-issue/references/fix/protocol.md")
+    refactor_standard = skill("cs-refactor/references/standard/protocol.md")
+    refactor_fast = skill("cs-refactor/references/fastforward/protocol.md")
+    docs_tutorial = skill("cs-docs/references/tutorial/protocol.md")
+    docs_api = skill("cs-docs/references/api/protocol.md")
+    for reference in (issue_report, issue_analyze, issue_fix):
+        assert "ResumeIssueCheckpoint" in reference
+    for reference in (refactor_standard, refactor_fast):
+        assert "ResumeRefactorCheckpoint" in reference
+    for reference in (docs_tutorial, docs_api):
+        assert "ResumeDocsCheckpoint" in reference

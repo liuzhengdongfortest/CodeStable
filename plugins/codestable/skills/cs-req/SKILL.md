@@ -50,7 +50,8 @@ csReq :: ReqState -> ReqInput -> ReqOutcome
 
 data ReqInput
   = Start ReqRequest
-  | Review ReqDraft DraftDecision
+  | ResumeScope Slug
+  | ResumeDraft DraftRef DraftDecision
 
 data DraftDecision = ApproveDraft | ReviseDraft Feedback
 
@@ -71,34 +72,40 @@ data ReqState = ReqState             -- 从 .codestable/requirements/ 恢复
   , currentStatus  : Maybe Status    -- draft | current | outdated（已有 req 的当前 status）
   , capabilityLive : Unknown | Confirmed  -- backfill 前须确认能力真在代码里跑
   , targetCount    : Int             -- 待落 req 数；> 1 触发拆分而非一次多份
+  , pendingCheckpoint : Maybe ReqCheckpoint
   }
 
+data ReqCheckpoint = ConfirmScope ReqRequest [Slug] | ReviewDraft DraftRef ReqDraft
 data ReqOutcome
   = Drafted Path                      -- 完整初稿写入 requirements/{slug}.md + 刷新 VISION.md
-  | HumanCheckpoint CheckpointReason  -- 停下等用户明确确认
+  | HumanCheckpoint ReqCheckpoint     -- 停下等用户明确确认
   | NeedsHuman Reason
-
-data CheckpointReason
-  = ConfirmScope        -- 一次请求含多个独立能力，须拆分确认动哪一份
-  | ReviewDraft ReqDraft -- Phase 5：携带完整初稿，改到明确「可以了」
 ```
 
 `selectReqAction` 从素材与仓库事实选模式并选下一步（决策细则见「单目标规则」「工作流」「硬性边界」；此处只固定分支形态）：
 
 ```haskell
 selectReqAction :: ReqState -> ReqInput -> ReqOutcome
+selectReqAction(_, _) | attentionMissing              -> NeedsHuman "route to cs-onboard"
 selectReqAction(s, Start r)
-  | attentionMissing                             -> NeedsHuman "route to cs-onboard"
-  | s.targetCount > 1                            -> HumanCheckpoint ConfirmScope
+  | s.targetCount > 1                            -> HumanCheckpoint (ConfirmScope r (scopeCandidates s r))
   | r.mode == Backfill && s.capabilityLive == Unknown -> NeedsHuman "capability evidence missing"
-  | otherwise                                    -> HumanCheckpoint (ReviewDraft (buildReqDraft s r))
-selectReqAction(_, Review _ _) | attentionMissing -> NeedsHuman "route to cs-onboard"
-selectReqAction(s, Review draft ApproveDraft)     -> Drafted (persistReqAndRefreshIndex s draft)
-selectReqAction(s, Review draft (ReviseDraft feedback))
-                                                 -> HumanCheckpoint (ReviewDraft (reviseReqDraft draft feedback))
+  | otherwise                                    -> HumanCheckpoint (newReviewCheckpoint s r)
+selectReqAction(s, ResumeScope selected)
+  | Just (ConfirmScope r candidates) <- s.pendingCheckpoint, selected `elem` candidates
+                                                 -> selectReqAction(clearPending s, Start (selectTarget r selected))
+  | otherwise                                    -> NeedsHuman InvalidReqResume
+selectReqAction(s, ResumeDraft ref ApproveDraft)
+  | Just (ReviewDraft expected draft) <- s.pendingCheckpoint, ref == expected
+                                                 -> Drafted (persistReqAndRefreshIndex (clearPending s) draft)
+  | otherwise                                    -> NeedsHuman InvalidReqResume
+selectReqAction(s, ResumeDraft ref (ReviseDraft feedback))
+  | Just (ReviewDraft expected draft) <- s.pendingCheckpoint, ref == expected
+                                                 -> HumanCheckpoint (reviseReviewCheckpoint draft feedback)
+  | otherwise                                    -> NeedsHuman InvalidReqResume
 ```
 
----
+返回 `HumanCheckpoint` 前把完整 `ReqCheckpoint` 存入当前 workflow state；resume 只消费类型、候选或 `DraftRef` 精确匹配的 pending 值。上下文丢失时重建新 checkpoint，不把未确认 draft 写入 canonical requirements，也不接受旧回复。
 
 ## 适用场景
 
@@ -110,8 +117,6 @@ selectReqAction(s, Review draft (ReviseDraft feedback))
 - 用户主动起草愿景：还没排期的未来需求先落一份 `draft` req 把定位定下来
 
 不适用：拍板架构决策 / 加术语 → `cs-domain`；写单次 feature 方案 → `cs-feat` design 阶段；操作性沉淀 → `cs-keep`；写外部"怎么用" → `cs-docs` tutorial mode；大需求拆几轮做 → `cs-epic`。
-
----
 
 ## 单目标规则
 
@@ -177,8 +182,6 @@ review 前自跑一遍。每条针对一种 AI 默认会犯的错：
 - backfill：写入 `requirements/{slug}.md`，`status: current`、`last_reviewed` 当天
 - update：覆盖已有，`last_reviewed` 当天；结构性改动大则文末 `变更日志` 加一条；draft → current 的状态升级是结构性改动，**必须**加变更日志
 - **索引更新**：更新 `requirements/VISION.md`——按 status 分组列出所有 req，每条带 pitch 一句话和 status 标记
-
----
 
 ## 文档结构
 

@@ -33,10 +33,10 @@ data NoteOutcome
 
 selectNote :: NoteFact -> NoteOutcome
 selectNote n
+  | needsDecisionRecord n               = RouteToDomain
+  | lifetime n == Temporary             = RouteToWorkSpec
   | lineCount n > 2                     = RouteToKeep
   | frequency n /= EverySession         = RouteToKeep
-  | lifetime n == Temporary             = RouteToWorkSpec
-  | needsDecisionRecord n               = RouteToDomain
   | otherwise                           = WriteAttention (classifySection n)
 ```
 

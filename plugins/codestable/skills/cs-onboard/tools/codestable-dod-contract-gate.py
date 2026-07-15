@@ -12,7 +12,15 @@ if os.environ.get("PYTHONDONTWRITEBYTECODE") != "1":
     os.execvpe(sys.executable, [sys.executable, *sys.argv], os.environ)
 sys.dont_write_bytecode = True
 
-from codestable_gate_common import gate_result, main_exit, parse_args, read_text
+from codestable_gate_common import (
+    file_sha256,
+    gate_result,
+    main_exit,
+    parse_args,
+    read_text,
+    repo_relative_path,
+    repo_root,
+)
 
 
 STRUCTURE_CHECKS = {
@@ -70,9 +78,22 @@ def main() -> None:
     parser.add_argument("--stage", default="feature_design.before_approve")
     args = parser.parse_args()
 
+    root = repo_root()
     path = Path(args.design)
+    design_input = repo_relative_path(root, path)
+    feature_identity = Path(design_input).parent.name
+    result_inputs = {"design": design_input}
+    input_digests = {"design": file_sha256(path)} if path.is_file() else {}
     if not path.exists():
-        result = gate_result("dod-contract-gate", args.stage, "blocked", [f"design not found: {path}"])
+        result = gate_result(
+            "dod-contract-gate",
+            args.stage,
+            "blocked",
+            [f"design not found: {path}"],
+            feature=feature_identity,
+            inputs=result_inputs,
+            input_digests=input_digests,
+        )
         main_exit(result, args.json_out)
 
     text = read_text(path)
@@ -108,6 +129,9 @@ def main() -> None:
             "structure_checks": STRUCTURE_CHECKS,
             "strength": "minimal DoD Contract section check",
         }],
+        feature=feature_identity,
+        inputs=result_inputs,
+        input_digests=input_digests,
     )
     main_exit(result, args.json_out)
 

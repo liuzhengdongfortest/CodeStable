@@ -7,8 +7,6 @@
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md`。roadmap 的具体结构以目标 `{slug}-roadmap.md` / `{slug}-items.yaml` 和项目内共享口径为准。
 > 报告语言：roadmap-review 报告正文必须按 `.codestable/attention.md` 用**中文**；若草稿用了英文，落盘前先改写为中文。frontmatter / yaml 字段不翻译。
 
----
-
 ## 输入
 
 进入 review 前必须读取：
@@ -58,13 +56,15 @@ data ReviewPersistence = StartReviewer | PersistReview RoadmapReviewState
 
 persistReview :: AgentSelection -> AgentRun -> AgentDecision -> Findings -> ReviewPersistence
 persistReview _ _              (Launch _ _) _        = StartReviewer
-persistReview _ (Active ref)   Await _               = PersistReview (ReviewAwaiting ref)
+persistReview _ (Active ref)   (Await awaitedRef) _
+  | ref == awaitedRef                               = PersistReview (ReviewAwaiting ref)
+  | otherwise                                       = PersistReview (ReviewBlocked InvalidAwaitState)
 persistReview _ _              (NeedOwnerApproval r) _ = PersistReview (ReviewNeedsOwnerApproval r)
 persistReview _ _              (MergeVerified _) fs  = PersistReview (verdictReviewState fs)
 persistReview _ _              LocalReview fs        = PersistReview (verdictReviewState fs)
 persistReview _ (Failed r)     (Blocked _) _          = PersistReview (ReviewerFailed r)
 persistReview _ _              (Blocked r) _          = PersistReview (ReviewBlocked r)
-persistReview _ _              Await _                = PersistReview (ReviewBlocked InvalidAwaitState)
+persistReview _ _              (Await _) _             = PersistReview (ReviewBlocked InvalidAwaitState)
 
 verdictReviewState :: Findings -> RoadmapReviewState
 verdictReviewState findings | hasBlocking findings = ReviewChangesRequested
@@ -72,7 +72,7 @@ verdictReviewState findings | hasBlocking findings = ReviewChangesRequested
 ```
 
 `_round` 表示每轮规则相同。`Launch` 先启动 reviewer，取得可观察 id 后以 `Active` 重入再落盘；
-`Await`、owner approval、reviewer failure 与 hard block 必须写成不同 `review_state`。
+`Await ref` 只有与 `Active ref` identity 相同时才可写 waiting；owner approval、reviewer failure 与 hard block 必须写成不同 `review_state`。
 `LocalReview` 仅来自 `ApproveLocalOnly`；只有 `MergeVerified` / `LocalReview` 可进入本地核验。
 
 独立 Task agent reviewer prompt 必须只给原始材料和边界，不透露本地 review 结论：
@@ -114,7 +114,7 @@ verdictReviewState findings | hasBlocking findings = ReviewChangesRequested
 - 最终 verdict 必须等 `reviewGate` 返回 `MergeVerified` 或 `LocalReview`。
 - reviewer 返回后逐条做本地事实核验；能用文档 / 代码 / items 证据支撑才合并。
 - reviewer 结果合并进 `{slug}-roadmap-review.md` 后，按 Task agent 生命周期关闭该 reviewer。
-- `Await` 写 `status: blocked, review_state: awaiting-reviewer`；`NeedOwnerApproval` 写
+- `Await ref` 把同一 ref 写入 `status: blocked, review_state: awaiting-reviewer`；`NeedOwnerApproval` 写
   `review_state: needs-owner-approval`；运行失败与 hard block 分别写 `reviewer-failed` / `blocked`，不静默降级。
 
 ### 3. 规划审查

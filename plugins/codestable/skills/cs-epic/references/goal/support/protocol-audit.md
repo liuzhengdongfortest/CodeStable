@@ -17,8 +17,10 @@ Commands to re-run: <去重命令列表>
 - items.yaml
 - goal-plan.md
 - goal-state.yaml
+- approval-report.md 的 `goal-acceptance` / `goal-commits` 命名决策
 - goal-features/*.md
-- 每个 feature 的 design / checklist / review / QA / acceptance / evidence pack / gate results
+- 非 dropped roadmap items 与 goal-state accepted features 的一一对应关系
+- 每个 feature canonical 目录内的 design / checklist / review / QA / acceptance / evidence pack / gate results
 - 每个 evidence pack 的 provider signals、Residual Risks、E/C/H 相关记录
 
 ## 2. 核验
@@ -37,6 +39,9 @@ data AuditOutcome = AuditComplete | RepairAudit | AuditHandoff GoalHandoffReason
 auditPassed :: AuditEvidence -> Bool
 auditPassed a = and
   [ allItemsTerminal a             -- done | dropped(reason)
+  , roadmapFeatureBijection a      -- item feature 指针与 accepted feature 无缺失、额外或重复
+  , canonicalFeatureEvidence a     -- 路径、doc_type、feature identity 均归属当前 feature
+  , goalAuthorizationsValid a      -- 同 roadmap canonical approval-report 的两份命名授权
   , allFeatureArtifactsPassed a    -- review + QA + acceptance
   , allChecklistPassed a           -- steps done + checks passed
   , noCoreResidualRisk a

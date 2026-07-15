@@ -9,7 +9,7 @@
 
 ```haskell
 data RuntimeHealth
-  = RuntimeOk | RuntimeIncomplete | VersionMismatch | ManifestMissing
+  = RuntimeOk | RuntimeIncomplete | RuntimeDrift | VersionMismatch | VersionUnavailable | ManifestMissing
   | ManagedPathsDirty | NotOnboarded | OnboardIncomplete
 data PreflightOutcome = Ready Context | BootstrapAttention | SyncRuntime | Stop Reason
 data HandoffKind = ConfirmedExit | PendingExit
@@ -32,7 +32,9 @@ preflight skill state
 recoverRuntime :: RuntimeHealth -> PreflightOutcome
 recoverRuntime RuntimeOk          = Ready FreshContext
 recoverRuntime RuntimeIncomplete  = SyncRuntime
+recoverRuntime RuntimeDrift       = SyncRuntime
 recoverRuntime VersionMismatch    = SyncRuntime
+recoverRuntime VersionUnavailable = Stop RuntimeVersionUnavailable
 recoverRuntime ManifestMissing    = SyncRuntime
 recoverRuntime ManagedPathsDirty  = Stop ManagedRuntimeDirty
 recoverRuntime NotOnboarded       = Stop RepositoryNotOnboarded
@@ -102,11 +104,12 @@ python3 <cs-onboard skill 目录>/tools/codestable-runtime-sync.py --root . --so
 
 JSON 的 `runtime-incomplete` / `version-mismatch` / 缺 manifest 映射为 `SyncRuntime`，用当前插件包的
 runtime sync 自动同步并去掉 `--check`；`managed-paths-dirty` / `not-onboarded` /
-`onboard-incomplete` 映射为 `Stop`，managed paths 有未提交改动时不自动覆盖。
+`onboard-incomplete` / `unsafe-runtime-root` 映射为 `Stop`，managed paths 有未提交改动时不自动覆盖；
+`.codestable` 是 symlink 或 source skill 缺 `gates/`、`references/`、`codestable.gitignore` 时不得同步。
 
 常用 runtime capability：`base`、`workflow-next`、`goal-gates`。可用
 `python3 <cs-onboard skill 目录>/tools/codestable-doctor.py --root . --json` 查看
-`tooling.runtime.capabilities`；`repo_paths` 是项目资产，`skill_tool_paths` 是全局工具资产。
+`tooling.runtime.capabilities`；`repo_paths` 是项目资产，`skill_tool_paths` 是全局工具或 runtime source 资产。
 
 ## 按需规则索引
 

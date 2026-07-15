@@ -11,6 +11,12 @@ data FeatureStep
   | WaitFor FeatureStage ExternalRef | RequestHuman FeatureStage Reason
   | HandoffStage FeatureStage Reason | Accepted
 
+implementationReady :: RoadmapItems -> RoadmapItem -> Bool
+implementationReady items item = all ((== Done) . statusIn items) (dependsOn item)
+
+commitAuthorized :: GoalState -> Bool
+commitAuthorized s = approvalArtifactApproved s (commitAuthorizationRef s) "goal-commits"
+
 advance :: FeatureStage -> StageResult -> FeatureStep
 advance Implementation Passed = Run Review
 advance Review Passed         = Run QA
@@ -36,6 +42,8 @@ advance stage (Blocked reason)                          = HandoffStage stage rea
 - roadmap item
 - 当前代码上下文
 
+进入实现前运行 `codestable-workflow-next.py feature --feature <feature-dir> --require-implementation-ready --json`，从 items.yaml 机械核验当前 item 的全部 `depends_on` 都严格为 `done`。`dropped` 或仅 design-review `passed` 只曾满足 child batch 的 design admission，不满足本阶段；gate 非 `ok` 时持久化 handoff 并停止，不把当前 feature 改为 `implementing`。
+
 打印：
 
 ```text
@@ -48,7 +56,7 @@ Mandatory commands: <命令列表>
 Evidence required: <证据列表>
 ```
 
-把 `goal-state.yaml` 当前 feature 状态改为 `implementing`。
+只有 `implementationReady` 为真时，才把 `goal-state.yaml` 当前 feature 状态改为 `implementing`。
 
 ## 2. 实现阶段
 
@@ -102,6 +110,8 @@ CS_STAGE_START feature=<feature-slug> stage=implementation skill=cs-feat
 
 按 `cs-feat` acceptance 阶段 执行：
 
+- 从 goal-state 读取 `acceptance_authorization_ref`，以 `ResumeGoalAcceptance ApprovalRef` 显式进入；缺失、不匹配或 rejected 时持久化 handoff，不把 Goal driver 运行当作 owner 批准。
+
 - 确认 review passed 且无 unresolved blocking。
 - 确认 QA passed 且无 unresolved failed / blocked。
 - 复核 evidence pack、DoD Results、Gate Results。
@@ -119,6 +129,7 @@ Acceptance 失败必须先归因：实现行为不满足验收是 `Implementatio
 全部通过后：
 
 - 当前 feature 状态改为 `accepted`。
-- 立即 scoped-commit 本 feature 的代码、spec、review、QA、acceptance、roadmap 回写和 goal-state 更新；commit 成功且 `git status --short` 干净后，才能进入下一条。
-- `current_feature_index` 加 1。
+- `current_feature_index` 加 1，并把 accepted 状态、roadmap/items 回写和新 index 一起持久化；这些状态更新必须进入本 feature 的 scoped commit。
+- 再次运行 `python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic --roadmap <roadmap-dir> --json`；只有结果为 `awaiting` / `dispatch_goal` 且 evidence 同时返回 `approval-report.md#goal-acceptance` 与 `approval-report.md#goal-commits`，`commitAuthorized` 才成立。其他结果先把 feature 保持 `accepted`、持久化 handoff，并停止，不得执行 `git commit`。
+- 授权仍有效时，scoped-commit 本 feature 的代码、spec、review、QA、acceptance、roadmap 回写和全部 goal-state 更新；commit 成功后再运行 `git status --short`，只有所有状态更新之后工作树仍干净，才能进入下一条。
 - 打印 `CS_ROADMAP_GOAL_FEATURE_DONE`。

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+- Hardened CodeStable workflow contracts across Epic dependency admission, Goal authorization, checkpoint resume, independent review, runtime safety, and release gates.
+
 ## 1.0.3
 
 - Added the `cs-feedback` evidence pipeline for collecting local Codex and Claude session context, triaging incidents, and producing privacy-safe public issue previews.

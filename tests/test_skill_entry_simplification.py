@@ -126,6 +126,26 @@ def test_skill_markdown_files_stay_under_line_limit() -> None:
     assert oversized == []
 
 
+def test_split_asset_relative_markdown_links_resolve() -> None:
+    files = [
+        ROOT / "asset/programming-paradigm.md",
+        ROOT / "asset/programming-paradigm-extensions.md",
+        ROOT / "asset/programming-paradigm-practices.md",
+        ROOT / "asset/2026-04-25-deepseek-thinking-provider/deepseek-thinking-provider-design.md",
+        ROOT / "asset/2026-04-25-deepseek-thinking-provider/deepseek-thinking-provider-contracts.md",
+        ROOT / "asset/2026-04-25-deepseek-thinking-provider/deepseek-thinking-provider-implementation.md",
+    ]
+    missing = []
+    for source in files:
+        for target in re.findall(r"\[[^\]]+\]\(([^)#]+)(?:#[^)]+)?\)", source.read_text(encoding="utf-8")):
+            if "://" in target or target.startswith("mailto:"):
+                continue
+            if not (source.parent / target).resolve().exists():
+                missing.append((source.relative_to(ROOT).as_posix(), target))
+
+    assert missing == []
+
+
 def test_codestable_skill_markdown_has_no_default_worktree_contract_residue() -> None:
     forbidden = [
         "worktree",
@@ -350,7 +370,15 @@ def test_onboard_runtime_refresh_is_explicit_and_repeatable() -> None:
     assert "<cs-onboard skill 目录>/tools/" in tools_doc
     assert "不作为新版技能入口" in tools_doc
     assert "version-mismatch" in tools_doc
+    assert "runtime-drift" in tools_doc
+    assert "tooling.runtime.drifted_paths" in tools_doc
+    assert "source 目录缺失时不删除项目副本" in tools_doc
+    assert "不得沿链接改写外部内容" in tools_doc
     assert "tooling.runtime.capabilities" in tools_doc
+    assert "RuntimeDrift" in conventions
+    assert "VersionUnavailable" in conventions
+    assert "recoverRuntime RuntimeDrift       = SyncRuntime" in conventions
+    assert "recoverRuntime VersionUnavailable = Stop RuntimeVersionUnavailable" in conventions
     assert "Python 工具脚本从已安装的 `cs-onboard` skill 包运行，不再复制到每个 repo" in readme
     assert "Python tool scripts run from the installed `cs-onboard` skill package instead of being copied into each repo" in readme_en
     assert "每个已接入项目中显式执行 `/cs-onboard --mode refresh-runtime`" in readme
@@ -415,6 +443,8 @@ def test_feature_contract_classifies_quick_standard_and_goal_lanes() -> None:
 
 
 def test_goal_mode_overrides_stage_user_waits() -> None:
+    feat = (SKILLS / "cs-feat/SKILL.md").read_text(encoding="utf-8")
+    epic_skill = (SKILLS / "cs-epic/SKILL.md").read_text(encoding="utf-8")
     impl = (SKILLS / "cs-feat/references/implementation/protocol.md").read_text(encoding="utf-8")
     impl_reference = (SKILLS / "cs-feat/references/implementation/support/reference.md").read_text(encoding="utf-8")
     accept = (SKILLS / "cs-feat/references/acceptance/protocol.md").read_text(encoding="utf-8")
@@ -432,6 +462,32 @@ def test_goal_mode_overrides_stage_user_waits() -> None:
     assert "Standard / review-fix 汇报后直接进入 code review" in impl_reference
     # acceptance 的 goal 例外要同时覆盖单 feature goal 和 epic goal。
     assert "`cs-feat` / `cs-epic` 的 goal 协议" in accept
+    assert "ResumeGoalAcceptance ApprovalRef" in accept
+    assert "acceptance_authorization: approved" in feat_goal
+    assert "acceptance_authorization: approved" in epic_goal
+    assert "approvals.goal-acceptance" in feat_goal
+    assert "approvals.goal-acceptance" in epic_goal
+    assert "approvals.goal-commits" in epic_goal
+    assert "applyResumeInput" in feat
+    assert "applyCheckpointResume" in epic_skill
+    assert "ConfirmGoalAcceptanceAuthorization" in feat
+    assert "ConfirmGoalAcceptanceAuthorization" in epic_skill
+    assert "RejectGoalAcceptanceInput" in epic_skill
+    assert "PersistGoalAcceptanceRejection" in epic_skill
+    assert "ConfirmGoalCommitAuthorization" in epic_skill
+    assert "RejectGoalCommitsInput" in epic_skill
+    assert "PersistGoalCommitRejection" in epic_skill
+    assert "onCheckpoint ConfirmGoalAcceptanceAuthorization" in epic_skill
+    assert "onCheckpoint ConfirmGoalCommitAuthorization" in epic_skill
+    assert "commit_authorization: approved" in epic_goal
+    assert "approval-report.md#goal-commits" in epic_goal
+    assert "authorize-epic-goal-commits" in (
+        SKILLS / "cs-onboard/tools/codestable-workflow-next.py"
+    ).read_text(encoding="utf-8")
+    assert epic_goal.index("commitAuthorization s == AuthorizationRejected") < epic_goal.index(
+        "not (packagePersisted s)"
+    ) < epic_goal.index("acceptanceAuthorization s == AuthorizationMissing")
+    assert "其他 `RejectCheckpoint` 保持原状态" in feat
     # host driver 必须同时可见且能启动独立 reviewer；否则打印 /goal。
     assert "visibleHostDriver e && canSpawnReviewer e" in agent_conventions
     assert "otherwise                                     = PrintGoal \"/goal\"" in agent_conventions
@@ -492,6 +548,9 @@ def test_epic_defers_child_design_approval_to_batch_checkpoint() -> None:
     feat_skill = (SKILLS / "cs-feat/SKILL.md").read_text(encoding="utf-8")
     feat_design = (SKILLS / "cs-feat/references/design/protocol.md").read_text(encoding="utf-8")
     epic_goal = (SKILLS / "cs-epic/references/goal/protocol.md").read_text(encoding="utf-8")
+    epic_goal_support = (
+        SKILLS / "cs-epic/references/goal/support/protocol-feature-loop.md"
+    ).read_text(encoding="utf-8")
     tools_doc = (SKILLS / "cs-onboard/references/tools.md").read_text(encoding="utf-8")
 
     # 子 design 逐项推进时保持 draft，用户确认统一发生在批量 checkpoint，
@@ -515,10 +574,24 @@ def test_epic_defers_child_design_approval_to_batch_checkpoint() -> None:
     assert "`epic_child_batch: true` 时不要停用户" in feat_design
     assert "codestable-workflow-next.py feature --epic-child-batch" in feat_design
     # batch loop 纪律唯一权威在 cs-epic SKILL.md 的「Child design batch loop」；goal protocol 只保留 hook 引用
-    assert "取下一个 planned / in-progress 且缺 design、checklist" in epic_skill
+    assert "按 DAG 取下一个 design-ready" in epic_skill
     assert "不得要求用户确认该 child" in epic_skill
     assert "codestable-workflow-next.py epic" in epic_goal
     assert "`next_action`、`must_continue` 和 `final_answer_allowed`" in tools_doc
+    assert "design-ready" in epic_skill
+    assert "done / dropped / design-review passed" in epic_skill
+    assert "implementation 仍要求依赖严格全部 `done`" in epic_goal
+    assert "Blocked RoadmapDependencyNotDone" in (
+        SKILLS / "cs-feat/references/implementation/protocol.md"
+    ).read_text(encoding="utf-8")
+    assert "--require-implementation-ready" in epic_goal_support
+    assert "--require-implementation-ready" in tools_doc
+    assert "每个非 dropped item 与 accepted feature 一一对应" in tools_doc
+    assert "跨 feature 证据复用" in tools_doc
+    assert "repo-relative `inputs`" in tools_doc
+    assert "实际 design/checklist/feature_dir/out 路径" in tools_doc
+    assert "文件型 inputs 同时写 SHA-256" in tools_doc
+    assert "不能只改文件名或在 gate 后替换内容" in tools_doc
 
 
 CANONICAL_PREFLIGHT = (
@@ -700,6 +773,26 @@ def test_new_main_entries_are_registered() -> None:
     assert "cs-feedback" in common.KNOWN_SKILL_DIRS
     for skill in COMPATIBILITY_ENTRIES:
         assert skill in common.KNOWN_SKILL_DIRS
+
+
+def test_compatibility_openai_prompts_prefer_main_entries() -> None:
+    expected = {
+        "cs-feat-design-review": "$cs-feat --stage design-review",
+        "cs-feat-qa": "$cs-feat --stage qa",
+        "cs-roadmap-review": "$cs-epic --stage review",
+        "cs-roadmap-impl-goal": "$cs-epic --stage goal-package",
+    }
+    for compatibility, main_prompt in expected.items():
+        prompt = (SKILLS / compatibility / "agents/openai.yaml").read_text(encoding="utf-8")
+        assert main_prompt in prompt
+        assert f"${compatibility}" not in prompt
+
+
+def test_onboard_summary_includes_feedback_entry_and_root() -> None:
+    onboard = (SKILLS / "cs-onboard/SKILL.md").read_text(encoding="utf-8")
+
+    assert "反馈 skill 问题 `cs-feedback`" in onboard
+    assert "audits/feedback/brainstorms/compound" in onboard
 
 
 def test_system_overview_declares_complete_entries_and_feature_goal_package() -> None:

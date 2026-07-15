@@ -8,11 +8,11 @@
 
 ```haskell
 data AnalysisSection = Locate | TraceFailure | ConfirmRootCause | AssessImpact | CompareFixes
-data AnalysisBlocker = CodeEvidenceUnavailable | RootCauseNotEstablished
+data AnalysisBlocker = CodeEvidenceUnavailable | RootCauseNotEstablished | FixPlanRejected
 data AnalysisOutcome
   = RouteReport | Run AnalysisSection
   | PersistDraftAndCheckpoint CheckpointReason
-  | PersistAndRouteFix | NeedsHuman AnalysisBlocker
+  | ReviseFixOptions Feedback | PersistAndRouteFix | NeedsHuman AnalysisBlocker
 
 nextAnalysis :: AnalysisState -> Maybe CheckpointAnswer -> AnalysisOutcome
 nextAnalysis state owner
@@ -23,9 +23,10 @@ nextAnalysis state owner
   | Just section <- firstIncomplete state
                                         = Run section
   | fixOptionCount state < 2          = Run CompareFixes
-  | owner == Just ReviseCheckpoint    = Run CompareFixes
-  | owner /= Just ApproveCheckpoint   = PersistDraftAndCheckpoint ConfirmFixPlan
-  | otherwise                         = PersistAndRouteFix
+  | owner is Just (ReviseCheckpoint feedback) = ReviseFixOptions feedback
+  | owner == Just RejectCheckpoint    = NeedsHuman FixPlanRejected
+  | owner == Nothing                  = PersistDraftAndCheckpoint ConfirmFixPlan
+  | owner == Just ApproveCheckpoint   = PersistAndRouteFix
 
 sectionComplete :: AnalysisSection -> AnalysisEvidence -> Bool
 sectionComplete CompareFixes evidence =
@@ -37,8 +38,9 @@ sectionComplete section evidence =
 `firstIncomplete` 固定按 Locate → TraceFailure → ConfirmRootCause → AssessImpact → CompareFixes；
 已有 analysis 只补第一处缺失，不重写已完成节。每节只有满足 `sectionComplete` 才算完成。
 `PersistDraftAndCheckpoint` 先落 `status: draft` 的 analysis 和 pending approval，再停等 owner；
-`ApproveCheckpoint` / `ReviseCheckpoint` 是显式 resume 输入。代码不可读或穷尽证据仍无法成立根因时返回
+`ApproveCheckpoint` / `ReviseCheckpoint feedback` / `RejectCheckpoint` 是显式 resume 输入；revise 先更新方案再重建 checkpoint，reject 终止本次 fix plan。代码不可读或穷尽证据仍无法成立根因时返回
 `NeedsHuman`，不能无限重跑同一 section。
+owner 参数只来自主入口已与 `ConfirmFixPlan` 精确匹配的 `ResumeIssueCheckpoint`，无 pending 或 reason 不匹配时阶段协议不得运行。
 
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节和 `cs-issue` 的"文件放哪儿"。
 

@@ -49,10 +49,13 @@ contracts:
 
 ```haskell
 csDocs :: DocsRequest -> DocsOutcome
+csDocs req | attentionMissing req.repoFacts = NeedsHuman "route to cs-onboard"
+           | otherwise = either Blocked (\s -> restoreDocsStage s req) (applyDocsResume req.resumeInput (restoreDocsState req.repoFacts))
 
 data DocsRequest = DocsRequest
   { requestedMode : Maybe Mode           -- tutorial | api
   , userTopic     : Maybe Text
+  , resumeInput   : Maybe DocsResume
   , repoFacts     : RepoFacts            -- 优先于 args / 聊天历史
   }
 
@@ -66,6 +69,8 @@ data DocsState = DocsState              -- 全部从 docs/ + manifest.yaml + 源
   , manifest    : NoManifest | HasManifest             -- docs/api/manifest.yaml
   , entryStatus : Pending | Draft | Current | Outdated | Skipped
   , codeDrift   : InSync | Drifted       -- 相关源码/spec 是否已变
+  , pendingCheckpoint : Maybe CheckpointReason
+  , rejectedCheckpoint : Maybe CheckpointReason
   }
 
 data DocsOutcome
@@ -73,10 +78,19 @@ data DocsOutcome
   | HumanCheckpoint CheckpointReason
   | Completed DocsSummary
   | NeedsHuman Reason
+  | Blocked Reason
 
 data CheckpointReason
   = ReviewDraft | ReviewManifest | ConfirmOverwrite | ConfirmContractWording
   | ReviewEntry | ReviewSamples | ReviewAllDrafts
+data DocsDecision = ApproveDocs | ReviseDocs | RejectDocs
+data DocsResume = ResumeDocsCheckpoint CheckpointReason DocsDecision
+
+applyDocsResume :: Maybe DocsResume -> DocsState -> Either Reason DocsState
+applyDocsResume Nothing s = Right s
+applyDocsResume (Just (ResumeDocsCheckpoint reason decision)) s
+  | s.pendingCheckpoint == Just reason = Right (persistDocsDecision reason decision s)
+  | otherwise                          = Left InvalidDocsResume
 -- 目标读者/类型模糊不是 checkpoint：走 NeedsHuman "which reader?"（见 restoreDocsStage 与 Failure Behavior）
 ```
 
@@ -87,6 +101,9 @@ restoreDocsStage :: DocsState -> DocsRequest -> DocsOutcome
 restoreDocsStage(s, intent)
   | needsGlobalSync(intent)                              -> RoutedTo NeatHandoff   -- 全局同步/README/agent 入口/记忆整理，转 `cs-docs-neat`
   | ambiguousReader(s, intent)                           -> NeedsHuman "which reader?"
+  | s.rejectedCheckpoint == Just ConfirmOverwrite       -> Completed (preservedExistingDocSummary s)
+  | Just reason <- s.rejectedCheckpoint                 -> Blocked (OwnerRejectedDocsCheckpoint reason)
+  | Just reason <- s.pendingCheckpoint                   -> HumanCheckpoint reason
   | requestedMode intent == Just Api || wantsReference(intent)
                                                          -> RoutedTo ApiStage      -- 无 manifest 则初始化，缺条目则补
   | s.manifest == HasManifest && s.entryStatus in [Pending, Draft, Outdated]
@@ -108,7 +125,7 @@ restoreDocsStage(s, intent)
 
 1. **`preflight`** — 读 `.codestable/attention.md`；缺失则 `route to cs-onboard`；不得用 `AGENTS.md`/`CLAUDE.md` 代替 CodeStable attention。
 2. **`parseEntryIntent`** — 优先级 `flag > compat-preset > utterance`；`repoFacts override requestedMode`；空参不推断 mode，先按仓库事实恢复。
-3. **`restoreDocsStage`** — 扫 `docs/`、`README*`、`manifest.yaml` + 相关源码公开表面恢复 `DocsState`，选 next stage；全局同步 / 记忆整理（非对外文档）→ `route to cs-docs-neat`。
+3. **`restoreDocsStage`** — 扫 `docs/`、`README*`、`manifest.yaml` + 相关源码公开表面恢复 `DocsState`；先用 `applyDocsResume` 精确匹配并持久化 typed resume，再选 next stage；全局同步 / 记忆整理（非对外文档）→ `route to cs-docs-neat`。
 4. **`loadStageProtocol`** — progressive reference loading：进某 stage 才加载该 stage 一个 protocol，禁止 eager 读全部 references。
 5. **`executeOrRoute`** — 先读代码和既有文档再落盘；tutorial/api 生成或增量更新，`status` 落到合法值；遇 `HumanCheckpoint` 必停。
 6. **`exitRecoverable`** — 文档 `status` / manifest 状态明确、可从源码追溯，next stage 或 checkpoint reason 明确。
@@ -132,7 +149,7 @@ restoreDocsStage(s, intent)
 2. 覆盖或重写已有 `current` 文档前：确认旧内容确实过期，不是并行有效版本。
 3. 文档表述会改变 user-facing 契约或公开理解时：让用户确认口径后再落盘。
 
-checkpoint 以 owner 的明确回答作为 resume input；草稿或 manifest 必须先以 `draft` 状态持久化，确认后再改为 `current` / `approved`，因此跨会话也能恢复待确认对象。API manifest 初次生成后用 `ReviewManifest` 放行，不能把“文件已存在”当作“用户已确认”。
+checkpoint 以 `ResumeDocsCheckpoint reason decision` 作为 typed resume input；草稿或 manifest 必须先以 `draft` 状态持久化，reason 精确匹配后再改为 `current` / `approved`，因此跨会话也能恢复待确认对象。无 pending、reason 不匹配或旧状态无法证明 checkpoint 时 `Blocked InvalidDocsResume`。API manifest 初次生成后用 `ReviewManifest` 放行，不能把“文件已存在”当作“用户已确认”。
 
 ---
 

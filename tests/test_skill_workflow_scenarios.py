@@ -618,7 +618,8 @@ def test_review_outcomes_do_not_treat_waiting_or_missing_input_as_approval() -> 
         "| NeedsHuman ReviewBlocker",
         "not s.specFinalized                                -> NeedsHuman SpecNotFinalized",
         "not s.diffAttributed                               -> NeedsHuman DiffNotAttributable",
-        "anyStartedLanePending s                            -> Awaiting LaneStillPending",
+        "Just lane <- firstLaunchableLane s                 -> Launching lane",
+        "Just wait <- firstPendingLane s                    -> Awaiting wait",
         "HumanCheckpoint SelfReviewDowngrade",
     ):
         assert phrase in text
@@ -632,7 +633,8 @@ def test_review_outcomes_do_not_treat_waiting_or_missing_input_as_approval() -> 
         "not s.specFinalized",
         "not s.diffAttributed",
         "anyLaneFailed s",
-        "anyStartedLanePending s",
+        "firstLaunchableLane s",
+        "firstPendingLane s",
         "focusedClosureEligible s && hasBlocking s",
         "focusedClosureEligible s                           -> FocusedClosure Passed",
         "laneAMissing s",
@@ -642,13 +644,27 @@ def test_review_outcomes_do_not_treat_waiting_or_missing_input_as_approval() -> 
         text.index(guard) for guard in guard_order
     )
     for phrase in (
-        "mergeGate (Launch _ _) _ = MergeAwaiting LaneStillPending",
-        "mergeGate Await _ = MergeAwaiting LaneStillPending",
+        "mergeGate (Launch agent config) _ = MergeLaunch LaneA (TaskCommand agent config)",
+        "mergeGate _ (OcrReady command) = MergeLaunch LaneB (OcrLaneCommand command)",
+        "mergeGate (Await ref) _ = MergeAwaiting (LaneStillPending LaneA (TaskRunRef ref))",
+        "mergeGate _ (OcrActive ref) = MergeAwaiting (LaneStillPending LaneB (OcrRunRef ref))",
         "mergeGate (NeedOwnerApproval reason) _ = MergeNeedsOwnerApproval reason",
-        "pending laneB                       = MergeAwaiting LaneStillPending",
     ):
         assert phrase in protocol
+    merge_order = (
+        "mergeGate (Blocked reason) _",
+        "mergeGate _ laneB | failed laneB",
+        "mergeGate (Launch agent config) _",
+        "mergeGate _ (OcrReady command)",
+        "mergeGate (Await ref) _",
+        "mergeGate _ (OcrActive ref)",
+        "mergeGate (NeedOwnerApproval reason) _",
+    )
+    assert [protocol.index(guard) for guard in merge_order] == sorted(
+        protocol.index(guard) for guard in merge_order
+    )
     assert "Blocked LaneStillPending" not in protocol
+    assert "pending (RunCommitted _)" not in protocol
 
 
 def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
@@ -672,8 +688,11 @@ def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
         assert phrase in skill
     for phrase in (
         "advance Standard _ (Just ApproveCheckpoint) = PersistAndRoute StandardPath AnalyzeNext",
+        "advance Standard _ (Just RejectCheckpoint) = Blocked ReportRejected",
+        "ReviseAndCheckpoint feedback ConfirmReport",
         "advance FastPath _ (Just ApproveCheckpoint) = PersistAndRoute FastPathApproved FixNext",
         "advance FastPath _ (Just RejectCheckpoint)  = PersistAndRoute FastPathRejected AnalyzeNext",
+        "ReviseAndCheckpoint feedback ConfirmFixPlan",
         "PersistDraftAndCheckpoint ConfirmReport",
         "PersistDraftAndCheckpoint ConfirmFixPlan",
         "fast-track 不得绕过五问",
@@ -686,7 +705,6 @@ def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
         "s.hasFixNote && s.reviewStatus == Missing",
         "not s.hasFixNote && s.reviewStatus /= Missing",
         "s.reportStatus /= ArtifactConfirmed",
-        "s.codeStatus == Changed && not s.hasFixNote",
         "s.issuePath == PathUndecided",
         "s.issuePath == FastPathPending",
         "s.issuePath == FastPathApproved && not",
@@ -696,15 +714,24 @@ def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
     assert [skill.index(guard) for guard in guard_order] == sorted(
         skill.index(guard) for guard in guard_order
     )
+    assert 's.issuePath == FastPathPending                      -> Blocked "pending fast-path approval lacks checkpoint state"' in skill
+    assert "ApprovalRevisionRequested Feedback" in skill
+    assert "ReviseFixOptions feedback" in skill_text("cs-issue", "references/analyze/protocol.md")
+    assert "fixCompletionApproval s is ApprovalRevisionRequested _" in skill_text("cs-issue", "references/fix/protocol.md")
 
 
 def test_req_review_checkpoint_precedes_persistence() -> None:
     text = skill_text("cs-req")
-    checkpoint = "HumanCheckpoint (ReviewDraft (buildReqDraft s r))"
-    persist = "Review draft ApproveDraft)     -> Drafted (persistReqAndRefreshIndex s draft)"
+    checkpoint = "HumanCheckpoint (newReviewCheckpoint s r)"
+    persist = "Drafted (persistReqAndRefreshIndex (clearPending s) draft)"
 
     assert "data ReqInput" in text
-    assert "| Review ReqDraft DraftDecision" in text
+    assert "| ResumeScope Slug" in text
+    assert "| ResumeDraft DraftRef DraftDecision" in text
+    assert "pendingCheckpoint : Maybe ReqCheckpoint" in text
+    assert "Just (ConfirmScope r candidates) <- s.pendingCheckpoint, selected `elem` candidates" in text
+    assert "Just (ReviewDraft expected draft) <- s.pendingCheckpoint, ref == expected" in text
+    assert "NeedsHuman InvalidReqResume" in text
     assert checkpoint in text
     assert persist in text
     assert text.index(checkpoint) < text.index(persist)
@@ -743,7 +770,8 @@ def test_goal_owner_stop_has_resume_and_terminal_branches() -> None:
         "data OwnerStopState",
         "| PendingStop CheckpointReason",
         "| ResolvedStop GoalOwnerDecision",
-        "data GoalOwnerDecision = ResumeWith GoalDelta | KeepBlocked",
+        "data GoalOwnerDecision = ResumeWith GoalDelta | ApproveLocalReviewFallback ApprovalRef | KeepBlocked",
+        "data GoalResume = ResolveGoalStop CheckpointReason GoalOwnerDecision",
         "| Blocked GoalSummary",
         "ResolvedStop (ResumeWith delta)",
         "ResolvedStop KeepBlocked",
@@ -759,14 +787,17 @@ def test_goal_owner_stop_has_resume_and_terminal_branches() -> None:
     ):
         assert phrase in reference
     terminal_order = (
-        "s.status == Complete && s.acceptancePassed",
+        "s.status == Complete && completionEvidenceReady s",
         "s.ownerStop is PendingStop reason",
         "ownerStopTriggered(s)",
-        "s.status == Active && not s.acceptancePassed",
+        "s.status == Active && completionEvidenceReady s",
+        "s.status == Active && acceptanceArtifactReady s",
+        "s.status == Active                             -> Iterating (nextMinimalAttempt s)",
     )
     assert [skill.index(guard) for guard in terminal_order] == sorted(
         skill.index(guard) for guard in terminal_order
     )
+    assert "s.status == Active && s.acceptancePassed      -> Completed" not in skill
 
 
 def test_audit_selected_finding_dispatches_in_the_current_run() -> None:
@@ -910,7 +941,8 @@ def test_review_focused_closure_never_masks_failed_or_pending_lanes() -> None:
     review = skill_text("cs-code-review")
     ordered_guards = (
         "anyLaneFailed s",
-        "anyStartedLanePending s",
+        "firstLaunchableLane s",
+        "firstPendingLane s",
         "focusedClosureEligible s && hasBlocking s",
         "focusedClosureEligible s                           -> FocusedClosure Passed",
     )
@@ -919,6 +951,7 @@ def test_review_focused_closure_never_masks_failed_or_pending_lanes() -> None:
     assert positions == sorted(positions)
     assert "anyLaneFailed s                                    -> ReviewWritten Blocked" in review
     assert "s.priorIndependentReview" in review
+    assert "s.priorReview `elem` [Just Passed, Just ChangesRequested]" in review
     assert "s.changeClass == ClosureOnly" in review
 
 
@@ -1031,7 +1064,7 @@ def test_epic_child_design_batch_continues_after_one_child_review_passed(tmp_pat
         "完成某一个 child 的 design + design-review `passed` 只是内部进度",
         "不得 final answer",
         "本轮必须继续调用 `cs-feat`",
-        "取下一个 planned / in-progress 且缺 design、checklist",
+        "按 DAG 取下一个 design-ready 且缺 design、checklist",
     )
     # batch loop 纪律唯一权威在 SKILL.md；goal protocol 只保留 workflow-next hook 引用
     assert_doc_contains(
@@ -1059,6 +1092,24 @@ def test_epic_goal_qa_blocked_hands_off_without_entering_review_fix() -> None:
     assert "advance stage (NeedsHuman reason)                       = RequestHuman stage reason" in feature_loop
     assert "advance stage (Blocked reason)                          = HandoffStage stage reason" in feature_loop
     assert "advance QA _" not in feature_loop
+
+
+def test_epic_goal_revalidates_commit_authorization_before_each_commit() -> None:
+    feature_loop = skill_text("cs-epic", "references/goal/support/protocol-feature-loop.md")
+    goal_protocol = skill_text("cs-epic", "references/goal/support/protocol.md")
+    final_audit = skill_text("cs-epic", "references/goal/support/protocol-audit.md")
+
+    for document in (feature_loop, goal_protocol):
+        assert "codestable-workflow-next.py epic --roadmap <roadmap-dir> --json" in document
+        assert "approval-report.md#goal-acceptance" in document
+        assert "approval-report.md#goal-commits" in document
+    assert "不得执行 `git commit`" in feature_loop
+    assert feature_loop.index("`current_feature_index` 加 1") < feature_loop.index(
+        "再次运行 `python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic"
+    ) < feature_loop.index("scoped-commit 本 feature")
+    assert "只有所有状态更新之后工作树仍干净" in feature_loop
+    assert "goalAuthorizationsValid" in final_audit
+    assert "goal-acceptance" in final_audit and "goal-commits" in final_audit
 
 
 def test_epic_goal_audit_hands_off_unapproved_h_only_evidence_immediately() -> None:
@@ -1384,7 +1435,7 @@ def test_review_selector_preserves_guard_order_and_scope() -> None:
     assert positions == sorted(positions)
     review_gate_order = (
         "reviewGate _ (Finished findings)",
-        "reviewGate _ (Active _)",
+        "reviewGate _ (Active ref)",
         "reviewGate _ (Failed _) (Just ApproveLocalOnly)",
         "reviewGate _ (Failed reason) _",
         "reviewGate (SelectionBlocked reason) NotStarted",
@@ -1401,8 +1452,9 @@ def test_review_selector_preserves_guard_order_and_scope() -> None:
         "references/independent-review/protocol.md",
         "dirtyPaths scope `isSubsetOf` currentScope scope",
         "OcrSkippedByUser",
-        "pending laneB",
-        "pending (RunCommitted _)",
+        "OcrReady (RunCommitted range)",
+        "OcrActive Text",
+        "MergeLaunch LaneName LaneCommand",
         "failed (OcrFailed _)",
         "finished (OcrFinished _)",
         "verifiedFindings (IndependentFindings findings) laneB",

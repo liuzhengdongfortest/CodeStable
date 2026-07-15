@@ -43,6 +43,7 @@ afterStep _ HumanVerification VerificationPassed  = Continue
 `PendingApply` 必须先进入 `Run Apply`；只有代码已写入 apply-notes、状态变成
 `AppliedAwaitingHuman item` 后，`appliedAwaitingHuman` 才能返回该 item。owner 确认写回
 `StepVerified item` 后继续，禁止把 checklist 的 `HUMAN` 责任改成 `AI` 来越过 checkpoint。
+所有 owner 确认只来自主入口已与当前 pending reason 精确匹配的 `ResumeRefactorCheckpoint`。
 
 **核心纪律**：行为等价是底线。一旦会改外部可观察行为 → 不走 refactor，走 feature（需求变）或 issue（bug 修）。
 

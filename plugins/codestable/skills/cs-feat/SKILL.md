@@ -26,7 +26,6 @@ contracts:
 ## 入口意图
 
 本次调用参数：$ARGUMENTS
-
 意图来源按优先级：调用参数 flag > 兼容入口预设 > 用户话术。参数为空或未被替换（仍是字面 `$ARGUMENTS`）时跳过该来源；`--stage <stage>` 表示阶段意图，`--mode <mode>` 表示执行模式，其余文本作为需求描述。
 
 | 参数 | 入口意图 |
@@ -85,8 +84,8 @@ data FeatureRequest = FeatureRequest
 
 data Stage = Design | DesignReview | GoalPackage | Implementation | CodeReview | QA | Acceptance | FastForward
 data ResumeInput
-  = ResumeDesign DesignDecision | ApproveScopeChange | ResumeReview OwnerApproval
-  | ResumeAcceptance AcceptanceDecision | ResumeEffect EffectDecision | RejectCheckpoint
+  = ResumeDesign DesignDecision | ApproveScopeChange | ResumeReview OwnerApproval | AuthorizeGoalAcceptance ApprovalRef
+  | ResumeAcceptance AcceptanceDecision | ResumeQARunner OwnerApproval | ResumeAcceptanceAuditor OwnerApproval | ResumeEffect EffectDecision | RejectCheckpoint
 data DesignDecision = ApproveDesign | RequestDesignChanges
 data AcceptanceDecision = ApproveAcceptance | RequestAcceptanceChanges FixKind
 data EffectDecision = EffectAccepted | EffectRejected
@@ -100,10 +99,10 @@ data StandardRunState = StandardImplementationPending | StandardReviewReady | St
                       | StandardAcceptanceReady | StandardComplete
 
 data GoalRunState                        -- 从 goal-state.yaml 的 stage/status/driver 字段恢复
-  = GoalMissing | GoalReadyToDispatch | GoalDriverActive DriverInfo
+  = GoalMissing | GoalReadyToDispatch ApprovalRef | GoalAuthorizationMissing | GoalDriverActive DriverInfo
   | GoalImplementationRunning | GoalReviewReady | GoalReviewFixing
   | GoalQAReady | GoalQAFixing | GoalAcceptanceReady
-  | GoalComplete | GoalHandoffBlocked Reason | GoalUnknown Text
+  | GoalComplete ApprovalRef | GoalHandoffBlocked Reason | GoalUnknown Text
 
 data FeatureState = FeatureState          -- 从 feature 目录及 parent roadmap items / goal-state 恢复
   { featureDir         : Maybe Path
@@ -128,7 +127,7 @@ data FeatureOutcome
   | NeedsHuman Reason
 
 data CheckpointReason
-  = ConfirmDesign | ConfirmScopeChange | ConfirmAcceptance | ConfirmEffect | ApproveReviewFallback Reason
+  = ConfirmDesign | ConfirmScopeChange | ConfirmAcceptance | ConfirmGoalAcceptanceAuthorization | ConfirmEffect | ApproveReviewFallback Reason
 data WaitReason = DesignReviewerRunning AgentRef | AwaitGoalDriver DriverInfo
 ```
 
@@ -168,10 +167,11 @@ restoreFeatureStage(s, intent)
   | lane == Standard && s.standardRunState == StandardAcceptanceReady       -> RoutedTo Acceptance
   | lane == Standard && s.standardRunState == StandardComplete              -> Completed summary
   | lane == Goal && s.goalRunState == GoalMissing -> RoutedTo GoalPackage
-  | lane == Goal && s.goalRunState == GoalComplete              -> Completed summary
+  | lane == Goal && s.goalRunState is GoalComplete _            -> Completed summary
   | lane == Goal && s.goalRunState is GoalHandoffBlocked reason -> GoalHandoff (handoffCommand reason)
   | lane == Goal && s.goalRunState is GoalDriverActive driver   -> Awaiting (AwaitGoalDriver driver)
-  | lane == Goal && s.goalRunState == GoalReadyToDispatch       -> DispatchGoalDriver "/goal"
+  | lane == Goal && s.goalRunState == GoalAuthorizationMissing  -> HumanCheckpoint ConfirmGoalAcceptanceAuthorization
+  | lane == Goal && s.goalRunState is GoalReadyToDispatch _     -> DispatchGoalDriver "/goal"
   | lane == Goal && s.goalRunState == GoalImplementationRunning -> RoutedTo Implementation
   | lane == Goal && s.goalRunState == GoalReviewReady           -> RoutedTo CodeReview
   | lane == Goal && s.goalRunState == GoalReviewFixing          -> RoutedTo Implementation
@@ -183,7 +183,7 @@ restoreFeatureStage(s, intent)
   where lane = classifyExecutionLane(s, intent)
 ```
 
-DesignReviewStatus 从 design-review 的 `review_state/review_reason/reviewer_id` 恢复；旧 `blocked` 无 `review_state` 时 fail-closed。QuickRunState 从 ff-note/review 恢复；StandardRunState 从 checklist、review、可选 QA 和 acceptance 恢复；旧 design 缺 `execution_lane` 且没有 goal state 时按 Standard，已有 goal state 始终按 Goal。
+DesignReviewStatus 从 design-review 的 `review_state/review_reason/reviewer_id` 恢复；旧 `blocked` 无 `review_state` 时 fail-closed。QuickRunState 从 ff-note/review 恢复；StandardRunState 从 checklist、review、可选 QA 和 acceptance 恢复；GoalRunState 恢复时 rejected 归一为 handoff，其他非 handoff 状态缺少可验证 `ApprovalRef` 才归一为 `GoalAuthorizationMissing`。旧 design 缺 `execution_lane` 且没有 goal state 时按 Standard，已有 goal state 始终按 Goal。
 
 ## Workflow
 
@@ -191,15 +191,14 @@ DesignReviewStatus 从 design-review 的 `review_state/review_reason/reviewer_id
 
 ```haskell
 workflow :: FeatureRequest -> FeatureOutcome
-workflow = preflight >=> parseEntryIntent >=> restoreFeatureStage
-       >=> loadStageProtocol >=> executeOrRoute >=> exitRecoverable
+workflow = preflight >=> parseEntryIntent >=> restoreFeatureState >=> applyResumeInput
+       >=> restoreFeatureStage >=> loadStageProtocol >=> executeOrRoute >=> exitRecoverable
 
 preflight           -- 读 .codestable/attention.md；缺失 -> route to cs-onboard；不得用 AGENTS.md/CLAUDE.md 代替
 parseEntryIntent    -- flag > compat-preset > utterance；repoFacts override requestedStage；空参不推断 stage
-restoreFeatureStage -- 扫 .codestable/features/ + artifact + git diff 恢复 FeatureState，选 next stage（见 Spec）
+restoreFeatureState -- 扫 .codestable/features/ + artifact + git diff；applyResumeInput 先持久化匹配 pending checkpoint 的回答
 loadStageProtocol   -- stageProtocol 映射（见下节）；进 stage 才加载该 stage 一个 protocol
-executeOrRoute      -- authoring stage（design/design-review/goal-package）落盘 artifact；
-                    -- DispatchGoalDriver 先尝试可见 driver，失败才输出 GoalHandoff；遇 HumanCheckpoint 必停
+executeOrRoute      -- authoring stage 落盘 artifact；DispatchGoalDriver 先尝试可见 driver，失败才 GoalHandoff；HumanCheckpoint 必停
 exitRecoverable     -- durable artifact/state 已落盘，且 next stage / checkpoint / resume action 明确
 ```
 
@@ -235,12 +234,13 @@ onCheckpoint :: CheckpointReason -> Action
 onCheckpoint ConfirmDesign          = 停等用户对 design 整体确认   -- must not auto-approve design，不得直接进 GoalPackage
 onCheckpoint ConfirmScopeChange     = 停等用户确认范围变更
 onCheckpoint ConfirmAcceptance      = 停等用户终审 acceptance
+onCheckpoint ConfirmGoalAcceptanceAuthorization = 写 pending approval-report 并停等 owner 独立授权 Goal acceptance
 onCheckpoint ConfirmEffect          = 停等用户确认 Quick 的用户可见效果
 onCheckpoint (ApproveReviewFallback reason) = 停等 owner 决定是否批准 local-only design review；记录 reason
   -- ConfirmScopeChange 仅用于 approved design 后改范围/公开契约；入口 fastforward 不合格直接 RoutedTo Design
 ```
 
-恢复输入必须显式进入 `FeatureRequest.resumeInput`；`ResumeDesign`、`ResumeReview`、`ResumeAcceptance`、`ResumeEffect` 原样交给对应 stage protocol，`ApproveScopeChange` 回 design 修订，`RejectCheckpoint` 保持原状态并报告停止。任何确认都不靠聊天记忆猜测。
+恢复输入必须显式进入 `FeatureRequest.resumeInput`；各 `Resume*` 原样交对应 stage protocol，`ResumeQARunner` / `ResumeAcceptanceAuditor` 只授权匹配的 pending runner/auditor fallback，`ApproveScopeChange` 回 design；`AuthorizeGoalAcceptance ref` 写同 unit 命名 approval 再由 goal protocol 持久化。仅拒绝 pending Goal acceptance authorization 时写 rejected 并 handoff；其他 `RejectCheckpoint` 保持原状态并返回 `Blocked OwnerRejectedCheckpoint`。任何确认都不靠聊天记忆猜测。
 
 Goal lane 的 implementation / code review / QA / acceptance 阻塞由 goal driver 按协议循环修复。Standard 在当前 run 继续，review passed 后直接进入带 Inline Verification Matrix 的 acceptance；独立 QA 报告不是默认阶段。
 driver 不可见、派发失败或 driver 返回 handoff 时走 `GoalHandoff`，不是 `HumanCheckpoint` / `NeedsHuman` 的第二种写法。

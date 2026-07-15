@@ -5,7 +5,6 @@
 - 默认用中文写面向人的回复、报告和文档；代码、命令、路径、协议字段、YAML/JSON key 保持原格式。
 - 先读仓库事实和已存在的设计/ADR，再改规则或流程；不要只凭记忆改 skill 契约。
 - 增加或更新 skill 时，同步检查相关 skill、README/reference、测试和 ADR 中的表述。
-- 单个 Markdown 文件不得超过 300 行；超过必须拆分。
 - 保持规则言简意赅，优先写可执行约束，不写口号。
 
 ## CodeStable Skill 边界

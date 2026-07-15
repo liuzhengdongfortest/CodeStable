@@ -14,16 +14,30 @@ if os.environ.get("PYTHONDONTWRITEBYTECODE") != "1":
     os.execvpe(sys.executable, [sys.executable, *sys.argv], os.environ)
 sys.dont_write_bytecode = True
 
-from codestable_gate_common import gate_result, main_exit, parse_args, read_text
+from codestable_gate_common import (
+    file_sha256,
+    gate_result,
+    main_exit,
+    parse_args,
+    read_text,
+    repo_relative_path,
+    repo_root,
+)
 
 
-def load_json(path: str | None) -> dict:
+def load_json(path: str | None, label: str) -> tuple[dict, list[str]]:
     if not path:
-        return {}
+        return {}, []
     target = Path(path)
-    if not target.exists():
-        return {}
-    return json.loads(target.read_text(encoding="utf-8"))
+    if not target.is_file():
+        return {}, [f"{label} not found: {target}"]
+    try:
+        data = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        return {}, [f"invalid JSON artifact: {target} ({type(error).__name__})"]
+    if not isinstance(data, dict):
+        return {}, [f"{label} JSON is not a mapping: {target}"]
+    return data, []
 
 
 def residual_risks(dod: dict, gates: dict) -> list[str]:
@@ -31,7 +45,8 @@ def residual_risks(dod: dict, gates: dict) -> list[str]:
     risks.extend(str(warning) for warning in dod.get("warnings", []) or [])
     risks.extend(str(warning) for warning in gates.get("warnings", []) or [])
     for gate in gates.get("gates", []) or []:
-        risks.extend(f"{gate.get('gate_id')}: {warning}" for warning in gate.get("warnings", []) or [])
+        if isinstance(gate, dict):
+            risks.extend(f"{gate.get('gate_id')}: {warning}" for warning in gate.get("warnings", []) or [])
     return risks or ["none"]
 
 
@@ -67,13 +82,58 @@ def main() -> None:
     parser.add_argument("--stage", default="implementation.before_review")
     args = parser.parse_args()
 
-    missing = [path for path in (args.design, args.checklist) if not Path(path).exists()]
+    root = repo_root()
+    design_input = repo_relative_path(root, args.design)
+    checklist_input = repo_relative_path(root, args.checklist)
+    out_input = repo_relative_path(root, args.out)
+    feature_identity = Path(design_input).parent.name
+    result_inputs = {
+        "design": design_input,
+        "checklist": checklist_input,
+        "out": out_input,
+    }
+    input_paths = {
+        "design": Path(args.design),
+        "checklist": Path(args.checklist),
+    }
+    if args.dod_results:
+        result_inputs["dod_results"] = repo_relative_path(root, args.dod_results)
+        input_paths["dod_results"] = Path(args.dod_results)
+    if args.gate_results:
+        result_inputs["gate_results"] = repo_relative_path(root, args.gate_results)
+        input_paths["gate_results"] = Path(args.gate_results)
+    input_digests = {
+        name: file_sha256(path)
+        for name, path in input_paths.items()
+        if path.is_file()
+    }
+    missing = [path for path in (args.design, args.checklist) if not Path(path).is_file()]
     if missing:
-        result = gate_result("evidence-pack", args.stage, "blocked", [f"missing input: {path}" for path in missing])
+        result = gate_result(
+            "evidence-pack",
+            args.stage,
+            "blocked",
+            [f"missing input: {path}" for path in missing],
+            feature=feature_identity,
+            inputs=result_inputs,
+            input_digests=input_digests,
+        )
         main_exit(result, args.json_out)
 
-    dod = load_json(args.dod_results)
-    gates = load_json(args.gate_results)
+    dod, dod_blocking = load_json(args.dod_results, "DoD results")
+    gates, gate_blocking = load_json(args.gate_results, "gate results")
+    artifact_blocking = [*dod_blocking, *gate_blocking]
+    if artifact_blocking:
+        result = gate_result(
+            "evidence-pack",
+            args.stage,
+            "blocked",
+            artifact_blocking,
+            feature=feature_identity,
+            inputs=result_inputs,
+            input_digests=input_digests,
+        )
+        main_exit(result, args.json_out)
     providers = {
         "archguard": provider_status("archguard", args.with_archguard),
         "meta_cc": provider_status("meta-cc", args.with_meta_cc),
@@ -129,7 +189,16 @@ Checklist bytes: {len(checklist_text)}
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(content, encoding="utf-8")
-    result = gate_result("evidence-pack", args.stage, "passed", evidence=[{"out": str(out), "providers": providers}])
+    input_digests["out"] = file_sha256(out)
+    result = gate_result(
+        "evidence-pack",
+        args.stage,
+        "passed",
+        evidence=[{"out": str(out), "providers": providers}],
+        feature=feature_identity,
+        inputs=result_inputs,
+        input_digests=input_digests,
+    )
     main_exit(result, args.json_out)
 
 

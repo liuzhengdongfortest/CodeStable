@@ -17,10 +17,6 @@ MANAGED_PATHS = [
     ".codestable/.gitignore",
     MANIFEST_PATH,
 ]
-RUNTIME_IGNORE_PATTERNS = [
-    "worktree-conventions.md",
-    "branch-guard-hooks.md",
-]
 PRESERVED_LEGACY_RUNTIME_PATHS = {
     ".codestable/reference/worktree-conventions.md",
     ".codestable/reference/branch-guard-hooks.md",
@@ -40,6 +36,11 @@ REPO_RUNTIME_CAPABILITIES: dict[str, list[str]] = {
     ],
 }
 SKILL_TOOL_CAPABILITIES: dict[str, list[str]] = {
+    "runtime-assets": [
+        "gates",
+        "references",
+        "codestable.gitignore",
+    ],
     "base": [
         "tools/validate-yaml.py",
         "tools/search-yaml.py",
@@ -84,7 +85,7 @@ def discover_plugin_version(source_skill_dir: Path | None) -> str | None:
 
 def read_manifest(root: Path) -> dict[str, Any] | None:
     path = root / MANIFEST_PATH
-    if not path.is_file():
+    if path.is_symlink() or not path.is_file():
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -114,8 +115,137 @@ def git_dirty_managed_paths(root: Path) -> list[str]:
     return dirty
 
 
+def runtime_asset_pairs(root: Path, source_skill_dir: Path) -> list[tuple[Path, Path]]:
+    return [
+        (source_skill_dir / "gates", root / ".codestable/gates"),
+        (source_skill_dir / "references", root / ".codestable/reference"),
+    ]
+
+
+def source_skill_path_available(source_skill_dir: Path | None, relative: str) -> bool:
+    if source_skill_dir is None:
+        return False
+    path = source_skill_dir / relative
+    if relative in {"gates", "references"}:
+        return path.is_dir()
+    return path.is_file()
+
+
+def ignored_runtime_asset(root: Path, path: Path, relative: Path) -> bool:
+    root_relative = path.relative_to(root).as_posix()
+    return (
+        root_relative in PRESERVED_LEGACY_RUNTIME_PATHS
+        or "__pycache__" in relative.parts
+        or path.suffix == ".pyc"
+    )
+
+
+def runtime_copy_ignored_names(
+    root: Path,
+    source_root: Path,
+    target_root: Path,
+    directory: str,
+    names: list[str],
+) -> set[str]:
+    relative_directory = Path(directory).relative_to(source_root)
+    ignored: set[str] = set()
+    for name in names:
+        relative = relative_directory / name
+        target = target_root / relative
+        if ignored_runtime_asset(root, target, relative):
+            ignored.add(name)
+    return ignored
+
+
+def runtime_target_only_paths(root: Path, source_skill_dir: Path) -> list[str]:
+    if (root / ".codestable").is_symlink():
+        return [".codestable"]
+    target_only: list[str] = []
+    for source_root, target_root in runtime_asset_pairs(root, source_skill_dir):
+        if not source_root.is_dir():
+            continue
+        if target_root.is_symlink():
+            target_only.append(target_root.relative_to(root).as_posix())
+            continue
+        if not target_root.is_dir():
+            continue
+        source_files = {
+            path.relative_to(source_root)
+            for path in source_root.rglob("*")
+            if path.is_file()
+            and not ignored_runtime_asset(
+                root,
+                target_root / path.relative_to(source_root),
+                path.relative_to(source_root),
+            )
+        }
+        for target in target_root.rglob("*"):
+            relative = target.relative_to(target_root)
+            if ignored_runtime_asset(root, target, relative):
+                continue
+            if target.is_symlink() or (target.is_file() and relative not in source_files):
+                target_only.append(target.relative_to(root).as_posix())
+    return sorted(set(target_only))
+
+
+def runtime_drift_paths(root: Path, source_skill_dir: Path | None) -> list[str]:
+    if source_skill_dir is None:
+        return []
+    drifted = runtime_target_only_paths(root, source_skill_dir)
+    for source_root, target_root in runtime_asset_pairs(root, source_skill_dir):
+        if not source_root.is_dir() or target_root.is_symlink():
+            continue
+        for source in source_root.rglob("*"):
+            relative = source.relative_to(source_root)
+            if (
+                not source.is_file()
+                or ignored_runtime_asset(root, target_root / relative, relative)
+            ):
+                continue
+            target = target_root / relative
+            if target.is_symlink() or not target.is_file() or source.read_bytes() != target.read_bytes():
+                drifted.append(target.relative_to(root).as_posix())
+    gitignore = source_skill_dir / "codestable.gitignore"
+    target_gitignore = root / ".codestable/.gitignore"
+    if gitignore.is_file() and (
+        target_gitignore.is_symlink()
+        or not target_gitignore.is_file()
+        or gitignore.read_bytes() != target_gitignore.read_bytes()
+    ):
+        drifted.append(target_gitignore.relative_to(root).as_posix())
+    manifest = root / MANIFEST_PATH
+    if manifest.is_symlink():
+        drifted.append(MANIFEST_PATH)
+    return sorted(set(drifted))
+
+
+def remove_target_only_runtime_assets(root: Path, source_skill_dir: Path) -> list[str]:
+    if (root / ".codestable").is_symlink():
+        return []
+    removed = runtime_target_only_paths(root, source_skill_dir)
+    for relative in removed:
+        target = root / relative
+        if target.is_symlink() or target.is_file():
+            target.unlink()
+    for _, target_root in runtime_asset_pairs(root, source_skill_dir):
+        if not target_root.is_dir():
+            continue
+        directories = sorted(
+            (path for path in target_root.rglob("*") if path.is_dir() and not path.is_symlink()),
+            key=lambda path: len(path.parts),
+            reverse=True,
+        )
+        for directory in directories:
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
+    return removed
+
+
 def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_version: str | None = None) -> dict[str, Any]:
     root = root.resolve()
+    runtime_root_is_symlink = (root / ".codestable").is_symlink()
     expected_version = plugin_version or discover_plugin_version(source_skill_dir)
     manifest = read_manifest(root)
     capabilities: dict[str, Any] = {}
@@ -125,7 +255,11 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
         repo_paths = REPO_RUNTIME_CAPABILITIES.get(name, [])
         skill_paths = SKILL_TOOL_CAPABILITIES.get(name, [])
         missing_repo = [path for path in repo_paths if not (root / path).exists()]
-        missing_skill = [path for path in skill_paths if not source_skill_dir or not (source_skill_dir / path).exists()]
+        missing_skill = [
+            path
+            for path in skill_paths
+            if not source_skill_path_available(source_skill_dir, path)
+        ]
         capabilities[name] = {
             "ok": not missing_repo and not missing_skill,
             "required_paths": repo_paths + skill_paths,
@@ -138,7 +272,11 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
         missing_all.extend(missing_repo + missing_skill)
 
     installed_version = manifest.get("plugin_version") if manifest else None
-    if not (root / ".codestable").exists():
+    drifted_paths = [".codestable"] if runtime_root_is_symlink else runtime_drift_paths(root, source_skill_dir)
+    if runtime_root_is_symlink:
+        status = "unsafe-runtime-root"
+        hint = "Replace the .codestable symlink with a real repository directory before runtime sync."
+    elif not (root / ".codestable").exists():
         status = "not-onboarded"
         hint = "Run `cs-onboard` to create the CodeStable skeleton."
     elif ".codestable/attention.md" in missing_all:
@@ -153,6 +291,9 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
     elif installed_version != expected_version:
         status = "version-mismatch"
         hint = "Run runtime sync to refresh .codestable runtime assets for the installed CodeStable plugin."
+    elif drifted_paths:
+        status = "runtime-drift"
+        hint = "Run runtime sync to refresh package-owned assets that differ from or no longer exist in the installed skill templates."
     else:
         status = "ok"
         hint = "runtime assets ok"
@@ -166,6 +307,7 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
         "expected_plugin_version": expected_version,
         "capabilities": capabilities,
         "missing": missing_all,
+        "drifted_paths": drifted_paths,
         "tool_runtime": "skill-global",
     }
 
@@ -173,6 +315,8 @@ def runtime_health(root: Path, source_skill_dir: Path | None = None, plugin_vers
 def write_manifest(root: Path, plugin_version: str) -> None:
     path = root / MANIFEST_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        path.unlink()
     data = {
         "schema_version": 1,
         "plugin": "codestable",
@@ -189,11 +333,31 @@ def sync_runtime(root: Path, source_skill_dir: Path, plugin_version: str | None 
     root = root.resolve()
     source_skill_dir = source_skill_dir.resolve()
     version = plugin_version or discover_plugin_version(source_skill_dir)
+    if (root / ".codestable").is_symlink():
+        return {
+            "ok": False,
+            "status": "unsafe-runtime-root",
+            "removed_paths": [],
+            "hint": "Replace the .codestable symlink with a real repository directory before runtime sync.",
+        }
     if not (root / ".codestable/attention.md").is_file():
         return {
             "ok": False,
             "status": "onboard-incomplete",
             "hint": "Run `cs-onboard` first; runtime sync does not create attention.md.",
+        }
+    missing_source_assets = [
+        path
+        for path in SKILL_TOOL_CAPABILITIES["runtime-assets"]
+        if not source_skill_path_available(source_skill_dir, path)
+    ]
+    if missing_source_assets:
+        return {
+            "ok": False,
+            "status": "runtime-incomplete",
+            "removed_paths": [],
+            "missing_source_assets": missing_source_assets,
+            "hint": "Reinstall or update cs-onboard; the installed skill package is missing runtime source assets.",
         }
     dirty = git_dirty_managed_paths(root)
     if dirty and not force:
@@ -210,6 +374,7 @@ def sync_runtime(root: Path, source_skill_dir: Path, plugin_version: str | None 
             "hint": "Reinstall or update cs-onboard; the installed skill package is missing CodeStable version metadata.",
         }
 
+    removed_paths = remove_target_only_runtime_assets(root, source_skill_dir)
     copies = [
         ("gates", ".codestable/gates"),
         ("references", ".codestable/reference"),
@@ -222,11 +387,22 @@ def sync_runtime(root: Path, source_skill_dir: Path, plugin_version: str | None 
                 source,
                 target,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", *RUNTIME_IGNORE_PATTERNS),
+                ignore=lambda directory, names: runtime_copy_ignored_names(
+                    root, source, target, directory, names
+                ),
             )
     gitignore = source_skill_dir / "codestable.gitignore"
     if gitignore.is_file():
-        shutil.copy2(gitignore, root / ".codestable/.gitignore")
+        target_gitignore = root / ".codestable/.gitignore"
+        if target_gitignore.is_symlink():
+            target_gitignore.unlink()
+        shutil.copy2(gitignore, target_gitignore)
     write_manifest(root, version)
     health = runtime_health(root, source_skill_dir=source_skill_dir, plugin_version=version)
-    return {"ok": health["ok"], "status": health["status"], "plugin_version": version, "health": health}
+    return {
+        "ok": health["ok"],
+        "status": health["status"],
+        "plugin_version": version,
+        "removed_paths": removed_paths,
+        "health": health,
+    }

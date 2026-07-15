@@ -25,6 +25,9 @@ maySkip core reason = not core && isJust reason
 ```json
 {
   "gate_id": "gate-name",
+  "feature": "YYYY-MM-DD-feature-slug",
+  "inputs": {"design|checklist|feature_dir|out": "canonical repo-relative path"},
+  "input_digests": {"design|checklist|out": "sha256"},
   "stage": "stage.name",
   "kind": "executable|protocol-only",
   "status": "passed|failed|needs-human|awaiting|blocked|skipped",
@@ -126,8 +129,12 @@ maySkip core reason = not core && isJust reason
 检查：
 
 - goal-state 全部 features 为 `accepted`。
+- goal-state 与同 roadmap canonical `approval-report.md` 对 `goal-acceptance`、`goal-commits` 的授权均机械核验为 approved。
 - items.yaml 条目均为 `done` 或有理由 `dropped`。
-- 每个 feature 的 review / QA / acceptance / evidence pack / gate results / DoD contract results / DoD results 存在。
+- 每个非 dropped item 恰好对应一个 feature；item 的 `feature` 指针与 canonical feature_dir identity 必须匹配，禁止缺失、额外或重复 feature。
+- feature_dir、design、checklist、review、QA、acceptance 必须是当前 slug 的 canonical 路径，frontmatter `doc_type` / `feature` 必须匹配当前 feature。
+- 四份 executable gate JSON 只接受 `status=passed`，`gate_id`、`feature` identity、canonical `inputs` 与文件型 input SHA-256 必须匹配当前 feature；scope/dod/evidence stage 只接受 `implementation.before_review|acceptance`，DoD contract 只接受 `feature_design.before_approve|acceptance`，其他值均阻断并重跑对应 gate。
+- 每个 feature 的 approved design、review / QA / acceptance / evidence pack / gate results / DoD contract results / DoD results 存在。
 - review / QA / acceptance 均 `status=passed`，checklist steps 全 `done`，checks 全 `passed`。
 - final aggregate commands 已重跑或有非核心 trust-prior 理由。
 - provider warnings 已解释。

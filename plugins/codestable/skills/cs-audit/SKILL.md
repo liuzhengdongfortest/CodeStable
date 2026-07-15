@@ -26,11 +26,14 @@ contracts:
 
 ```haskell
 csAudit :: AuditRequest -> AuditOutcome
+csAudit req | attentionMissing req = NeedsHuman "route to cs-onboard"
+            | otherwise = either Blocked (\s -> selectAuditStep s req) (applyAuditResume req.resumeInput (restoreAuditState req.repoFacts))
 
 data AuditRequest = AuditRequest
   { scopeHint  : Maybe ScopeHint    -- 关键词 / 模块目录 / 一段话；缺则先 Phase 1 收敛
   , dimensions : [Dimension]        -- 用户圈定；空则全扫 5 维
   , selectedFinding : Maybe Path    -- 用户从已完成 audit 中选中的 finding
+  , resumeInput : Maybe AuditResume
   , repoFacts  : RepoFacts          -- .codestable/audits/ + adrs/，优先于聊天历史
   , attention  : Maybe Attention    -- .codestable/attention.md；缺则 route to cs-onboard
   }
@@ -40,10 +43,13 @@ data Dimension = Bug | Security | Performance | Maintainability | ArchDrift
 
 data AuditState = AuditState        -- 从 .codestable/audits/YYYY-MM-DD-{slug}/ 恢复
   { auditDir       : Maybe Path
+  , scope          : Maybe ScopeHint
+  , dimensions     : [Dimension]
   , scopeConfirmed : Bool           -- Phase 1 已与用户确认范围（read-only，不改代码）
   , hasIndex       : Bool           -- index.md 是否已写（先 index 后 finding）
   , findingCount   : Int            -- 已产出 finding 数（每维 ≤ 5）
   , adrsPresent    : Bool           -- .codestable/requirements/adrs/ 是否存在（arch-drift 对照源）
+  , pendingCheckpoint : Maybe CheckpointReason
   }
 
 data AuditOutcome
@@ -52,12 +58,36 @@ data AuditOutcome
   | HumanCheckpoint CheckpointReason
   | Completed AuditSummary          -- index 交叉表 + 每条 finding 齐备（含零发现结论）
   | NeedsHuman Reason
+  | Blocked Reason
 
 data CheckpointReason
   = ConfirmScope        -- Phase 1 收敛后请用户确认扫描范围与维度
   | WholeRepoRefused    -- 用户要求全仓库盲扫：推回去，先收敛到最常改 / 最近出问题的区域
   | ArchDriftNoAdr      -- 需判架构偏离但 adrs/ 缺失：不得凭记忆，请用户补 ADR 或缩范围
+data AuditResume
+  = ConfirmAuditScope ScopeHint [Dimension] | NarrowAuditScope ScopeHint [Dimension]
+  | ProvideArchitectureAdr Path | ContinueWithoutArchDrift [Dimension]
+
+resumeReason :: AuditResume -> CheckpointReason
+resumeReason (ConfirmAuditScope _ _)         = ConfirmScope
+resumeReason (NarrowAuditScope _ _)          = WholeRepoRefused
+resumeReason (ProvideArchitectureAdr _)      = ArchDriftNoAdr
+resumeReason (ContinueWithoutArchDrift _)    = ArchDriftNoAdr
+
+validAuditResume :: AuditResume -> Bool
+validAuditResume (ConfirmAuditScope scope dims)      = executableScope scope && validDimensions dims
+validAuditResume (NarrowAuditScope scope dims)       = executableScope scope && not (wholeRepoScope scope) && validDimensions dims
+validAuditResume (ProvideArchitectureAdr path)       = validAdrPath path
+validAuditResume (ContinueWithoutArchDrift dims)     = ArchDrift `notElem` dims && validDimensions dims
+
+applyAuditResume :: Maybe AuditResume -> AuditState -> Either Reason AuditState
+applyAuditResume Nothing s = Right s
+applyAuditResume (Just resume) s
+  | s.pendingCheckpoint == Just (resumeReason resume) && validAuditResume resume = Right (persistAuditResume resume s)
+  | otherwise = Left InvalidAuditResume
 ```
+
+`persistAuditResume` 必须把 scope/dimensions 写回 state 后清除 pending；后续 blind-scan 与 arch-drift guards 只读该 state，不再读取旧 request hint。
 
 `selectAuditStep` 从仓库事实选下一步（决策细则见「## 工作流」各 Phase 与「## 守护规则」；此处只固定分支形态，只读不定修）：
 
@@ -65,10 +95,11 @@ data CheckpointReason
 selectAuditStep :: AuditState -> AuditRequest -> AuditOutcome
 selectAuditStep(s, req)
   | attentionMissing req                               -> NeedsHuman "route to cs-onboard"
+  | Just reason <- s.pendingCheckpoint                 -> HumanCheckpoint reason
   | hasSelectedFinding(req)                            -> RoutedTo (recommendedAction req.selectedFinding)
-  | wholeRepoBlindScan(req)                            -> HumanCheckpoint WholeRepoRefused
+  | wholeRepoBlindScan(s)                              -> HumanCheckpoint WholeRepoRefused
   | not s.scopeConfirmed                                -> HumanCheckpoint ConfirmScope
-  | archDriftRequested(req) && not s.adrsPresent        -> HumanCheckpoint ArchDriftNoAdr
+  | archDriftRequested(s) && not s.adrsPresent          -> HumanCheckpoint ArchDriftNoAdr
   | s.scopeConfirmed && not scanExitCriteriaMet(s)      -> Scanning (nextDimensionScan s)
   | scanExitCriteriaMet(s)                              -> Completed (summary s)  -- 含零发现结论
 ```
@@ -125,6 +156,8 @@ selectAuditStep(s, req)
 用户描述已清楚直接进 Phase 2。用户说"整个项目都扫" → 推回去——建议先扫最常改的模块或最近出过问题的区域。
 
 收敛后给用户确认：**"扫 `src/services/order/` 和 `src/api/order.ts`，约 12 个文件，看安全 / 性能 / bug 隐患三个维度。范围 OK 吗？"**
+
+返回任何 `HumanCheckpoint` 前先把 checkpoint、scope 与 dimensions 写入 audit index draft；恢复只接受 reason 对应的 `AuditResume`，无 pending 或不匹配时 `Blocked InvalidAuditResume`。
 
 ### Phase 2：扫描
 

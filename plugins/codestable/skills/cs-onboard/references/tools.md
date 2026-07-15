@@ -92,16 +92,19 @@ python3 <cs-onboard skill 目录>/tools/validate-yaml.py --dir .codestable/featu
 ```bash
 python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic --roadmap .codestable/roadmap/{slug} --json
 python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --epic-child-batch --json
+python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py feature --feature .codestable/features/YYYY-MM-DD-{slug} --require-implementation-ready --json
 python3 <cs-onboard skill 目录>/tools/validate-yaml.py --file .codestable/gates/roadmap-goal-gates.yaml --yaml-only
 python3 <cs-onboard skill 目录>/tools/codestable-dod-contract-gate.py --design .codestable/features/YYYY-MM-DD-{slug}/{slug}-design.md
 python3 <cs-onboard skill 目录>/tools/codestable-dod-runner.py --checklist .codestable/features/YYYY-MM-DD-{slug}/{slug}-checklist.yaml
-python3 <cs-onboard skill 目录>/tools/codestable-evidence-pack.py --feature {slug} --design {design} --checklist {checklist} --out {slug}-evidence-pack.md
+python3 <cs-onboard skill 目录>/tools/codestable-evidence-pack.py --feature {slug} --design {design} --checklist {checklist} --dod-results {dod-results} --gate-results {gate-results} --out {slug}-evidence-pack.md
 python3 <cs-onboard skill 目录>/tools/codestable-goal-consistency-gate.py --roadmap .codestable/roadmap/{slug}
 ```
 
 `roadmap-goal-gates.yaml` 是阶段配置入口；`codestable-scope-gate.py`、`codestable-dod-runner.py` 和 `codestable-evidence-pack.py` 是 implementation.before_review 的最小 runtime。`status: protocol-only` 的 gate 只表示协议占位，由 review / QA / acceptance / audit 技能读取证据后执行，不代表已有独立脚本。
-`codestable-goal-consistency-gate.py` 是 roadmap_audit.before_complete 的 runtime，检查 goal-state、items、每个 feature 的 review/QA/acceptance/evidence/gate/DoD 产物和 checklist 状态，防止 goal-state 早于证据推进。
-`codestable-workflow-next.py` 是只读下一步解析器，输出 `next_action`、`must_continue` 和 `final_answer_allowed`；`cs-epic` / `cs-feat` 在 child design batch 边界必须按它的 JSON 继续或停 gate。单 feature 按仓库事实恢复：feature goal-state 优先为 Goal；design 的完整 roadmap metadata 经 parent items 唯一证明，或被 parent items / roadmap goal-state 反向唯一认领的 child 交回 Epic；显式 feature 指针具有权威性，目录回退按精确 feature slug，多 claim 与错误 owner 结构/路径 fail-closed；ff-note 或 design 的 `execution_lane: quick` 恢复 Quick；旧 design 缺 lane 时恢复 Standard。Quick/Standard 的 passed review 必须有独立 reviewer 锚点，Quick 不得吞掉既有非 passed QA/acceptance；损坏的 YAML/frontmatter 或合法 YAML 中错误的路径/容器在 `--json` 下返回含具体路径的结构化 `blocked`，不得输出 traceback。
+四个 executable feature gate 的 JSON 顶层都写 canonical `feature: YYYY-MM-DD-slug` 与 repo-relative `inputs`；文件型 inputs 同时写 SHA-256。最终 gate 核验 `status=passed`、`gate_id`、stage allowlist、feature identity、实际 design/checklist/feature_dir/out 路径及当前内容摘要，旧结果缺 identity/input/digest 时必须重跑，不能只改文件名或在 gate 后替换内容。
+artifact YAML/JSON 无法解析或顶层不是 mapping 时，executable gate 必须输出结构化 failed/blocked JSON；严格 gate loader 缺少 PyYAML 时也 fail-closed，不使用宽松 fallback 猜测状态。scope gate 无法完成 `git status` 也必须失败，不得把检查错误当成空变更。
+`codestable-goal-consistency-gate.py` 是 roadmap_audit.before_complete 的 runtime，先机械证明每个非 dropped item 与 accepted feature 一一对应，再检查 canonical feature 路径、frontmatter identity、两份独立 Goal authorization、approved design、review/QA/acceptance/evidence/gate/DoD 产物和 checklist 状态；它先于 goal-audit 报告执行，防止空 feature、重复 feature 或跨 feature 证据复用。
+`codestable-workflow-next.py` 是只读下一步解析器，输出 `next_action`、`must_continue` 和 `final_answer_allowed`；`cs-epic` / `cs-feat` 在 child design batch 边界必须按它的 JSON 继续或停 gate。Epic child batch 先校验完整 DAG，再按拓扑选择 design-ready item：依赖为 `done`、`dropped` 或 design-review `passed` 可继续设计；missing/cycle/重复依赖立即结构化阻断，dropped 依赖在 goal package 前必须修订或放弃下游 item。实现前用 `--require-implementation-ready` 机械要求依赖严格全为 `done`，不能把 design readiness 冒充 implementation readiness。单 feature 按仓库事实恢复：feature goal-state 优先为 Goal；design 的完整 roadmap metadata 经 parent items 唯一证明，或被 parent items / roadmap goal-state 反向唯一认领的 child 交回 Epic；显式 feature 指针具有权威性，目录回退按精确 feature slug，多 claim 与错误 owner 结构/路径 fail-closed；ff-note 或 design 的 `execution_lane: quick` 恢复 Quick；旧 design 缺 lane 时恢复 Standard。Quick/Standard 的 passed review 必须有独立 reviewer 锚点，Quick 不得吞掉既有非 passed QA/acceptance；损坏的 YAML/frontmatter 或合法 YAML 中错误的路径/容器在 `--json` 下返回含具体路径的结构化 `blocked`，不得输出 traceback。
 如果 skill 包缺少这些 runtime 脚本，说明本机 CodeStable 安装不完整；先更新 / 重装 CodeStable。项目缺少 `gates/` 或 `reference/` 时运行 runtime sync。
 
 ---
@@ -117,7 +120,9 @@ python3 <cs-onboard skill 目录>/tools/codestable-doctor.py --root . --json
 JSON 关键字段：
 
 - `status`：`idle` / `planning-safe` / `dirty` / `implementation-active` / `attention-needed` / `blocked`
-- `tooling.runtime`：repo-local runtime 与 skill-global tool 静态体检；`version-mismatch` 时运行 runtime sync，`version-unavailable` 时先重装或更新 `cs-onboard`
+- `tooling.runtime`：repo-local runtime 与 skill-global tool 静态体检；`runtime-drift` / `version-mismatch` 时运行 runtime sync，`version-unavailable` 时先重装或更新 `cs-onboard`
+- `tooling.runtime.drifted_paths`：内容不同、缺失或仅存在于项目端的 package-owned runtime 路径；allowlist 中的 legacy 路径不计入
+- runtime sync 删除 target-only package-owned 路径后再复制模板；source 目录缺失时不删除项目副本，managed directory / `.gitignore` / manifest symlink 先解除再恢复，且不得沿链接改写外部内容
 - `tooling.runtime.capabilities`：`base` / `workflow-next` / `goal-gates` 的 `repo_paths`、`skill_tool_paths` 和缺失列表
 - `checkout`：当前分支、默认分支
 - `dirty_buckets`：按 `code` / `tests` / `docs` / `migrations` / `data` / `logs` / `codestable` / `unknown` 分组的 dirty paths

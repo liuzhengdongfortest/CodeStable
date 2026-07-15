@@ -20,9 +20,6 @@
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md`。主文档和 items 完整模板看同目录 `reference.md`。
 
 **方案深度原则**：给 roadmap 定最小闭环、各条 feature 的实现深度、或替身 / fake 策略前，先做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass——最小闭环要是"最窄端到端路径"而非"最容易那条"，简化 / 替身策略在 roadmap 显式论证场景适配与转正条件。
-
----
-
 ## 适用场景
 
 - 用户描述"一眼看出做不完"的大需求（"加权限系统"、"做通知中心"、"接 SSO"）
@@ -31,9 +28,6 @@
 - feature-design 发现要做的事实际是多个 feature 集合，先退回拆
 
 不适用：单 feature 能装下 → `cs-feat`；描述能力"是什么、边界" → `cs-req`；拍板长期规约 / 架构选型 / 加术语 → `cs-domain`；操作性沉淀 → `cs-keep`。
-
----
-
 ## Spec
 
 ```haskell
@@ -41,6 +35,7 @@ data PlanningMode = New | Update
 data Phase = LockTarget | LoadFacts | Draft | SelfCheck | IndependentReview | UserReview | Persist
 data PlanningCheckpoint
   = SelectOneRoadmap | ReviewRoadmapDraft | ApprovePlanningReviewFallback Reason
+data PlanningState = PlanningState { pendingCheckpoint : Maybe PlanningCheckpoint }
 data PlanningResume
   = RoadmapSelected Slug PlanningMode
   | RoadmapApproved PlanningMode
@@ -49,7 +44,6 @@ data PlanningOutcome
   = Run PlanningMode Phase | Awaiting WaitReason
   | HumanCheckpoint PlanningCheckpoint | NeedsHuman Reason
   | Blocked Reason | Completed Roadmap
-
 selectPlanning :: PlanningRequest -> RepoFacts -> PlanningOutcome
 selectPlanning request facts
   | multipleTargets request       = HumanCheckpoint SelectOneRoadmap
@@ -58,16 +52,20 @@ selectPlanning request facts
   | newIntent request             = Run New LockTarget
   | otherwise                     = NeedsHuman MissingPlanningIntent
 
-resumePlanning :: PlanningResume -> PlanningOutcome
-resumePlanning (RoadmapSelected _ mode)                 = Run mode LockTarget
-resumePlanning (RoadmapApproved mode)                   = Run mode Persist
-resumePlanning (LocalReviewApproved mode)               = Run mode IndependentReview
+resumePlanning :: PlanningState -> PlanningResume -> Either Reason PlanningOutcome
+resumePlanning s (RoadmapSelected _ mode)
+  | s.pendingCheckpoint == Just SelectOneRoadmap = Right (Run mode LockTarget)
+resumePlanning s (RoadmapApproved mode)
+  | s.pendingCheckpoint == Just ReviewRoadmapDraft = Right (Run mode Persist)
+resumePlanning s (LocalReviewApproved mode)
+  | Just (ApprovePlanningReviewFallback _) <- s.pendingCheckpoint = Right (Run mode IndependentReview)
+resumePlanning _ _ = Left InvalidPlanningResume
 
 workflow :: [Phase]
 workflow = [LockTarget, LoadFacts, Draft, SelfCheck, IndependentReview, UserReview, Persist]
 ```
 
-每次只动一份 roadmap；参数与仓库事实冲突时以事实为准。
+每次只动一份 roadmap；参数与仓库事实冲突时以事实为准。返回 `HumanCheckpoint` 前持久化对应 `pendingCheckpoint`，resume 不匹配时 fail-closed。
 
 ---
 

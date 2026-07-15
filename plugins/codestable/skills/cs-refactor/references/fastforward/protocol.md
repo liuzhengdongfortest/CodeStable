@@ -54,6 +54,8 @@ advance s
 每个 `Run` 前后都更新 `{slug}-ff-state.yaml`；进入 `CodeReview` 前写 `status: review-pending`，
 review 返回后从该文件恢复。`PersistCheckpoint` 先写 state + pending `approval-report.md`，再停等
 显式 owner 输入。`Complete` 同时把 state 写成 `status: complete`，不能只靠聊天里的完成汇报。
+owner 输入只来自主入口已与当前 pending reason 精确匹配的 `ResumeRefactorCheckpoint`。
+`PartialChangeDisposition` 只接受 `KeepPartialChanges` / `DiscardPartialChanges`，分别持久化为 `KeepForStandard` / `DiscardApproved`；其他通用 approve/reject/revise 输入一律 fail-closed，不存在未建模的 stash 选项。
 
 ## 执行前检查与完成 gate
 

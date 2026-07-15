@@ -53,6 +53,7 @@ data RefactorRequest = RefactorRequest
   { requestedStage : Maybe Stage         -- scan | design | apply
   , requestedMode  : Maybe Mode          -- standard | fastforward
   , userGoal       : Maybe Text
+  , checkpointResume : Maybe RefactorResume
   , repoFacts      : RepoFacts           -- 优先于 args / 聊天历史
   }
 
@@ -81,6 +82,7 @@ data RefactorState = RefactorState       -- 全部从 .codestable/refactors/{slu
   , finalValidationPending : Bool
   , reviewStatus   : ReviewStatus
   , fastforwardStatus : FastforwardStatus -- {slug}-ff-state.yaml
+  , pendingCheckpoint : Maybe CheckpointReason
   }
 
 data RefactorOutcome
@@ -99,9 +101,19 @@ data CheckpointReason
   | ConfirmEffect            -- fastforward 完成效果确认
   | PartialChangeDisposition -- fastforward 退回 standard 时处理本轮部分改动
 
-data CheckpointAnswer = ApproveCheckpoint | RejectCheckpoint | ReviseCheckpoint
-resumeCheckpoint :: RefactorState -> CheckpointAnswer -> RefactorState
-resumeCheckpoint s answer = persistApprovalAnswer s answer
+data CheckpointAnswer = ApproveCheckpoint | RejectCheckpoint | ReviseCheckpoint | KeepPartialChanges | DiscardPartialChanges
+data RefactorResume = ResumeRefactorCheckpoint CheckpointReason CheckpointAnswer
+validRefactorAnswer :: CheckpointReason -> CheckpointAnswer -> Bool
+validRefactorAnswer PartialChangeDisposition answer = answer `elem` [KeepPartialChanges, DiscardPartialChanges]
+validRefactorAnswer _ answer = answer `elem` [ApproveCheckpoint, RejectCheckpoint, ReviseCheckpoint]
+resumeCheckpoint :: RefactorState -> CheckpointReason -> CheckpointAnswer -> RefactorState
+resumeCheckpoint s reason answer = persistApprovalAnswer s reason answer
+
+applyRefactorResume :: Maybe RefactorResume -> RefactorState -> Either Reason RefactorState
+applyRefactorResume Nothing s = Right s
+applyRefactorResume (Just (ResumeRefactorCheckpoint reason answer)) s
+  | s.pendingCheckpoint == Just reason && validRefactorAnswer reason answer = Right (resumeCheckpoint s reason answer)
+  | otherwise                          = Left InvalidCheckpointResume
 ```
 
 `restoreRefactorStage` 从仓库事实选下一步（一旦会改外部可观察行为 → 转 `cs-feat` 新需求或 `cs-issue` 修 bug，行为等价是底线）：
@@ -110,6 +122,7 @@ resumeCheckpoint s answer = persistApprovalAnswer s answer
 restoreRefactorStage :: RefactorState -> EntryIntent -> RefactorOutcome
 restoreRefactorStage(s, intent)
   | changesBehavior intent                            -> RoutedTo (ExternalSkill (behaviorRoute intent))
+  | Just reason <- s.pendingCheckpoint                -> HumanCheckpoint reason
   | s.mode == Fastforward && s.fastforwardStatus == FastforwardComplete
                                                        -> Completed summary
   | s.mode == Fastforward && s.fastforwardStatus == FastforwardSwitchRequired
@@ -137,13 +150,16 @@ restoreRefactorStage(s, intent)
 
 ```haskell
 workflow :: RefactorRequest -> RefactorOutcome
-workflow = preflight >=> parseEntryIntent >=> restoreRefactorStage
-       >=> loadStageProtocol >=> executeOrRoute >=> exitRecoverable
+workflow req = do
+  intent <- preflight req >>= parseEntryIntent
+  state <- restoreRefactorState req.repoFacts
+  resumed <- fromEither Blocked (applyRefactorResume req.checkpointResume state)
+  executeOrRoute (restoreRefactorStage resumed intent) >>= exitRecoverable
 
 preflight            -- 读 .codestable/attention.md；缺失 -> route to cs-onboard；不得用 AGENTS.md/CLAUDE.md 代替
 parseEntryIntent     -- flag > compat-preset > utterance；repoFacts override requestedStage/requestedMode；空参不推断 stage
-restoreRefactorStage -- 扫 .codestable/refactors/ + scan/design/checklist/apply-notes + git diff 恢复 RefactorState，
-                     -- 选 next stage（见 Spec）；会改外部可观察行为 -> route to cs-feat 或 cs-issue
+restoreRefactorState -- preflight 后扫 .codestable/refactors/ + scan/design/checklist/apply-notes + git diff；typed resume 先匹配 pending checkpoint 并持久化
+restoreRefactorStage -- 从已应用 resume 的 state 选 next stage（见 Spec）；会改外部可观察行为 -> route to cs-feat 或 cs-issue
 loadStageProtocol    -- 「Reference 加载」映射（见下节）；进 stage 才加载该 stage 所需文件
 executeOrRoute       -- scan 落盘清单待勾选；design 起草+抽 checklist 待整体放行；
                      -- apply 逐条改+验证+记 apply-notes；遇 HumanCheckpoint 必停
@@ -222,11 +238,11 @@ onCheckpoint (HumanValidation step) = 停等用户验证已应用的 step
 onCheckpoint FinalValidation        = 停等用户做最终整体确认
 onCheckpoint ConfirmMethodAndScope  = 停等用户批准 ff 方法与范围
 onCheckpoint ConfirmEffect          = 停等用户确认 ff 结果
-onCheckpoint PartialChangeDisposition = 停等用户选择保留 / 暂存 / 丢弃本轮部分改动
+onCheckpoint PartialChangeDisposition = 停等用户选择保留并转 standard / 丢弃本轮部分改动
 ```
 
-每个 checkpoint 的候选 artifact / state 和 pending approval 必须先落盘；owner 回答后先更新状态再
-调用 `resumeCheckpoint`。apply 完成后进入 `cs-code-review`；blocking 未清零、important 未处理或未被明确接受时不提交。
+每个 checkpoint 的候选 artifact / state 和 pending approval 必须先落盘；owner 回答后以
+`ResumeRefactorCheckpoint reason answer` 调用 `applyRefactorResume`。reason 不匹配或没有 pending checkpoint 时返回 `Blocked InvalidCheckpointResume`。apply 完成后进入 `cs-code-review`；blocking 未清零、important 未处理或未被明确接受时不提交。
 
 ---
 

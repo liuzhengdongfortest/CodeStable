@@ -21,6 +21,7 @@ data ImplementationOutcome
   | HumanCheckpoint Reason | Blocked Reason
 advanceStep :: ImplementationState -> ImplementationOutcome
 advanceStep s
+  | not (roadmapDependenciesDone s) = Blocked RoadmapDependencyNotDone
   | approvedDesignGap s            = HumanCheckpoint UpdateDesign
   | stepResult s == NotRun         = RunCurrentStep
   | stepResult s == Passed         = PersistAndContinue
@@ -42,7 +43,7 @@ mayComplete s = allStepsDone s && allStepEvidencePresent s && finalAuditPassed s
 
 ## 执行前检查与完成 gate
 
-CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入实现前先确认 design、checklist、基线验证和当前 dirty scope，避免把无关改动混入本 feature。
+CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入实现前先确认 design、checklist、基线验证和当前 dirty scope，并按共享衔接协议确认 roadmap 依赖严格全为 `done`，避免把无关或依赖未就绪的改动混入本 feature。
 
 实现完成、输出汇报前必须进入 `cs-code-review` 做独立 diff 评审；`blocking` / `important` 未清零不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行，不由 feature implementation 协议隐式创建分支或切换检出。
 

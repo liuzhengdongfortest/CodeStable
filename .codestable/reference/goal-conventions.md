@@ -18,7 +18,8 @@ Goal 是有界起点/终点工作单元。owner 定义结果和验收信号；AI
 data GoalStatus = Active | Complete | Blocked
 data StopReason
   = AcceptanceConflict | AmbiguousTerminal | ScopeBoundaryChange
-  | RepeatedBlocker | BudgetExhausted | RiskAcceptanceNeeded | AcceptanceAgentUnavailable
+  | RepeatedBlocker | BudgetExhausted | RiskAcceptanceNeeded
+  | ReviewAgentUnavailable | AcceptanceAgentUnavailable
 
 nextIteration :: GoalState -> [IterationArtifact] -> Int
 nextIteration state existing =
@@ -32,6 +33,7 @@ ownerStop g
   | sameBlockerCount g >= 3               = Just RepeatedBlocker
   | budgetExhaustedOrNear g               = Just BudgetExhausted
   | needsRiskSecretDestructiveOrDeploy g  = Just RiskAcceptanceNeeded
+  | reviewAgentUnavailable g              = Just ReviewAgentUnavailable
   | requiredTaskAgentUnavailable g        = Just AcceptanceAgentUnavailable
   | otherwise                             = Nothing
 
@@ -40,6 +42,8 @@ mayComplete g =
   isNothing (ownerStop g)
     && acceptanceCriteriaPassed g
     && functionalAcceptanceRecorded g
+    && finalIterationRecorded g
+    && acceptanceAndFinalIterationCrossReference g
 ```
 
 ## 报告语言
@@ -119,10 +123,10 @@ verification evidence、problems、next attempt 和 state update。
 
 该报告记录 Task agent 根据 owner acceptance criteria 对产品 / 产物做的功能验收。包括
 reviewer、scope、functional evidence、verdict、residual risks，以及引用它的 final
-iteration。只有测试不足以完成 goal。
+iteration。final iteration 也必须在 frontmatter 反向引用 canonical functional acceptance；双向引用与 current iteration 不一致时不得完成。只有测试不足以完成 goal。
 
 ## 严格 Owner Stop
 
 只按 `ownerStop` 停止；它与 `cs-goal.CheckpointReason` 一一对应，改口径需同步。
 `RiskAcceptanceNeeded` 包含风险接受、secrets、破坏性操作、外部购买、merge / deployment 批准；
-`AcceptanceAgentUnavailable` 需先按生命周期重试，再写 approval report，禁止自验收。日常技术选择和普通失败尝试由 AI 负责。
+`ReviewAgentUnavailable` 仅允许继承配置不可用时经命名 ApprovalRef 降级 local review，显式 pin 不可覆盖；`AcceptanceAgentUnavailable` 需先按生命周期重试，再写 approval report，禁止自验收。日常技术选择和普通失败尝试由 AI 负责。

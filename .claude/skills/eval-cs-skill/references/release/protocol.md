@@ -48,10 +48,14 @@ python3 {skill_dir}/scripts/bump_version.py --to X.Y.Z --note "……"
 ## 5. 校验
 
 ```bash
-python3 tools/check-plugin-package.py          # 打包合规
-python3 -m pytest tests/test_cs_skill_*.py tests/test_plugin_package.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q tests -rs
+PYTHONDONTWRITEBYTECODE=1 python3 tools/check-plugin-package.py --root . --json
+PYTHONDONTWRITEBYTECODE=1 python3 plugins/codestable/skills/cs-onboard/tools/codestable-runtime-sync.py --root . --source-skill-dir plugins/codestable/skills/cs-onboard --check --json
+PYTHONDONTWRITEBYTECODE=1 python3 plugins/codestable/skills/cs-onboard/tools/codestable-doctor.py --root . --json
 git diff --check
 ```
+
+模板或 gate 变更时，先按 `cs-onboard` managed-assets 规则完成 runtime sync，再跑上面的 `--check`；任一 JSON gate 的 `ok` 非 true 都阻断发布。
 
 ## 退出条件
 
@@ -59,4 +63,4 @@ git diff --check
 - [ ] 回归判定非 `regressed`。
 - [ ] 版本 5 处一致 + CHANGELOG 有段。
 - [ ] 被实验证实的 skill 声明按 `[measured: evidence_pointer]` 标注。
-- [ ] pytest 与 `git diff --check` 通过。
+- [ ] 全量 pytest、package、runtime sync check、doctor 与 `git diff --check` 全部通过。

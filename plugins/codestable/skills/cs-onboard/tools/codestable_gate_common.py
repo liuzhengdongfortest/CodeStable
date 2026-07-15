@@ -4,11 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 sys.dont_write_bytecode = True
 
@@ -19,6 +20,19 @@ def repo_root() -> Path:
         if (path / ".git").exists() or (path / ".codestable").exists():
             return path
     return current
+
+
+def repo_relative_path(root: Path, value: str | Path) -> str:
+    path = Path(value)
+    resolved = (path if path.is_absolute() else Path.cwd() / path).resolve()
+    try:
+        return resolved.relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
+def file_sha256(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def read_text(path: str | Path) -> str:
@@ -32,8 +46,11 @@ def gate_result(
     blocking: list[str] | None = None,
     warnings: list[str] | None = None,
     evidence: list[Any] | None = None,
+    feature: str | None = None,
+    inputs: dict[str, str] | None = None,
+    input_digests: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    return {
+    result = {
         "gate_id": gate_id,
         "stage": stage,
         "status": status,
@@ -42,6 +59,13 @@ def gate_result(
         "evidence": evidence or [],
         "providers": {},
     }
+    if feature:
+        result["feature"] = feature
+    if inputs is not None:
+        result["inputs"] = inputs
+    if input_digests is not None:
+        result["input_digests"] = input_digests
+    return result
 
 
 def print_json(data: dict[str, Any]) -> None:
@@ -82,91 +106,6 @@ def run_command(command: str, cwd: Path) -> dict[str, Any]:
     }
 
 
-def _parse_scalar(value: str) -> Any:
-    value = value.strip()
-    if value.startswith("[") and value.endswith("]"):
-        return [item.strip().strip("'\"") for item in value[1:-1].split(",") if item.strip()]
-    lower = value.lower()
-    if lower in {"true", "yes"}:
-        return True
-    if lower in {"false", "no"}:
-        return False
-    if lower in {"null", "~"}:
-        return None
-    return value.strip("'\"")
-
-
-def _minimal_yaml(text: str) -> Any:
-    lines: list[tuple[int, str]] = []
-    for raw in text.splitlines():
-        if not raw.strip() or raw.lstrip().startswith("#"):
-            continue
-        indent = len(raw) - len(raw.lstrip(" "))
-        lines.append((indent, raw.strip()))
-
-    def parse_block(index: int, indent: int) -> tuple[Any, int]:
-        if index >= len(lines):
-            return {}, index
-        if lines[index][1].startswith("- "):
-            return parse_list(index, indent)
-        return parse_dict(index, indent)
-
-    def parse_dict(index: int, indent: int) -> tuple[dict[str, Any], int]:
-        result: dict[str, Any] = {}
-        while index < len(lines):
-            current_indent, line = lines[index]
-            if current_indent < indent or current_indent != indent or line.startswith("- "):
-                break
-            if ":" not in line:
-                index += 1
-                continue
-            key, _, value = line.partition(":")
-            key = key.strip()
-            if value.strip():
-                result[key] = _parse_scalar(value)
-                index += 1
-                continue
-            index += 1
-            if index < len(lines) and lines[index][0] > current_indent:
-                result[key], index = parse_block(index, lines[index][0])
-            else:
-                result[key] = {}
-        return result, index
-
-    def parse_list(index: int, indent: int) -> tuple[list[Any], int]:
-        result: list[Any] = []
-        while index < len(lines):
-            current_indent, line = lines[index]
-            if current_indent < indent or current_indent != indent or not line.startswith("- "):
-                break
-            item_text = line[2:].strip()
-            index += 1
-            if not item_text:
-                item: Any = {}
-            elif ":" in item_text:
-                key, _, value = item_text.partition(":")
-                item = {key.strip(): _parse_scalar(value)}
-                if not value.strip() and index < len(lines) and lines[index][0] > current_indent:
-                    item[key.strip()], index = parse_block(index, lines[index][0])
-            else:
-                item = _parse_scalar(item_text)
-            if index < len(lines) and lines[index][0] > current_indent:
-                child, index = parse_block(index, lines[index][0])
-                if isinstance(item, dict) and isinstance(child, dict):
-                    item.update(child)
-                elif isinstance(item, dict):
-                    item["items"] = child
-                else:
-                    item = {"value": item, "items": child}
-            result.append(item)
-        return result, index
-
-    if not lines:
-        return {}
-    parsed, _ = parse_block(0, lines[0][0])
-    return parsed
-
-
 def load_yaml(path: Path) -> Any:
     return load_yaml_text(path.read_text(encoding="utf-8"))
 
@@ -174,9 +113,50 @@ def load_yaml(path: Path) -> Any:
 def load_yaml_text(text: str) -> Any:
     try:
         import yaml  # type: ignore
-    except ImportError:
-        return _minimal_yaml(text)
-    return yaml.safe_load(text) or {}
+    except ImportError as error:
+        raise RuntimeError("PyYAML is required for strict CodeStable gate artifact parsing") from error
+    parsed = yaml.safe_load(text)
+    return {} if parsed is None else parsed
+
+
+def named_authorization_state(
+    unit: Path,
+    state: dict[str, Any],
+    field: str,
+    decision_id: str,
+    frontmatter_loader: Callable[[Path], dict[str, Any]],
+) -> tuple[str, str, str]:
+    """Validate a persisted authorization against its canonical named decision."""
+    status = str(state.get(field) or "").strip()
+    reference = str(state.get(f"{field}_ref") or "").strip()
+    if status == "rejected":
+        return "rejected", reference, ""
+    if status != "approved":
+        return "missing", reference, f"{field} is not approved"
+
+    path_text, separator, fragment = reference.partition("#")
+    if not separator or not path_text or fragment != decision_id:
+        return "missing", reference, f"{field}_ref must be approval-report.md#{decision_id}"
+
+    unit_root = unit.resolve()
+    approval_path = (unit / path_text).resolve()
+    try:
+        approval_path.relative_to(unit_root)
+    except ValueError:
+        return "missing", reference, f"{field}_ref escapes the workflow unit"
+    if approval_path != (unit / "approval-report.md").resolve():
+        return "missing", reference, f"{field}_ref must target the unit approval-report.md"
+
+    approval = frontmatter_loader(approval_path)
+    approvals = approval.get("approvals")
+    if approval.get("doc_type") != "approval-report" or not isinstance(approvals, dict):
+        return "missing", reference, f"{field}_ref does not target a named approval decision"
+    decision_status = str(approvals.get(decision_id) or "").strip()
+    if decision_status == "rejected":
+        return "rejected", reference, f"approval decision {decision_id} was rejected"
+    if decision_status != "approved":
+        return "missing", reference, f"approval decision {decision_id} is not approved"
+    return "approved", reference, ""
 
 
 def main_exit(result: dict[str, Any], json_out: str | None = None) -> None:

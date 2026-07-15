@@ -11,8 +11,11 @@ data ChildReviewState
 data PackageState = PackageState
   { roadmapReviewState :: RoadmapReviewState, roadmapConfirmed :: Bool
   , childReviewState :: ChildReviewState, childDesignsConfirmed :: Bool
+  , acceptanceAuthorization :: AuthorizationState
+  , commitAuthorization :: AuthorizationState
   , packagePersisted :: Bool, baselineTracked :: Bool
   }
+data AuthorizationState = AuthorizationMissing | AuthorizationApproved ApprovalRef | AuthorizationRejected
 data PackageOutcome
   = Route Stage | Awaiting WaitReason | HumanCheckpoint CheckpointReason
   | WriteGoalPackage | DispatchGoalDriver Command | GoalHandoff Command
@@ -33,7 +36,11 @@ buildEpicGoal s env
   | childReviewState s is ChildReviewerFailed reason              = Blocked reason
   | childReviewState s is ChildReviewsBlocked reason              = Blocked reason
   | not (childDesignsConfirmed s)                                 = HumanCheckpoint ConfirmAllChildDesign
+  | acceptanceAuthorization s == AuthorizationRejected            = GoalHandoff "goal acceptance authorization rejected"
+  | commitAuthorization s == AuthorizationRejected                = GoalHandoff "goal commit authorization rejected"
   | not (packagePersisted s)                                      = WriteGoalPackage
+  | acceptanceAuthorization s == AuthorizationMissing             = HumanCheckpoint ConfirmGoalAcceptanceAuthorization
+  | commitAuthorization s == AuthorizationMissing                 = HumanCheckpoint ConfirmGoalCommitAuthorization
   | otherwise                                                     = fromDriverDecision (selectGoalDriver s env)
 
 fromDriverDecision :: DriverDecision -> PackageOutcome
@@ -44,6 +51,8 @@ fromDriverDecision (DriverBlocked reason)   = Blocked reason
 
 落盘后按共享 `selectGoalDriver` 派发同一条 literal `/goal`；driver 内循环为
 implementation → review/fix → QA/fix → acceptance，全部 accepted 后才进入 final audit。
+
+Goal package 有两项互不替代的授权：`goal-acceptance` 允许 driver 在证据通过后完成 acceptance；`goal-commits` 允许它按 feature 自动 scoped-commit。先落待授权 package 与 `approval-report.md` 的 `approvals.goal-acceptance` / `approvals.goal-commits` pending decision，再由对应 typed authorize/reject input 更新；任一拒绝都 handoff，任一缺失都停在自己的 checkpoint，package 不得派发。runtime 会机械核对同 unit 文件与两份 ref；确认 roadmap/design 或批准 acceptance 都不能授权 commit。
 
 注意：不要把长任务正文塞进 `/goal` 参数。长协议和 feature 执行规格写入 roadmap 自己的目录，`/goal` 只引用这些文件和终止标记。
 
@@ -104,7 +113,7 @@ implementation → review/fix → QA/fix → acceptance，全部 accepted 后才
 
 ### 第二次确认：所有 feature design
 
-对 roadmap items 里的每个 planned 子 feature，按依赖顺序逐个完成 `cs-feat` design 阶段的候选设计阶段。调用 `cs-feat` 时必须带内部上下文 `epic_child_batch: true`，表示这是 `cs-epic` 批量子设计流程，不是普通单 feature 流程。**该标志同时表示 CONTEXT / adrs / compound 等全局输入已在 planning 阶段统一加载**，子 feature design 复用、不各自重扫（见 `cs-feat` design 阶段"扫 .codestable 全局输入"）：
+对 roadmap items 里的每个 planned 子 feature，按 DAG 的 design admission 顺序逐个完成 `cs-feat` design 阶段的候选设计阶段。依赖项为 `done`、`dropped` 或独立 design-review `passed` 时，下游可进入设计；这项放宽只用于 child batch 设计，implementation 仍要求依赖严格全部 `done`。调用 `cs-feat` 时必须带内部上下文 `epic_child_batch: true`，表示这是 `cs-epic` 批量子设计流程，不是普通单 feature 流程。**该标志同时表示 CONTEXT / adrs / compound 等全局输入已在 planning 阶段统一加载**，子 feature design 复用、不各自重扫（见 `cs-feat` design 阶段"扫 .codestable 全局输入"）：
 
 - 创建 feature 目录。
 - 写 `{feature-slug}-design.md`，frontmatter 带 `roadmap` / `roadmap_item`，正文按 `.codestable/attention.md` 的报告语言落盘（默认中文）。
@@ -117,7 +126,7 @@ batch loop 的推进与退出纪律（每轮运行 `codestable-workflow-next.py 
 
 这里把 `cs-feat` design 阶段普通模式里的单 feature 用户整体 review 推迟到本协议统一处理：每份 design 先保持 `draft`，不要逐个改 `approved`。全部 feature design 都写完且 design-review 都 passed 后，一次性给用户 review。用户可能反复修改任意一个 design；每次修改后同步更新 checklist，并对实质变化重跑 `cs-feat` design-review 阶段。只有用户明确确认所有 design 后，才输出 `/goal`。
 
-用户确认所有 design 后，先把每份 `{feature-slug}-design.md` 的 frontmatter `status` 从 `draft` 改为 `approved`，再生成 goal 执行包。`cs-feat` implementation 阶段和 `cs-feat` acceptance 阶段都要求 design 已 approved；不要把 draft design 交给 goal 会话。
+全部 design-review 通过后，先处理 runtime 在批量确认 gate 前报出的 dropped dependency：删除/替换依赖或一并 drop 下游 item；清零后再让用户统一确认 design，并把每份 `{feature-slug}-design.md` 的 frontmatter `status` 从 `draft` 改为 `approved`。goal-state 的 features 必须按 runtime `topological_order` 写入；`cs-feat` implementation 和 acceptance 都要求 design 已 approved，不要把 draft design 交给 goal 会话。
 
 ---
 
@@ -145,6 +154,8 @@ batch loop 的推进与退出纪律（每轮运行 `codestable-workflow-next.py 
 - 最终审计会核验的交付物类型
 - 最终审计必须运行 `codestable-goal-consistency-gate.py --roadmap {roadmap-path}`
 - 最终审计会聚合 goal-evidence-summary、provider warnings、E/C/H summary 和 H-only core checks
+- Goal acceptance 的独立 owner authorization 与 `approval-report.md` 引用
+- 每个 feature 自动 scoped-commit 的独立 owner authorization、影响说明与 `approval-report.md#goal-commits` 引用
 
 ### `goal-state.yaml`
 
@@ -163,6 +174,10 @@ status: ready-to-dispatch      # ready-to-dispatch|handoff|complete
 baseline_ref: "{git rev-parse HEAD 或 no-git}"
 driver_kind: none            # host-agent|none，派发成功后写回
 driver_id: ""
+acceptance_authorization: approved # approved|rejected；缺失时不得派发
+acceptance_authorization_ref: "approval-report.md#goal-acceptance"
+commit_authorization: approved # approved|rejected；缺失时不得派发或 commit
+commit_authorization_ref: "approval-report.md#goal-commits"
 handoff_reason: ""           # status=handoff 时必填
 handoff_next: ""             # status=handoff 时必填
 current_feature_index: 0
@@ -178,7 +193,7 @@ features:
     status: pending
 ```
 
-`current_feature_index` 是 **0-based**，指向 `features` 数组中下一个要处理的元素；第一个 feature 必须是 `0`。每个 feature accepted 后必须 scoped-commit 且确认工作树干净，再加 1。展示给用户的 `Feature: N/总数` 仍使用 1-based。roadmap item 若在执行前被标 `dropped`，不要写入 `goal-state.features`；已进入 `goal-state.features` 的条目必须走到 `accepted` 或回退修复。
+`current_feature_index` 是 **0-based**，指向 `features` 数组中下一个要处理的元素；第一个 feature 必须是 `0`。feature accepted 后先把状态与 index 加 1 一起持久化，再机械复核 `goal-commits` 的 approval artifact/ref；仍可验证时才把这些状态更新纳入 scoped-commit，并在 commit 后确认工作树干净，否则持久化 handoff 且绝不提交。展示给用户的 `Feature: N/总数` 仍用 1-based。执行前 dropped item 不写入 features；已进入的条目必须 accepted 或回退修复。
 
 与单 feature goal 不同，epic goal 用 `current_feature_index` 表示跨 feature 进度，并用每个 `features[].status` 表示单个 feature 状态；单 feature 内部的 implementation / review / QA / acceptance 细粒度阶段仍由对应 feature 产物和 `goal-protocol-feature-loop.md` 核验，不在 epic 顶层 state 里再复制一套 `stage` 字段。
 
@@ -220,7 +235,7 @@ features:
 6. 每个 checklist step 是否可独立验证，且初始 `steps.status` 为 `pending`、`checks.status` 为 `pending`。
 7. 每个 feature 是否有必跑命令 / 基线风险 / 交付物 / 清洁度规则。
 8. 每个 goal-feature spec 是否写明 design-review / review / QA / acceptance 产物路径，以及 review blocking / QA failed 的返回路径。
-9. `goal-state.yaml` 是否能断点恢复，且 `current_feature_index` 使用 0-based 语义；complete/handoff 是否已先于残留 driver 元数据判定。
+9. `goal-state.yaml` 是否能断点恢复，`current_feature_index` 是否 0-based，acceptance/commit 两份 authorization 是否来自独立命名 decision；complete/handoff 是否先于残留 driver 元数据。
 10. `goal-plan.md` 是否写明 roadmap 级核心验收路径、最终聚合测试命令、非功能性替代证据策略、DoD Policy、Gate Policy、Provider Policy。
 11. 用户是否已明确确认 roadmap 和所有 feature design。
 12. `goal-protocol*.md` 是否都低于 300 行，且没有把 roadmap slug 误替换进 feature 标记；`Feature:` 行必须使用 `<feature-slug>` 或真实当前 feature slug。

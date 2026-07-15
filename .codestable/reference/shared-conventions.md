@@ -177,6 +177,22 @@ transition _ _                         = Left InvalidTransition
 2. items.yaml 对应条目 `status: in-progress` + `feature: YYYY-MM-DD-{slug}`
 3. 校验 yaml
 
+**依赖准入分层**：
+
+```haskell
+data Admission = DesignAdmission Bool | ImplementationAdmission
+data DependencyState = Done | Dropped | DesignReviewPassed | NotReady
+dependencyReady :: Admission -> DependencyState -> Bool
+dependencyReady (DesignAdmission False) Done               = True
+dependencyReady (DesignAdmission True)  Done               = True
+dependencyReady (DesignAdmission True)  Dropped            = True
+dependencyReady (DesignAdmission True)  DesignReviewPassed = True
+dependencyReady ImplementationAdmission Done               = True
+dependencyReady _                       _                  = False
+```
+
+`DesignAdmission True` 仅对应 `epic_child_batch: true`，用于避免“所有 design 先完成、实现后开始”的批处理死锁；它只授权起草和审查下游 design。任何 implementation / review-fix / qa-fix 开始前都重新读取 items.yaml；`dropped` 或仅 design-review passed 不得进入实现。
+
 **cs-feat design-review 阶段的职责**：在人审前只读审查 design + checklist + 相关事实，写 `{slug}-design-review.md`；不修改 design/checklist，不替用户批准。
 
 直接起 feature（非 roadmap 来）两字段留空，不触发 roadmap 写。
@@ -217,6 +233,7 @@ acceptance / issue-fix 走完后把本次产物提交为一个 commit：
 - **范围**：本次工作改到的代码 + 相关 spec 文档 + 本次实际更新过的 CONTEXT.md / ADR / req doc + 本次实际更新过的 roadmap items.yaml / 主文档
 - **不该进**：和本次工作无关的顺手修改；属于"下次另起 feature / issue"的扩大范围
 - **提交前确认**：用户没明确同意不要 `git commit`
+- **Goal commit 授权**：Epic 自动逐 feature 提交必须有独立 `approval-report.md#goal-commits`；design/acceptance 授权都不能替代
 - **commit message**：一句话说清"做了什么"，不贴 spec 目录路径
 
 子技能只描述本阶段特有提交范围，通用规则看这里。

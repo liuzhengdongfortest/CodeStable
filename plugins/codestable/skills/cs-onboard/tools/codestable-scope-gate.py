@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -12,7 +13,13 @@ if os.environ.get("PYTHONDONTWRITEBYTECODE") != "1":
     os.execvpe(sys.executable, [sys.executable, *sys.argv], os.environ)
 sys.dont_write_bytecode = True
 
-from codestable_gate_common import gate_result, main_exit, parse_args, repo_root, run_command
+from codestable_gate_common import (
+    gate_result,
+    main_exit,
+    parse_args,
+    repo_relative_path,
+    repo_root,
+)
 
 
 CLEAN_PATTERNS = ("TODO", "FIXME", "XXX")
@@ -38,23 +45,35 @@ def is_under(path: str, prefix: str) -> bool:
     return path == clean or path.startswith(clean + "/")
 
 
-def changed_files(root: Path, paths: list[str]) -> list[str]:
-    quoted = " ".join(f"'{path}'" for path in paths)
-    command = "git status --porcelain -uall"
-    if quoted:
-        command = f"{command} -- {quoted}"
-    status = run_command(command, root)
-    if status["exit_code"] != 0:
-        return []
+def changed_files(root: Path, paths: list[str]) -> tuple[list[str], dict[str, object]]:
+    command = ["git", "status", "--porcelain", "-uall"]
+    if paths:
+        command.extend(["--", *paths])
+    completed = subprocess.run(
+        command,
+        cwd=root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    status: dict[str, object] = {
+        "command": command,
+        "exit_code": completed.returncode,
+        "stdout": completed.stdout[-4000:],
+        "stderr": completed.stderr[-4000:],
+    }
+    if completed.returncode != 0:
+        return [], status
     files: list[str] = []
-    for line in str(status["stdout"]).splitlines():
+    for line in completed.stdout.splitlines():
         if not line:
             continue
         path = line[3:]
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
         files.append(path.strip('"'))
-    return files
+    return files, status
 
 
 def main() -> None:
@@ -73,11 +92,22 @@ def main() -> None:
     args = parser.parse_args()
 
     root = repo_root()
+    feature_dir_input = repo_relative_path(root, args.feature_dir)
+    feature_identity = Path(feature_dir_input).name
+    result_inputs = {"feature_dir": feature_dir_input}
     allowed = [args.feature_dir, *args.allow]
     if args.allow_file:
         allow_path = Path(args.allow_file)
         if not allow_path.exists():
-            result = gate_result("scope-gate", args.stage, "blocked", [f"allow file not found: {allow_path}"])
+            result = gate_result(
+                "scope-gate",
+                args.stage,
+                "blocked",
+                [f"allow file not found: {allow_path}"],
+                feature=feature_identity,
+                inputs=result_inputs,
+                input_digests={},
+            )
             main_exit(result, args.json_out)
         allowed.extend(
             line.strip()
@@ -85,7 +115,19 @@ def main() -> None:
             if line.strip() and not line.strip().startswith("#")
         )
     check_paths = args.check_path or allowed
-    raw_files = changed_files(root, check_paths)
+    raw_files, git_status = changed_files(root, check_paths)
+    if git_status["exit_code"] != 0:
+        result = gate_result(
+            "scope-gate",
+            args.stage,
+            "failed",
+            [f"git status failed with exit {git_status['exit_code']}"],
+            evidence=[{"git_status": git_status}],
+            feature=feature_identity,
+            inputs=result_inputs,
+            input_digests={},
+        )
+        main_exit(result, args.json_out)
     files = [path for path in raw_files if not is_machine_artifact(path)]
     ignored = [path for path in raw_files if is_machine_artifact(path)]
     out_of_scope = [
@@ -116,6 +158,9 @@ def main() -> None:
         blocking,
         warnings,
         [{"changed_files": files, "ignored_machine_artifacts": ignored, "allowed_prefixes": allowed}],
+        feature=feature_identity,
+        inputs=result_inputs,
+        input_digests={},
     )
     main_exit(result, args.json_out)
 

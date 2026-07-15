@@ -38,6 +38,8 @@ advance track state
   | otherwise                  = Complete
 ```
 
+`ownerApproved`、overwrite 与 contract wording 状态只由主入口验证并持久化的 `ResumeDocsCheckpoint` 更新；聊天回答或仅有 draft 文件都不构成批准。
+
 ---
 
 ## 两条轨道

@@ -60,7 +60,7 @@ designVerdict decision findings = reviewVerdict (toReviewLane decision) findings
 ```
 
 `designReview` 只用于首次或实质变化后的完整复审；focused closure 不调用它，也不增加 round。`review_state/review_reason/reviewer_id` 是跨会话恢复的机器真相。
-`Launch` 只启动一次 reviewer；`Await`、`NeedOwnerApproval`、运行失败、hard block 分别写 `awaiting-reviewer`、`needs-owner-approval`、`reviewer-failed`、`blocked`；`LocalReview` 仅来自 `ApproveLocalOnly`，只有 `MergeVerified` / `LocalReview` 可进入本地核验。
+`Launch` 只启动一次 reviewer；`Await ref` 必须把同一 `ref` 写入 `reviewer_id`，与 `NeedOwnerApproval`、运行失败、hard block 分别持久化为 `awaiting-reviewer`、`needs-owner-approval`、`reviewer-failed`、`blocked`；`LocalReview` 仅来自 `ApproveLocalOnly`，只有 `MergeVerified` / `LocalReview` 可进入本地核验。
 
 独立 Task agent reviewer prompt 必须只给原始材料和边界，不透露本地 review 结论：
 

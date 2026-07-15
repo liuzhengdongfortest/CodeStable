@@ -13,6 +13,7 @@ data ReportNext = AnalyzeNext | FixNext
 data ReportOutcome
   = RouteFeature | Ask ReportQuestion | ProposeFastPath RootCause FixPlan
   | PersistDraftAndCheckpoint CheckpointReason
+  | ReviseAndCheckpoint Feedback CheckpointReason | Blocked Reason
   | PersistAndRoute IssuePath ReportNext
 
 selectPath :: ReportFacts -> ReportOutcome
@@ -30,15 +31,19 @@ advance :: ReportPath -> ReportAnswers -> Maybe CheckpointAnswer -> ReportOutcom
 advance _ answers _
   | Just q <- nextQuestion answers  = Ask q
 advance Standard _ (Just ApproveCheckpoint) = PersistAndRoute StandardPath AnalyzeNext
-advance Standard _ _                = PersistDraftAndCheckpoint ConfirmReport
+advance Standard _ (Just RejectCheckpoint) = Blocked ReportRejected
+advance Standard _ (Just (ReviseCheckpoint feedback)) = ReviseAndCheckpoint feedback ConfirmReport
+advance Standard _ Nothing          = PersistDraftAndCheckpoint ConfirmReport
 advance FastPath _ (Just ApproveCheckpoint) = PersistAndRoute FastPathApproved FixNext
 advance FastPath _ (Just RejectCheckpoint)  = PersistAndRoute FastPathRejected AnalyzeNext
-advance FastPath _ _                = PersistDraftAndCheckpoint ConfirmFixPlan
+advance FastPath _ (Just (ReviseCheckpoint feedback)) = ReviseAndCheckpoint feedback ConfirmFixPlan
+advance FastPath _ Nothing          = PersistDraftAndCheckpoint ConfirmFixPlan
 ```
 
 `PersistDraftAndCheckpoint` 先写 `status: draft` 的 report，并按 approval 约定把同一 decision 写成
 pending；只有持久状态成功后才返回 `HumanCheckpoint`。因此 standard / fast-track 的 owner 回复都能
 从仓库恢复，不依赖聊天历史。两条路径共用第一条 `nextQuestion` guard，fast-track 不得绕过五问。
+`advance` 的 owner 参数只来自主入口已按同一 `CheckpointReason` 验证的 `ResumeIssueCheckpoint`，不得从聊天文本构造；`ReviseCheckpoint feedback` 先修订 draft 再写新 pending decision，Standard report 的 `RejectCheckpoint` 终止本次 issue，不能重发同一 checkpoint。
 
 > 共享路径与命名约定看 `.codestable/reference/shared-conventions.md` 第 0 节和 `cs-issue` 的"文件放哪儿"。
 

@@ -19,11 +19,14 @@
 - `goal-state.yaml` 使用 `current_feature_index`，语义为 0-based。
 - `baseline_ref` 在 git 仓库内必须能解析为 SHA。
 - `goal-plan.md` 必须包含 roadmap 核心验收路径、最终聚合命令、DoD Policy、Gate Policy、Provider Policy。
+- `acceptance_authorization: approved`，且 ref 指向同 roadmap 的 `approval-report.md#goal-acceptance`、命名决策为 approved；空 ref、伪路径、缺文件或 rejected 均不得启动或继续 driver。
+- `commit_authorization: approved` 也须独立指向 `approval-report.md#goal-commits` 且命名决策为 approved；acceptance ref 不可复用。缺失或拒绝时不得启动、继续或提交。
+- 运行 `python3 <cs-onboard skill 目录>/tools/codestable-workflow-next.py epic --roadmap <roadmap-dir> --json`；只有 `dispatch_goal` / `awaiting` 且 evidence 同时返回两份预期 ref 才可启动或继续 driver。
 - checklist `steps` 和 `checks` 初始状态必须为 `pending`；goal 执行中按阶段更新。
 
 ## 3. Goal 模式接管
 
-用户粘贴 `/goal`，或主流程按 Goal driver 派发规则启动可见 Task agent，代表授权 goal 会话连续执行各 feature 的 impl / review / QA / accept。普通流程中逐 feature 停等用户确认的 checkpoint，在 goal 模式下改为写入报告、状态和审计记录。
+用户粘贴 `/goal` 或主流程派发 driver，只代表启动已授权执行包；acceptance 与自动 commit 必须各有独立 `ApprovalRef`。普通流程逐 feature checkpoint 在 goal 模式下改为写入报告、状态和审计记录。
 
 ```haskell
 data GoalHandoffReason
@@ -65,7 +68,7 @@ Protocol: {roadmap-path}/goal-protocol.md
 ## 5. 执行顺序
 
 `nextGoal` 是顺序真相。`RunFeature i` 读取 goal-feature/design/checklist，执行 feature loop 与
-stage gates；accepted 后更新 state/items、scoped-commit，工作树干净才推进 index。
+stage gates；accepted 后先更新 state/items/index，再复核 commit 授权并 scoped-commit，所有状态更新后工作树干净才进入下一 feature。
 `RunFinalAudit` 执行 `goal-protocol-audit.md`。
 
 ## 6. 完成标记

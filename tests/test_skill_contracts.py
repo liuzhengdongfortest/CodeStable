@@ -115,16 +115,18 @@ def test_feat_and_epic_specs_match_goal_runtime_vocabulary() -> None:
     assert "goalRunState" in feat
     assert "reviewStatus     :" not in feat
     assert "hasGoalPackage" not in feat
-    assert re.search(r"GoalReadyToDispatch\s+-> DispatchGoalDriver", feat)
-    assert re.search(r"GoalComplete\s+-> Completed", feat)
+    assert "GoalReadyToDispatch ApprovalRef" in feat
+    assert "is GoalReadyToDispatch _     -> DispatchGoalDriver" in feat
+    assert "is GoalComplete _            -> Completed" in feat
     assert re.search(r"GoalHandoffBlocked reason\s+-> GoalHandoff", feat)
 
     assert "roadmapReviewState" in epic
     assert "roadmapReviewStatus" not in epic
     assert "goalRunState" in epic
     assert "hasGoalPackage" not in epic
-    assert re.search(r"GoalReadyToDispatch\s+-> DispatchGoalDriver", epic)
-    assert re.search(r"GoalComplete\s+-> Completed", epic)
+    assert "GoalReadyToDispatch ApprovalRef ApprovalRef" in epic
+    assert "is GoalReadyToDispatch _ _                -> DispatchGoalDriver" in epic
+    assert "is GoalComplete _ _                       -> Completed" in epic
     assert re.search(r"GoalHandoffBlocked reason\s+-> GoalHandoff", epic)
 
     build = (LOCAL_SKILLS / "build-cs-skill/SKILL.md").read_text(encoding="utf-8")

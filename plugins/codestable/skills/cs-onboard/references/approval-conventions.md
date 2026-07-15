@@ -35,6 +35,7 @@ data ApprovalTrigger
   | RepairOrDeferDecision
 data ApprovalStatus = Pending | Approved | Rejected | Superseded
 data ApprovalSurface = CanonicalStageReport Path | ApprovalReport Path | NeedUnitIdentity
+data ApprovalRef = ApprovalRef Path DecisionId
 
 selectSurface :: Unit -> Maybe StageReport -> ApprovalSurface
 selectSurface unit stageReport
@@ -48,6 +49,10 @@ recordAnswer report answer date = report
   , decisionHistory = appendDecision answer date (decisionHistory report)
   , pendingSections = nextDecisionOrEmpty report answer
   }
+
+approvalRefValid :: Unit -> ApprovalReport -> ApprovalRef -> Bool
+approvalRefValid unit report (ApprovalRef path decision) =
+  path == unit / "approval-report.md" && namedApproval report decision == Approved
 ```
 
 正文语言遵守 `.codestable/attention.md` 的报告语言策略。若 attention 没有报告语言策略，
@@ -81,6 +86,7 @@ doc_type: approval-report
 unit: {unit path or slug}
 status: pending
 reason: {interview | route-choice | review-authorization | risk | merge | blocker | other}
+approvals: {} # 可被 runtime 消费的命名决策，例如 goal-acceptance: approved
 created_at: YYYY-MM-DD
 ---
 
@@ -108,6 +114,10 @@ created_at: YYYY-MM-DD
 一个 unit 的第一次 approval 可以省略 `Decision History`。`Options` 要具体且互斥。明确标出
 推荐选项。`Non-Automatic Actions` 必须说明哪些动作不会自动发生，例如 commit、merge、
 deploy、重写长期 specs 或接受风险。
+
+需要被 runtime 消费的授权使用 `approval-report.md#<decision-id>`；fragment 是 `approvals`
+中的 key，不是聊天标签。只有同 unit 的 canonical 文件且对应值为 `approved` 才有效；状态字段
+只写 `approved`、ref 非空、路径越界或文件缺失都不能放行。
 
 ## Approval 之后
 
