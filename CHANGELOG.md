@@ -8,6 +8,8 @@
 - Kept testability under maintainability and observability as an engineering means rather than a competing top-level quality model.
 - Added implementation-economy guidance distilled from Ponytail: minimize only after tracing the real flow, change the correct responsibility once, record bounded simplifications with an upgrade trigger, and leave the smallest useful runnable check.
 - Kept repo-wide deletion audits and ungrounded savings scoreboards outside CodeStable's change-scoped model; added thin-adapter and deterministic-copy guidance for portable skills instead.
+- Added versionable UI visual specifications: conditional ASCII wireframes for layout, Mermaid for flows and states, explicit current/target/illustrative labels, and screenshots or prototypes as evidence rather than sole truth.
+- Defined UI truth placement across Project Spec, Epic Spec, local Issues, Design, Do, and Close without forcing empty UI sections into non-UI work.
 
 ## 0.5.0
 

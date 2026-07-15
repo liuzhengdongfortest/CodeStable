@@ -163,6 +163,15 @@ CodeStable tightens “write less code” into a **minimum sufficient change**: 
 - Trust-boundary validation, data-loss prevention, security, accessibility, dangerous-action safeguards, explicit user requirements, and selected quality objectives are not optimization targets.
 - Without a real comparison baseline, report what was removed or avoided; do not invent LOC, cost, or time savings.
 
+## How UI specs use visuals
+
+When spatial relationships, information hierarchy, or multi-state interaction affect the meaning of a UI requirement, CodeStable requires a versionable visual specification. Projects without relevant UI, and simple copy or styling changes, do not keep empty visual sections.
+
+- ASCII wireframes express layout, regions, hierarchy, and major controls; Mermaid expresses navigation flows or state transitions.
+- Project Spec shows only the stable current interface. Epic Spec distinguishes current from target. An Issue shows only its local change. Design maps that visual contract to components, state, and data flow.
+- Adjacent annotations identify the role and entry point, interaction and key states, stable constraints, and merely illustrative details. A diagram/text conflict must be resolved before implementation.
+- Screenshots, high-fidelity designs, and prototypes may serve as visual evidence, but not as the only specification. A wireframe clarifies an interaction objective; it does not replace runnable behavior or accessibility evidence.
+
 ---
 
 ## Skill catalog

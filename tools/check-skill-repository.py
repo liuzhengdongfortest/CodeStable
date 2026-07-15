@@ -74,6 +74,7 @@ def required_skill_files(root: Path) -> list[Path]:
             "quality.md",
             "spec.md",
             "talk.md",
+            "ui-spec.md",
         ]
     )
     files.extend(
@@ -175,6 +176,34 @@ def check_economy_contract(root: Path, findings: list[Finding]) -> None:
                 findings.append(Finding(rel(path, root), "missing bounded simplification contract"))
 
 
+def check_ui_spec_contract(root: Path, findings: list[Finding]) -> None:
+    skill = root / "skills/cs"
+    ui_spec = skill / "references/ui-spec.md"
+    if ui_spec.is_file():
+        text = ui_spec.read_text(encoding="utf-8")
+        for marker in ["什么时候必须画", "ASCII 线框图", "Mermaid", "当前 / 目标", "不能成为唯一规格"]:
+            if marker not in text:
+                findings.append(Finding(rel(ui_spec, root), f"missing UI spec contract: {marker}"))
+
+    skill_md = skill / "SKILL.md"
+    if skill_md.is_file() and "(references/ui-spec.md)" not in skill_md.read_text(encoding="utf-8"):
+        findings.append(Finding(rel(skill_md, root), "does not route ui-spec.md"))
+
+    templates = skill / "templates/entities"
+    required_markers = {
+        "project-spec-index.md": "## 界面与交互（按需）",
+        "spec-section-index.md": "## 界面与交互（按需）",
+        "epic-spec.md": "## 界面与交互变化（按需）",
+        "talk.md": "## UI 对齐草图（按需）",
+        "feature-issue.md": "## UI 变化（按需）",
+        "bug-issue.md": "## UI 实际与预期（按需）",
+    }
+    for filename, marker in required_markers.items():
+        path = templates / filename
+        if path.is_file() and marker not in path.read_text(encoding="utf-8"):
+            findings.append(Finding(rel(path, root), f"missing UI visual contract: {marker}"))
+
+
 def check_readmes(root: Path, findings: list[Finding]) -> None:
     required = [
         "npx skills add liuzhengdongfortest/CodeStable",
@@ -182,8 +211,8 @@ def check_readmes(root: Path, findings: list[Finding]) -> None:
         "npx skills update cs",
     ]
     required_markers = {
-        "README.md": ["ISO/IEC 25010:2023", "## 实现如何保持经济性"],
-        "README.en.md": ["ISO/IEC 25010:2023", "## How implementation stays economical"],
+        "README.md": ["ISO/IEC 25010:2023", "## 实现如何保持经济性", "## UI 规格如何使用图"],
+        "README.en.md": ["ISO/IEC 25010:2023", "## How implementation stays economical", "## How UI specs use visuals"],
     }
     obsolete = [
         "codex plugin",
@@ -216,6 +245,7 @@ def check_repo(root: Path) -> list[Finding]:
     check_skill_layout(root, findings)
     check_quality_contract(root, findings)
     check_economy_contract(root, findings)
+    check_ui_spec_contract(root, findings)
     check_readmes(root, findings)
     if (root / "dist").exists():
         findings.append(Finding("dist", "temporary distribution output must not be committed"))
