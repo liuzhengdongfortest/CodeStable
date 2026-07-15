@@ -153,6 +153,16 @@ Design decisions → Do evidence → Close check and write-back
 - Selection creates a commitment: Design responds to every objective, Do produces evidence, and Close passes only when that evidence is sufficient.
 - Testability remains a maintainability subcharacteristic. Observability remains an engineering means that supports reliability, analysability, and evidence instead of becoming a competing quality model.
 
+## How implementation stays economical
+
+CodeStable tightens “write less code” into a **minimum sufficient change**: understand the real trigger-to-result path first, then try no new behavior, deletion or narrower scope, reuse in the correct owner, the standard library, native platform features, and installed dependencies before writing new code. A small diff beside the symptom is not small if the responsibility belongs elsewhere.
+
+- Do not prepay for imagined futures with single-implementation interfaces, unset configuration, forwarding wrappers, or unnecessary dependencies.
+- When a deliberately simple solution has a capacity, environment, or algorithmic ceiling, record that ceiling, the observable upgrade trigger, and the layer to replace. Do not build the future before the trigger, and do not hide an already-triggered limit as “later.”
+- Leave at least one smallest useful runnable check for non-trivial logic, preferably through an existing test entry point instead of a new framework.
+- Trust-boundary validation, data-loss prevention, security, accessibility, dangerous-action safeguards, explicit user requirements, and selected quality objectives are not optimization targets.
+- Without a real comparison baseline, report what was removed or avoided; do not invent LOC, cost, or time savings.
+
 ---
 
 ## Skill catalog

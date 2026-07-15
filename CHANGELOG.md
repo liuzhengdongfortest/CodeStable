@@ -6,6 +6,8 @@
 - Added a quality commitment chain: stable constraints live in project/epic specs, issues select concrete objectives, Design responds to them, Do produces evidence, and Close enforces the selected commitments.
 - Updated Talk, Spec, Explore, Complain, Design, Do, Close, issue/spec templates, and public documentation so quality objectives are inherited, risk-driven, explicit, and traceable.
 - Kept testability under maintainability and observability as an engineering means rather than a competing top-level quality model.
+- Added implementation-economy guidance distilled from Ponytail: minimize only after tracing the real flow, change the correct responsibility once, record bounded simplifications with an upgrade trigger, and leave the smallest useful runnable check.
+- Kept repo-wide deletion audits and ungrounded savings scoreboards outside CodeStable's change-scoped model; added thin-adapter and deterministic-copy guidance for portable skills instead.
 
 ## 0.5.0
 

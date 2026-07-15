@@ -65,6 +65,7 @@ def required_skill_files(root: Path) -> list[Path]:
             "design.md",
             "do.md",
             "docs.md",
+            "economy.md",
             "explore.md",
             "great-skills.md",
             "maketools.md",
@@ -152,13 +153,38 @@ def check_quality_contract(root: Path, findings: list[Finding]) -> None:
             findings.append(Finding(rel(path, root), "missing quality objective contract"))
 
 
+def check_economy_contract(root: Path, findings: list[Finding]) -> None:
+    skill = root / "skills/cs"
+    economy = skill / "references/economy.md"
+    if economy.is_file():
+        text = economy.read_text(encoding="utf-8")
+        for marker in ["最小充分变化", "已知上限", "升级触发", "最小有用反馈"]:
+            if marker not in text:
+                findings.append(Finding(rel(economy, root), f"missing economy contract: {marker}"))
+
+    skill_md = skill / "SKILL.md"
+    if skill_md.is_file() and "(references/economy.md)" not in skill_md.read_text(encoding="utf-8"):
+        findings.append(Finding(rel(skill_md, root), "does not route economy.md"))
+
+    templates = skill / "templates/entities"
+    for filename in ["bug-issue.md", "chore-issue.md", "feature-issue.md", "refactor-issue.md"]:
+        path = templates / filename
+        if path.is_file():
+            text = path.read_text(encoding="utf-8")
+            if "已知上限" not in text or "升级触发" not in text:
+                findings.append(Finding(rel(path, root), "missing bounded simplification contract"))
+
+
 def check_readmes(root: Path, findings: list[Finding]) -> None:
     required = [
         "npx skills add liuzhengdongfortest/CodeStable",
         "npx skills add . --list",
         "npx skills update cs",
     ]
-    required_markers = ["ISO/IEC 25010:2023"]
+    required_markers = {
+        "README.md": ["ISO/IEC 25010:2023", "## 实现如何保持经济性"],
+        "README.en.md": ["ISO/IEC 25010:2023", "## How implementation stays economical"],
+    }
     obsolete = [
         "codex plugin",
         "/plugin ",
@@ -175,7 +201,7 @@ def check_readmes(root: Path, findings: list[Finding]) -> None:
         for command in required:
             if command not in text:
                 findings.append(Finding(filename, f"missing documented command: {command}"))
-        for marker in required_markers:
+        for marker in required_markers[filename]:
             if marker not in text:
                 findings.append(Finding(filename, f"missing documented contract: {marker}"))
         for marker in obsolete:
@@ -189,6 +215,7 @@ def check_repo(root: Path) -> list[Finding]:
     check_version(root, findings)
     check_skill_layout(root, findings)
     check_quality_contract(root, findings)
+    check_economy_contract(root, findings)
     check_readmes(root, findings)
     if (root / "dist").exists():
         findings.append(Finding("dist", "temporary distribution output must not be committed"))
