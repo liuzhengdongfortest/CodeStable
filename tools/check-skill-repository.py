@@ -70,6 +70,7 @@ def required_skill_files(root: Path) -> list[Path]:
             "maketools.md",
             "note.md",
             "onboard.md",
+            "quality.md",
             "spec.md",
             "talk.md",
         ]
@@ -119,12 +120,45 @@ def check_skill_layout(root: Path, findings: list[Finding]) -> None:
             findings.append(Finding(obsolete, "obsolete plugin wrapper must not exist"))
 
 
+def check_quality_contract(root: Path, findings: list[Finding]) -> None:
+    skill = root / "skills/cs"
+    quality = skill / "references/quality.md"
+    if quality.is_file():
+        text = quality.read_text(encoding="utf-8")
+        for characteristic in [
+            "Functional suitability",
+            "Performance efficiency",
+            "Compatibility",
+            "Interaction capability",
+            "Reliability",
+            "Security",
+            "Maintainability",
+            "Flexibility",
+            "Safety",
+        ]:
+            if characteristic not in text:
+                findings.append(
+                    Finding(rel(quality, root), f"missing quality characteristic: {characteristic}")
+                )
+
+    skill_md = skill / "SKILL.md"
+    if skill_md.is_file() and "(references/quality.md)" not in skill_md.read_text(encoding="utf-8"):
+        findings.append(Finding(rel(skill_md, root), "does not route quality.md"))
+
+    templates = skill / "templates/entities"
+    for filename in ["bug-issue.md", "chore-issue.md", "feature-issue.md", "refactor-issue.md"]:
+        path = templates / filename
+        if path.is_file() and "## 质量目标\n" not in path.read_text(encoding="utf-8"):
+            findings.append(Finding(rel(path, root), "missing quality objective contract"))
+
+
 def check_readmes(root: Path, findings: list[Finding]) -> None:
     required = [
         "npx skills add liuzhengdongfortest/CodeStable",
         "npx skills add . --list",
         "npx skills update cs",
     ]
+    required_markers = ["ISO/IEC 25010:2023"]
     obsolete = [
         "codex plugin",
         "/plugin ",
@@ -141,6 +175,9 @@ def check_readmes(root: Path, findings: list[Finding]) -> None:
         for command in required:
             if command not in text:
                 findings.append(Finding(filename, f"missing documented command: {command}"))
+        for marker in required_markers:
+            if marker not in text:
+                findings.append(Finding(filename, f"missing documented contract: {marker}"))
         for marker in obsolete:
             if marker in text:
                 findings.append(Finding(filename, f"obsolete plugin documentation remains: {marker}"))
@@ -151,6 +188,7 @@ def check_repo(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     check_version(root, findings)
     check_skill_layout(root, findings)
+    check_quality_contract(root, findings)
     check_readmes(root, findings)
     if (root / "dist").exists():
         findings.append(Finding("dist", "temporary distribution output must not be committed"))

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Adopted the nine ISO/IEC 25010:2023 product-quality characteristics as CodeStable's shared quality vocabulary without turning them into a compliance checklist.
+- Added a quality commitment chain: stable constraints live in project/epic specs, issues select concrete objectives, Design responds to them, Do produces evidence, and Close enforces the selected commitments.
+- Updated Talk, Spec, Explore, Complain, Design, Do, Close, issue/spec templates, and public documentation so quality objectives are inherited, risk-driven, explicit, and traceable.
+- Kept testability under maintainability and observability as an engineering means rather than a competing top-level quality model.
+
 ## 0.5.0
 
 - Repositioned Explore around **How it works**: trace a trigger through the current system to an observable result before designing a change.

@@ -133,6 +133,26 @@ Small bugs, small features, and local chores do not need an epic; they can becom
 
 The close rule is simple: independent issue → project spec; exploratory issue → human-confirmed How-it-works knowledge merged progressively into project spec while change-specific impact analysis stays in the target issue; epic issue → epic spec; user-confirmed epic close → project spec.
 
+## How quality follows a change
+
+CodeStable uses the nine product-quality characteristics from [ISO/IEC 25010:2023](https://www.iso.org/standard/78176.html) as a shared vocabulary: functional suitability, performance efficiency, compatibility, interaction capability, reliability, security, maintainability, flexibility, and safety. This is an engineering decision model, not a claim of ISO compliance or certification.
+
+```text
+Stable quality constraints in Project / Epic Spec
+                    ↓ inherit
+Risk discovery in Talk / Explore / Complain
+                    ↓ select
+Concrete quality objectives in an Issue
+                    ↓ realize
+Design decisions → Do evidence → Close check and write-back
+```
+
+- The nine characteristics are a risk lens, not a nine-row “met / not applicable” checklist.
+- An issue selects only objectives that change its design or acceptance, and records the characteristic, concrete result, source, and expected evidence.
+- Relevant spec constraints are inherited automatically. The agent identifies ordinary engineering risks; users decide thresholds, material cost, compatibility policy, and conflicts between objectives.
+- Selection creates a commitment: Design responds to every objective, Do produces evidence, and Close passes only when that evidence is sufficient.
+- Testability remains a maintainability subcharacteristic. Observability remains an engineering means that supports reliability, analysability, and evidence instead of becoming a competing quality model.
+
 ---
 
 ## Skill catalog
