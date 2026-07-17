@@ -21,6 +21,8 @@
 
 下游质量 gate 默认要求 `reviewer: subagent` 或 `subagent+ocr`；`ocr` 和 `self` 需配 `CODESTABLE_ALLOW_SELF_REVIEW_FALLBACK=1` 才放行。`status: passed` 时必填 `reviewer`。`status: blocked` 且没有任何已完成 reviewer 时省略该字段；不得用 completed 值伪装 pending / failed。
 
+两种报告共用下面的完整 frontmatter；compact 只收紧正文，不能删减 reviewer / round / lane 恢复事实：
+
 ```markdown
 ---
 doc_type: feature-review
@@ -36,6 +38,43 @@ lane_b_state: not-started|ready-to-launch|pending|completed|failed|skipped|unava
 lane_b_ref: "" # pending 时必填 OCR run id；其余状态保留已有 ref
 lane_b_reason: ""
 ---
+```
+
+## compact-passed variant
+
+只用于 `status: passed` 且所有已启动 lane 均完成的 clean verdict。下游默认先读这四个投影节；旧的完整 passed 报告仍保持可读，不要求迁移。
+
+```markdown
+# {slug} 代码审查报告
+
+## 4. Findings
+
+- none
+
+## 5. Test And QA Focus
+
+- Reviewed scope: {git range / changed-path locator}
+- QA focus: {需要行为验证的场景 / none}
+- Evidence warnings: {warning locator / none}
+
+## 6. Residual Risk
+
+- {风险 + QA / acceptance 如何处理；没有写 none}
+
+## 7. Verdict
+
+- Status: passed
+- Next: {Standard feature -> accept-inline | Goal feature -> QA | 其他来源的 lane-aware 去向}
+- Focused closure: {closure locator / none}
+```
+
+`compact-passed` 保留原节号 4-7，使 QA / acceptance 可以读取固定投影而无需加载旧的 scope、diff、adversarial narrative。若 focused closure 的可恢复细节尚未存在于旧报告或其他 canonical locator 中，继续使用 detailed variant。
+
+## detailed variant
+
+`failed / blocked / changes-requested`、任一 lane pending / failed、存在待关闭 finding 或需要完整 focused closure 证据时使用下面的详细正文：
+
+```markdown
 
 # {slug} 代码审查报告
 
@@ -131,4 +170,4 @@ lane_b_reason: ""
 
 lane 字段是中间状态的恢复事实并绑定当前 `round`：`pending` 必须带对应 ref，`unavailable` / `failed` 必须带 reason，恢复输入精确匹配 lane/ref。focused closure 复用同 round 的 completed；完整复审增加 round 并重置 lane。旧 `status: blocked` 没有字段、ref 缺失或类型错误时 fail-closed，不得推断为 Awaiting 或重复启动。
 
-没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。
+detailed variant 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。

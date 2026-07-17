@@ -1,6 +1,6 @@
 # Feature Acceptance Protocol
 
-Acceptance 是最终仓库审计，不是实现汇报整理：复核 design/checklist、验证证据与交付物，盘点领域影响，受控回写 requirement/roadmap，并把可复用知识分流。实现自述只能当线索，缺口必须修复并重验。
+Acceptance 是最终仓库审计，不是实现汇报整理：复核 design/checklist、行为验证证据与交付物，盘点领域影响，受控回写 requirement/roadmap，并把可复用知识分流。它消费 code-review/QA projection，不重复逐文件 code review；final audit 仍独立承担工作区与 cleanliness 复核。实现自述只能当线索，缺口必须修复并重验。
 
 ## Spec
 
@@ -68,8 +68,6 @@ accept input s
 
 本阶段整套对照表按 design 当前章节编号硬编码。**design 升级章节名 / 编号时本协议必须同步**，否则下面所有"第 X 节"指针都指错地方。
 
-**标准 design 章节快照**：
-
 - 第 0 节：术语约定
 - 第 1 节：决策与约束（需求摘要 / 复杂度档位 / 关键决策 / 前置依赖）
 - 第 2 节：名词与编排（2.1 名词层 / 2.2 编排层 / 2.3 挂载点 / 2.4 推进策略 / 2.5 结构健康度）
@@ -82,16 +80,16 @@ accept input s
 2. **方案 doc 完整**——frontmatter `doc_type=feature-design` / `feature` 一致 / `status=approved` / `summary` 非空 / `tags` ≥ 2；标准 design 第 0/1/2/3 节 + 第 4 节已填写
 3. **`{slug}-checklist.yaml`**——存在且 `feature` 一致；`steps` 全 `done`（有 `pending` 退回 implement）；`checks` 非空全 `pending`
 4. **`{slug}-review.md`**——存在且 frontmatter `doc_type=feature-review`、`status=passed`；没有 unresolved `blocking` findings。缺失 → 先跑 `cs-code-review`；有 blocking → 退回 `cs-feat` implementation 阶段 review-fix；status 不是 passed → 不进入验收
-5. **Gate / DoD evidence**——goal / gate 模式下读取 `{slug}-evidence-pack.md`、`{slug}-gate-results.json`、`{slug}-dod-results.json`；缺失或 blocking DoD 无 pass evidence 时退回 implementation gate。
+5. **Gate / DoD evidence**——goal / gate 模式下先读 `{slug}-evidence-pack.md` 的状态、核心证据和 residual-risk 投影；只有 failed / warning / mismatch、blocking 未解释或证据不足时才下钻 `{slug}-gate-results.json`、`{slug}-dod-results.json`。缺失关键证据或 blocking DoD 无 pass evidence 时退回 implementation gate。
 6. **验证证据来源**——独立 `cs-feat` QA 阶段 不是 standalone accept 的硬前置；但验收必须有同等强度的验证证据：
-   - 已有 `{slug}-qa.md`：读取并复核。frontmatter 必须 `doc_type=feature-qa`、`status=passed`；failed / blocked → 退回 `cs-feat` implementation 阶段 qa-fix；status 不是 passed → 不进入验收。
-   - Standard lane 没有 `{slug}-qa.md`：不要强制切去跑 `cs-feat` QA 阶段。在本次 accept 里建立 `Inline Verification Matrix`，对照 design 第 3 节、checklist checks、review Test And QA Focus / residual risk 和项目测试入口，现场运行验证，并把证据写入 acceptance 第 3 节和第 10 节最终审计。这个模式等价于“accept-inline QA”，但不额外生成 QA 报告。
+   - 已有 `{slug}-qa.md`：先读取 frontmatter 和第 1/2/5/7 节投影并复核。frontmatter 必须 `doc_type=feature-qa`、`status=passed`；failed / blocked → 退回 `cs-feat` implementation 阶段 qa-fix；status 不是 passed → 不进入验收。旧 full / detailed 报告的第 3/4/6 节只在投影不足或需要复核失败上下文时下钻。
+   - Standard lane 没有 `{slug}-qa.md`：不要强制切去跑 `cs-feat` QA 阶段。按需加载同 skill 的 `references/qa/behavioral-verification.md`（按已加载 `cs-feat/SKILL.md` 所在目录解析），在本次 accept 里建立 `Inline Verification Matrix`，对照 design 第 3 节、checklist behavior checks、review Test And QA Focus / residual risk 和项目运行入口，现场运行行为验证，并把证据写入 acceptance 第 3 节和第 10 节最终审计。这个模式等价于 accept-inline QA，但不额外生成 QA 报告。
    - Goal 模式例外：`cs-feat` / `cs-epic` 的 goal 协议都明确要求生成 QA 报告；goal 模式缺 `{slug}-qa.md` 时按 goal protocol 停止，不走 accept-inline。
    - Goal 授权来源：从 goal-state 读取 ref，并复核同 unit `approval-report.md` 的 `approvals.goal-acceptance: approved`；acceptance 报告里的 ref 仅是输出证据，不能反向授权自身。
 7. **核心证据复核**——不管证据来自 QA 报告还是 accept-inline，都按同一标准复核：
    - 功能性或 mixed feature：design 第 3 节、checklist checks、review QA focus 中的核心功能路径必须有运行证据。若核心路径未运行、真实用户/API/运行时路径未验证、必跑命令未执行，acceptance 必须写 `status=blocked`。下一步按原因选择：代码/测试缺口 → `cs-feat` implementation 阶段 qa-fix 后重跑 review 和 accept-inline；环境缺口 → 先补环境；用户希望独立 QA 报告 → 跑 `cs-feat` QA 阶段。
    - 非功能性 feature：不要求 e2e / browser / API，但必须写明为什么不需要端到端运行，并提供静态检查、diff 复核、文档一致性、schema/快照/类型/构建/目标测试等替代证据。缺说明或证据不足时继续补证据，不直接通过。
-8. **上下文读全**——方案 doc 全文（重点：第 1 节明确不做、2.1 接口示例、2.2 流程级约束、2.3 挂载点、第 3 节场景）+ checklist + review 报告（findings / residual risk / Test And QA Focus）+ QA 报告（如有：Feature type / Core evidence gate / Verification Matrix / Command Results / Scenario Results / residual-risk）+ evidence pack / DoD results / Gate results + accept-inline 验证矩阵（如无 QA 报告）+ implement 完成汇报里的基线预检 / step 证据 / 实际交付物索引 / 知识回写候选 + 第 4 节提到的领域影响候选 + `requirements/CONTEXT.md` + 相关 ADR + 本次代码改动（git log / diff）
+8. **按消费者投影加载**——human design 全文 + checklist；review 先读 frontmatter 和第 4/5/6/7 节；QA 如有先读 frontmatter 和第 1/2/5/7 节；Goal evidence 先读 evidence pack projection；Standard 无 QA 使用 accept-inline matrix。只有状态异常、投影不足或需要定位缺口时才下钻 legacy/detailed report、raw DoD/gate 结果或相关实现证据。领域/交付审计再读取第 4 节候选、`requirements/CONTEXT.md`、相关 ADR 与最终工作区事实；不把所有中间 narrative 当启动必读。
 9. **断点恢复**——`{slug}-acceptance.md` 已存在且部分填好 → 从下一个未完成节继续，跳过 checks 中已 `passed` 的项；汇报"上次做到第 X 节，从第 Y 节继续"
 
 ## 验收报告模板
@@ -175,9 +173,10 @@ round: 1
 - [ ] 验证证据来源：`{slug}-qa.md` / accept-inline verification
 - [ ] QA 报告或 Inline Verification Matrix 已覆盖 design 关键场景和 review QA focus
 - [ ] QA 报告或 Inline Verification Matrix 中的 feature 性质与核心证据说明合理：功能性核心路径有运行证据；非功能性 feature 有替代证据理由
+- [ ] 默认已核对 QA 第 1/2/5/7 节投影；`Command Results / Scenario Results / Diagnostic Context（如有）` 只在投影不足或异常时下钻
 - [ ] failed / blocked 项为 none
 - [ ] residual-risk 已逐条处理 / 明确留作用户确认遗留，且没有承载核心验收缺口
-- [ ] Evidence pack、DoD Results、Gate Results 已复核；blocking DoD 均有 pass evidence
+- [ ] Evidence pack projection 已复核；raw DoD/Gate 只在异常或证据不足时下钻，blocking DoD 均有 pass evidence
 
 ## 4. 术语一致性
 

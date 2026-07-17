@@ -1,0 +1,108 @@
+feature: 2026-07-17-lean-workflow-artifacts
+created: 2026-07-17
+
+steps:
+  - action: "规则骨架：建立 artifact admission 与 consumer projection 的共享契约"
+    exit_signal: "contract tests 能区分 human document、workflow receipt、ephemeral transport 及 drill-down 条件"
+    status: done
+  - action: "传输边界：增加 workspace/scoped-portable、include-path、stdout 与 validation 限长，并同步 reviewer 派发和 tools reference"
+    exit_signal: "tests/test_review_packets.py 证明 allowlist 外 sentinel 不泄漏、workspace 不内联正文且无新 flag 的 legacy portable 逐字节兼容"
+    status: done
+  - action: "Review projection：增加 compact-passed template carve-out 并收紧下游读取投影"
+    exit_signal: "compact passed 保留 reviewer/lane 锚点，legacy full、detailed non-pass 和 pending lane 均可正确恢复"
+    status: done
+  - action: "Behavioral QA：让独立 QA 与 Standard inline 共用 cs-feat-local 黑盒契约，并按 verdict 收紧报告投影"
+    exit_signal: "功能/E2E 场景可执行，compact passed 与 detailed failed/blocked 保持 Standard/Goal/acceptance 旧路由"
+    status: done
+  - action: "兼容与度量：完成 README、回归、package、runtime sync 与 before/after 证据"
+    exit_signal: "相关及全量验证通过，且 packet/artifact/read-set 指标证明重复输入下降"
+    status: done
+
+checks:
+  - item: "artifact 持久化和加载深度按未来消费者分别决策"
+    source: 名词契约
+    status: passed
+  - item: "旧 canonical review/QA 路径、doc_type 和 status 保持兼容"
+    source: 流程级约束
+    status: passed
+  - item: "workspace reviewer 默认只接收 allowlist 内 locator、scope、changed paths 和 validation refs"
+    source: 验收场景
+    status: passed
+  - item: "tests/test_review_packets.py 覆盖 workspace 正文/fenced body 缺席和 portable 兼容"
+    source: 验收场景
+    status: passed
+  - item: "agent-conventions 与 independent-review 同步 workspace 回源和 remote portable 语义"
+    source: 挂载点
+    status: passed
+  - item: "无新 flag 的 legacy portable 文件输出逐字节兼容；scoped transport 使用 validation tail、保持脱敏且不传 allowlist 外文件"
+    source: 验收场景
+    status: passed
+  - item: "compact-passed template 保留完整必填 frontmatter 和四个下游投影节，异常状态使用 detailed variant"
+    source: 名词契约
+    status: passed
+  - item: "QA 默认执行用户/API/CLI/browser/E2E 等可观察行为验证"
+    source: 验收场景
+    status: passed
+  - item: "QA 默认不读取源码、完整 diff 或 implementation 汇报，也不输出代码质量 finding"
+    source: 范围守护
+    status: passed
+  - item: "QA 只写既有 passed/failed/blocked；passed 紧凑，failed/blocked 保留可复测细节"
+    source: 编排骨架
+    status: passed
+  - item: "compact QA 保留 runner 字段、场景矩阵、evidence locator、residual risk 和 verdict，并沿用原节号"
+    source: 名词契约
+    status: passed
+  - item: "review freshness 无法确认时在 terminal QA receipt 前回 code review，不新增 blocked kind"
+    source: 流程级约束
+    status: passed
+  - item: "workflow-next、restoreFeatureStage、Goal loop 和 acceptance 的 QA verdict 路由保持不变"
+    source: 兼容约束
+    status: passed
+  - item: "Standard accept-inline 复用 behavioral verification 且不新增 QA artifact"
+    source: 编排骨架
+    status: passed
+  - item: "compact QA 下 acceptance 将 Command Results/Scenario Results/Cleanliness 硬枚举改为 projection/如有；cs-code-review 不反向读取 cs-feat-local reference"
+    source: 流程级约束
+    status: passed
+  - item: "QA 移除 Cleanliness 复核后，由 code review、DoD cleanliness 和 final audit 继续承担"
+    source: 职责边界
+    status: passed
+  - item: "正常 evidence consumer 不同时全文加载 evidence pack、DoD 和 gate results"
+    source: 流程级约束
+    status: passed
+  - item: "不新增 artifact store、persistent index、runtime journal 或历史迁移"
+    source: 范围守护
+    status: passed
+
+dod:
+  commands:
+    - id: CMD-001
+      command: "python3 -m pytest -q tests/test_review_packets.py tests/test_skill_contract_semantics.py tests/test_skill_entry_simplification.py tests/test_reference_contract_classification.py tests/test_skill_workflow_scenarios.py tests/test_codestable_workflow_next.py tests/test_codestable_goal_consistency_gate.py tests/test_codestable_doctor.py"
+      core: true
+      failure_handling: fix-or-block
+    - id: CMD-002
+      command: "python3 -m pytest -q tests -rs"
+      core: true
+      failure_handling: fix-or-block
+    - id: CMD-003
+      command: "python3 tools/check-plugin-package.py --root . --json"
+      core: true
+      failure_handling: fix-or-block
+    - id: CMD-004
+      command: "python3 plugins/codestable/skills/cs-onboard/tools/codestable-runtime-sync.py --root . --source-skill-dir plugins/codestable/skills/cs-onboard --check --json"
+      core: true
+      failure_handling: fix-or-block
+    - id: CMD-005
+      command: "git diff --check"
+      core: true
+      failure_handling: fix-or-block
+  evidence_required:
+    - targeted_test_output
+    - full_test_output
+    - packet_size_comparison
+    - dogfood_read_trace
+    - runtime_sync_result
+    - diff_summary
+  cleanliness:
+    debug_output: forbidden
+    temporary_todos: forbidden

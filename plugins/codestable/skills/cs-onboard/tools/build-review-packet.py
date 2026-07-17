@@ -14,6 +14,15 @@ from codestable_common import (
     redact_text,
     resolve_unit,
 )
+from review_packet_transports import (
+    DEFAULT_VALIDATION_TAIL_LINES,
+    TRANSPORTS,
+    build_scoped_portable_packet,
+    build_workspace_packet,
+    normalize_include_paths,
+    read_safe,
+    unit_documents,
+)
 
 
 STAGE_BRIEFS = {
@@ -71,31 +80,6 @@ RISK_PROMPTS = (
     "provider cost and production writes",
     "deterministic LLM boundary for IDs, paths, enums, and foreign keys",
 )
-MAX_UNTRACKED_FILE_BYTES = 64 * 1024
-
-
-def read_safe(path: Path, display_path: str | None = None) -> str:
-    if not path.exists() or not path.is_file():
-        return ""
-    if is_secret_like_path(display_path or path.as_posix()):
-        return "[REDACTED secret-like file omitted]\n"
-    if path.stat().st_size > MAX_UNTRACKED_FILE_BYTES:
-        return "[large file omitted]\n"
-    try:
-        return redact_text(path.read_text(encoding="utf-8"))
-    except UnicodeDecodeError:
-        return "[binary or non-utf8 file omitted]\n"
-
-
-def unit_documents(root: Path, unit_dir: Path) -> list[Path]:
-    unit_root = root / unit_dir
-    if not unit_root.exists():
-        return []
-    return sorted(
-        path
-        for path in unit_root.iterdir()
-        if path.is_file() and path.suffix.lower() in {".md", ".yaml", ".yml"}
-    )
 
 
 def stage_brief(stage: str) -> dict[str, str]:
@@ -108,7 +92,7 @@ def normalize_validations(validations: list[str]) -> list[str]:
     return [item.strip() for item in validations if item.strip()]
 
 
-def build_packet(root: Path, unit_value: str, validations: list[str], stage: str = "implementation") -> str:
+def _build_legacy_packet(root: Path, unit_value: str, validations: list[str], stage: str = "implementation") -> str:
     brief = stage_brief(stage)
     validations = normalize_validations(validations)
     if stage == "verification" and not validations:
@@ -190,6 +174,55 @@ def build_packet(root: Path, unit_value: str, validations: list[str], stage: str
     return "\n".join(lines)
 
 
+def build_packet(
+    root: Path,
+    unit_value: str,
+    validations: list[str],
+    stage: str = "implementation",
+    *,
+    transport: str = "portable",
+    include_paths: list[str] | None = None,
+    validation_tail_lines: int = DEFAULT_VALIDATION_TAIL_LINES,
+) -> str:
+    if transport not in TRANSPORTS:
+        raise ValueError(f"unknown review transport: {transport}")
+    if validation_tail_lines < 1:
+        raise ValueError("validation tail lines must be at least 1")
+    include_values = include_paths or []
+    if transport == "portable" and not include_values:
+        return _build_legacy_packet(root, unit_value, validations, stage)
+    if not include_values:
+        raise ValueError(f"{transport} transport requires at least one --include-path")
+
+    root = root.resolve()
+    unit_dir = resolve_unit(root, unit_value)
+    normalized_validations = normalize_validations(validations)
+    if stage == "verification" and not normalized_validations:
+        raise ValueError("verification stage requires at least one --validation or --validation-file entry")
+    normalized_paths = normalize_include_paths(root, include_values)
+    brief = stage_brief(stage)
+    if transport == "workspace":
+        return build_workspace_packet(
+            root,
+            unit_dir,
+            normalized_validations,
+            stage,
+            normalized_paths,
+            brief,
+            RISK_PROMPTS,
+        )
+    return build_scoped_portable_packet(
+        root,
+        unit_dir,
+        normalized_validations,
+        stage,
+        normalized_paths,
+        validation_tail_lines,
+        brief,
+        RISK_PROMPTS,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="Repository root")
@@ -213,17 +246,46 @@ def main() -> int:
         default=[],
         help="Text file containing validation command/results to include; repeat as needed",
     )
+    parser.add_argument(
+        "--transport",
+        choices=TRANSPORTS,
+        default="portable",
+        help="Packet transport; portable without include paths preserves legacy output",
+    )
+    parser.add_argument(
+        "--include-path",
+        action="append",
+        default=[],
+        help="Repository-relative file or directory allowlist; repeat as needed",
+    )
+    parser.add_argument(
+        "--validation-tail-lines",
+        type=int,
+        default=DEFAULT_VALIDATION_TAIL_LINES,
+        help="Validation tail lines for scoped portable packets",
+    )
     args = parser.parse_args()
 
     try:
         validations = list(args.validation)
         for validation_file in args.validation_file:
             validations.append(Path(validation_file).read_text(encoding="utf-8"))
-        packet = build_packet(Path(args.root), args.unit, validations, args.stage)
+        packet = build_packet(
+            Path(args.root),
+            args.unit,
+            validations,
+            args.stage,
+            transport=args.transport,
+            include_paths=args.include_path,
+            validation_tail_lines=args.validation_tail_lines,
+        )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
+    if args.output == "-":
+        sys.stdout.write(packet)
+        return 0
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(packet, encoding="utf-8")

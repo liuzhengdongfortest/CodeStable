@@ -244,6 +244,8 @@ See [WORKFLOW.en.md](./WORKFLOW.en.md) for the compact diagram.
 
 After `/cs-onboard`, project artifacts aggregate under `.codestable/`. Python tool scripts run from the installed `cs-onboard` skill package instead of being copied into each repo.
 
+Human-facing design, requirement, ADR, and acceptance documents stay complete. Passed review/Goal QA artifacts retain only gate and recovery projections; packets, raw agent output, and full successful logs stay ephemeral by default.
+
 ```text
 .codestable/
 ├── attention.md

@@ -2,7 +2,7 @@
 
 ## 写完后输出统一汇报
 
-所有步骤完成后用下面模板汇报。Standard / review-fix 在 final audit 和汇报完成后直接进入 `cs-code-review`，不增加实现确认 checkpoint；Goal 模式把汇报写入报告 / 状态 / 证据记录后继续 before_review gates 和 review。
+所有步骤完成后用下面模板在当前 run 汇报。Standard / review-fix 在 final audit 和汇报完成后直接进入 `cs-code-review`，不增加实现确认 checkpoint，也不为下游单独落盘 implementation report；Goal 模式只把 gate/resume 必需事实归并进既有状态 / evidence projection 后继续 before_review gates 和 review。
 
 固定模板的意义：含糊汇报等于把验证责任推回用户。固定模板逼你把改了哪些文件、是否触碰方案外、是否引入新概念一一说清楚。
 
@@ -53,7 +53,7 @@
 **标准 design**：对照第 3 节关键场景清单，每条靠什么证据满足（类型 / 单测 / 集成 / 手工 / assert）+ 反向核对项是否守住
 ```
 
-Standard / review-fix 汇报后直接进入 code review；Goal 模式也不停等用户，除非命中 goal handoff 条件。
+Standard / review-fix 汇报后直接进入 code review；Goal 模式也不停等用户，除非命中 goal handoff 条件。汇报本身不是新的 canonical artifact，重要 finding/decision 必须晋升到对应 design、review、state 或 evidence 产物。
 
 ## 测试用例怎么落
 

@@ -102,6 +102,7 @@ Feature 先按仓库事实选择 `featureWorkflow`，不得由 Brainstorm 等上
 ## 进一步参考
 
 - `.codestable/reference/shared-conventions.md` — 目录结构、frontmatter 口径、checklist 生命周期和收尾约定。
+- `.codestable/reference/artifact-conventions.md` — human document、workflow receipt、ephemeral transport 与按需读取边界。
 - `.codestable/reference/execution-conventions.md` — CodeStable preflight、runtime 恢复和按需规则索引。
 - `.codestable/reference/agent-conventions.md` — Task agent 选择、生命周期和 Goal driver 派发。
 - `.codestable/reference/tools.md` — `search-yaml.py`、`validate-yaml.py` 和 workflow gate 工具用法。

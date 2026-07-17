@@ -918,6 +918,32 @@ def test_standard_implementation_proceeds_directly_to_code_review() -> None:
     assert "ConfirmImplementation" not in implementation
 
 
+@pytest.mark.parametrize(
+    ("status", "route"),
+    [
+        ("QAPassed", "RouteAcceptance"),
+        ("QAFailed", "RouteQAFixThenReview"),
+        ("QABlocked", "ResolveEnvironmentOrInputs"),
+    ],
+)
+def test_behavioral_qa_keeps_existing_verdict_routes(status: str, route: str) -> None:
+    qa = skill_text("cs-feat", "references/qa/protocol.md")
+
+    line = next(line for line in qa.splitlines() if line.startswith(f"nextQA {status} "))
+    assert line.split() == ["nextQA", status, "=", route]
+    assert f'persistedQAStatus {status} = "{status[2:].lower()}"' in qa
+
+
+def test_standard_inline_runs_the_same_behavior_contract_without_a_qa_artifact() -> None:
+    acceptance = skill_text("cs-feat", "references/acceptance/protocol.md")
+    behavioral = skill_text("cs-feat", "references/qa/behavioral-verification.md")
+
+    assert "references/qa/behavioral-verification.md" in acceptance
+    assert "不额外生成 QA 报告" in acceptance
+    assert "Standard accept-inline" in behavioral
+    assert "不创建 `{slug}-qa.md`" in behavioral
+
+
 def test_acceptance_separates_evidence_causes_and_reaches_repeated_gap_handoff() -> None:
     acceptance = skill_text("cs-feat", "references/acceptance/protocol.md")
     ordered_guards = (

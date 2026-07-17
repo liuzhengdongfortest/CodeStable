@@ -99,6 +99,8 @@ reviewerField _ laneB
 
 本协议列出的 `ocr review` CLI 正常同步执行：`OcrReady command` 直接转 `OcrFinished` / `OcrFailed`，不写 pending/ref。只有宿主明确提供可观察异步 OCR run id 时才可写 `OcrActive id`；不得自行合成 id。
 
+环节 A 的同 workspace reviewer 继续按下方 prompt locator 直接读取仓库，不先构建或内联 review packet。只有 reviewer 无法访问同一 workspace、或宿主要求 file handoff 时，才按 `.codestable/reference/tools.md` 生成 scoped portable packet；必须显式传本轮 spec/code 的 `--include-path` allowlist。legacy unscoped portable 只作旧调用兼容，不是新派发默认值。
+
 独立 Task agent reviewer prompt（只给原始材料，不透露主 agent 的任何 review 结论）：
 
 ```text

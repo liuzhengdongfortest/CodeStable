@@ -47,7 +47,7 @@ writeback _ _ _ = InvalidRequirementState
 
 1. **重读原始契约**：重新打开 `{slug}-design.md` 第 1 / 2 / 3 / 4 节和 `{slug}-checklist.yaml`，不要只看实现汇报或验收报告草稿。
 2. **聚合命令复验**：重跑本 feature 相关的 build / typecheck / lint / test；功能性前端改动重跑浏览器验证；非功能性前端改动复核替代证据；把命令、退出码、关键输出写入报告末尾"最终审计"。
-3. **场景抽样复核**：对第 3 节所有可自动验证的场景尽量重跑；对截图 / 手工类标 `trust-prior-verify` 时写清依赖的证据来源。功能性核心路径不能仅靠 `trust-prior-verify` 或 residual-risk 通过；无法在当前环境验证时写 `blocked`，除非 design 预先定义为条件性非阻塞并已验证替代路径。非功能性 feature 可以用静态 / 一致性 / 目标测试证据完成复核。
+3. **场景抽样复核**：按 `references/qa/behavioral-verification.md` 对第 3 节所有可自动验证的场景尽量重跑；对截图 / 手工类标 `trust-prior-verify` 时写清依赖的 evidence locator。功能性核心路径不能仅靠 `trust-prior-verify` 或 residual-risk 通过；无法在当前环境验证时写 `blocked`，除非 design 预先定义为条件性非阻塞并已验证替代路径。非功能性 feature 用消费者可观察的 package/schema/CLI/runtime-sync/contract-test 结果完成复核，不用逐文件 code review 代替。
 4. **交付物复核**：对照 design 的交付物清单和 implement 的实际交付物索引，逐项检查代码入口、配置 key、schema、路由、文档归并、roadmap 状态是否真实存在于最终工作区 / diff 中；不要只在报告里写"已建议"。
 5. **完整工作区复核**：看 `git status` + `git diff`，确认未跟踪文件、暂存文件、未暂存文件都被纳入判断。验收不能只看最近 commit；本地未提交文件也可能是交付物或污染源。
 6. **diff 清洁度复核**：检查本次新增 debug 输出、临时 TODO/FIXME、注释掉代码、无用 import、方案外文件；发现就修或记录为用户确认的遗留。
@@ -67,7 +67,7 @@ final audit 发现任何缺口：
 ## 10. 最终审计
 
 - 验证证据来源：`{slug}-qa.md` / accept-inline verification
-- Evidence sources：`{slug}-evidence-pack.md` / `{slug}-dod-results.json` / `{slug}-gate-results.json`
+- Evidence sources：`{slug}-evidence-pack.md` projection；raw DoD/Gate locator（仅 failed / warning / mismatch 或证据不足时）
 - Inline Verification Matrix（无 QA 报告时必填）：{ID / 来源 / 核心性 / 命令或动作 / 结果}
 - 聚合命令：{命令 + 退出码 + 摘要}
 - 场景复核：re-verified {N} / trust-prior-verify {M}

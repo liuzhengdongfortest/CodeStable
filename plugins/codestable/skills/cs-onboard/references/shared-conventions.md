@@ -44,7 +44,7 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 │       ├── {slug}-checklist.yaml （标准流程）
 │       ├── {slug}-design-review.md（人审前方案审查）
 │       ├── {slug}-review.md      （实现后代码审查）
-│       ├── {slug}-qa.md          （代码审查后 QA gate）
+│       ├── {slug}-qa.md          （Goal / 显式独立 QA；Standard 默认 inline）
 │       ├── {slug}-acceptance.md  （标准流程）
 │       └── {slug}-ff-note.md     （fastforward 通道唯一产物，与标准流程产物互斥）
 ├── issues/                issue spec 聚合根
@@ -102,7 +102,7 @@ onboard 完成后骨架（`cs-onboard` 负责搭建）：
 
 **feature spec**：brainstorm / design / design-review / review / QA / acceptance 共用 `doc_type` / `feature` / `status` / `summary` / `tags`。`cs-feat` 的各阶段只补特有字段。`status`：brainstorm = `confirmed`（落盘即确认无 draft）；design = `draft` / `approved`；design-review / review / QA / acceptance 见对应阶段协议。
 
-新增 feature gate 的 `doc_type`：`feature-design-review`（status: `passed` / `changes-requested` / `blocked`）、`feature-review`（status: `passed` / `changes-requested` / `blocked`）、`feature-qa`（status: `passed` / `failed` / `blocked`）、`feature-acceptance`（status: `passed` / `blocked`）。review / QA 报告是后续 gate 的输入，不替用户批准 design，也不替 acceptance 做最终验收。
+新增 feature gate 的 `doc_type`：`feature-design-review`（status: `passed` / `changes-requested` / `blocked`）、`feature-review`（status: `passed` / `changes-requested` / `blocked`）、`feature-qa`（status: `passed` / `failed` / `blocked`）、`feature-acceptance`（status: `passed` / `blocked`）。review / QA 是 workflow receipt：passed 正文使用下游投影，异常状态保留恢复细节；它们不替用户批准 design，也不替 acceptance 做最终验收。
 
 **issue spec**：report / analysis / fix-note 共用 `doc_type` / `issue` / `status` / `tags`。`severity` / `root_cause_type` / `path` 由对应阶段按需补。
 

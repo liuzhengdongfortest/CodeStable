@@ -142,7 +142,24 @@ python3 <cs-onboard skill 目录>/tools/codestable-doctor.py --root . --json
 
 ## 5. build-review-packet.py
 
-独立 Task agent review 的输入包生成器。它把本次 unit 文档、diff stat、聚焦 diff、验证结果和风险提示整理成一份可发给 reviewer 的 Markdown，并自动隐藏 `.env` / token / secret 类路径和值。`--stage` 用来区分 review 目的，默认 `implementation` 兼容旧调用。
+独立 Task agent review 的输入包生成器。同 workspace reviewer 已能按 prompt locator 回源，不需要先构建 packet；本工具用于 file-handoff / remote，或显式需要一份 scoped locator packet 的场景，并自动隐藏 `.env` / token / secret 类路径和值。
+
+新调用必须显式选择 transport 并重复传 `--include-path` allowlist：
+
+```bash
+# 同 workspace：只输出 locator、selected changed paths 和 validation reference，不含 fenced body
+python3 <cs-onboard skill 目录>/tools/build-review-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} \
+  --transport workspace --include-path .codestable/features/YYYY-MM-DD-{slug} --include-path src/changed.py --output -
+
+# remote / file handoff：只内联 allowlist 内 spec、diff、untracked 内容和有限 validation tail
+python3 <cs-onboard skill 目录>/tools/build-review-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} \
+  --transport portable --include-path .codestable/features/YYYY-MM-DD-{slug} --include-path src/changed.py \
+  --validation-file /tmp/validation.log --validation-tail-lines 20 --output /tmp/codestable-review.md
+```
+
+`--output -` 只写 stdout，不创建名为 `-` 的文件。scoped transport 必须有至少一个 `--include-path`；路径不得逃逸仓库，也不得指向仓库根 `.`，应使用本轮 spec/code 的精确文件或最窄目录。`--stage` 默认 `implementation`。
+
+下面的无 `--transport` / `--include-path` 调用只作 legacy compatibility：仍输出旧 portable 全文，文件字节与旧版本一致。新 skill 不得继续使用该 unscoped 形式。
 
 ```bash
 python3 <cs-onboard skill 目录>/tools/build-review-packet.py --root . --unit .codestable/features/YYYY-MM-DD-{slug} --stage quality --output /tmp/codestable-review.md \
@@ -161,10 +178,10 @@ python3 <cs-onboard skill 目录>/tools/build-review-packet.py --root . --unit .
 
 输出内容：
 
-- unit 下的 `.md` / `.yaml` 关键文档；
-- unstaged / staged `git diff --stat`；
-- 排除 secret-like 路径后的 focused diff；
-- owner 传入的验证命令和结果；
+- `workspace`：allowlist locator、selected changed paths、验证尾行引用和 reviewer contract，不含正文；
+- scoped `portable`：allowlist 内的 `.md` / `.yaml`、unstaged/staged stat、focused diff、untracked 正文；
+- scoped validation 默认只保留最后 20 行并记录总行数，可用 `--validation-tail-lines` 调整；
+- legacy unscoped portable：保持旧 unit/diff/untracked/validation 全文行为；
 - 数据库 / 迁移 / 并发 / 幂等 / crash-resume / provider cost / deterministic LLM boundary 风险提示。
 
 ---

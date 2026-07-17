@@ -7,7 +7,7 @@
 
 ## Draft
 
-none。
+- `[draft]` [按当前动作加载规则和证据](demand-driven-skill-runtime.md) — 让 CodeStable 在每一步只加载当前真正需要的规则和证据。
 
 ## Outdated
 

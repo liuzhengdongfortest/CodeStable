@@ -203,6 +203,114 @@ def test_onboard_does_not_assume_sibling_skills_or_overwrite_dirty_runtime() -> 
         assert "plugins/codestable/skills/" not in reference
 
 
+def test_artifact_conventions_separate_persistence_from_read_depth() -> None:
+    conventions = skill("cs-onboard/references/artifact-conventions.md")
+
+    for artifact_class in (
+        "human document",
+        "workflow receipt",
+        "ephemeral transport",
+    ):
+        assert artifact_class in conventions
+    assert "持久化判断" in conventions
+    assert "读取深度判断" in conventions
+    assert "consumer projection" in conventions
+    assert "drill-down" in conventions
+    assert "可从仓库事实重建" in conventions
+
+
+def test_review_packet_transport_is_scoped_without_changing_the_default_reviewer() -> None:
+    tools = skill("cs-onboard/references/tools.md")
+    agents = skill("cs-onboard/references/agent-conventions.md")
+    review = skill("cs-code-review/references/independent-review/protocol.md")
+
+    assert "同 workspace reviewer 已能按 prompt locator 回源" in tools
+    assert "--transport workspace" in tools
+    assert "--transport portable" in tools
+    assert "--include-path" in tools
+    assert "legacy compatibility" in tools
+    assert "不得指向仓库根" in tools
+    assert "同 workspace reviewer 直接接收 canonical locator" in agents
+    assert "不先构建或内联 review packet" in review
+    assert "legacy unscoped portable" in review
+
+
+def test_code_review_report_is_verdict_sensitive_and_keeps_recovery_anchors() -> None:
+    main = skill("cs-code-review/SKILL.md")
+    template = skill("cs-code-review/references/report-template.md")
+
+    assert "compact-passed" in main
+    assert "detailed variant" in main
+    assert "不要求为了 review 新建 implementation report" in main
+    for field in (
+        "reviewer:",
+        "lane_a_state:",
+        "lane_a_ref:",
+        "lane_a_reason:",
+        "lane_b_state:",
+        "lane_b_ref:",
+        "lane_b_reason:",
+    ):
+        assert field in template
+    assert "## compact-passed variant" in template
+    assert "Reviewed scope:" in template
+    assert "## detailed variant" in template
+    assert "failed / blocked / changes-requested" in template
+
+
+def test_feature_qa_owns_behavioral_verification_not_code_review() -> None:
+    qa = skill("cs-feat/references/qa/protocol.md")
+    behavioral = skill("cs-feat/references/qa/behavioral-verification.md")
+    default_inputs = qa[qa.index("## 输入"):qa.index("## 启动检查")]
+
+    assert "references/qa/behavioral-verification.md" in qa
+    assert "review 报告第 5 节" in default_inputs
+    assert "review 报告第 6 节" in default_inputs
+    assert "`git status --short`" in default_inputs
+    assert "实现完成汇报" not in default_inputs
+    assert "`git diff`" not in default_inputs
+    assert "实现源码" not in default_inputs
+    assert "behavioralEvidencePassed q" in qa
+    assert "cleanlinessPassed q" not in qa
+    assert "## 6. Cleanliness" not in qa
+
+    for evidence in ("功能", "integration", "E2E", "browser", "API", "CLI", "manual"):
+        assert evidence in behavioral
+    assert "typecheck / lint / build" in behavioral
+    assert "不能单独证明功能行为" in behavioral
+    assert "代码风格、TODO/FIXME、unused import" in behavioral
+    assert "只在失败或 blocked 的诊断分支" in behavioral
+
+
+def test_qa_projection_and_standard_inline_share_one_behavior_contract() -> None:
+    qa = skill("cs-feat/references/qa/protocol.md")
+    acceptance = skill("cs-feat/references/acceptance/protocol.md")
+    review = skill("cs-code-review/SKILL.md")
+
+    for field in ("runner_state:", "runner_reason:", "runner_id:", "round:"):
+        assert field in qa
+    for heading in (
+        "## compact-passed variant",
+        "## 1. Scope And Inputs",
+        "## 2. Verification Matrix",
+        "## 5. Findings",
+        "## 7. Verdict",
+        "## detailed variant",
+    ):
+        assert heading in qa
+    assert "failed / blocked / pending" in qa
+    assert 'persistedQAStatus QAPassed = "passed"' in qa
+    assert 'persistedQAStatus QAFailed = "failed"' in qa
+    assert 'persistedQAStatus QABlocked = "blocked"' in qa
+    assert "terminal QA receipt 前" in qa
+    assert "ReturnToCodeReview" in qa
+
+    assert "references/qa/behavioral-verification.md" in acceptance
+    assert "不额外生成 QA 报告" in acceptance
+    assert "Command Results / Scenario Results / Diagnostic Context（如有）" in acceptance
+    assert "references/qa/behavioral-verification.md" not in review
+
+
 def test_note_routes_semantic_owners_before_size_and_frequency() -> None:
     note = skill("cs-note/SKILL.md")
 
