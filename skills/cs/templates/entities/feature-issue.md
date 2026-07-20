@@ -7,6 +7,8 @@ created: YYYY-MM-DD
 epic: ""
 ---
 
+<!-- 未发生的章节整节删除，不要留空占位标题。简单改动保持紧凑。 -->
+
 # [Feature 标题]
 
 ## 目标
@@ -22,7 +24,7 @@ epic: ""
 
 - 独立 issue / 隶属 epic：
 - 来源 Vision（按需）：`.cs/vision/...`
-- 相关 spec：`.cs/spec/...` 或 `.cs/epics/YYYY/MM/DD/{短语}/spec.md`
+- 相关 spec：`.cs/spec/...` 或 `.cs/epics/{NNN}-o|x-{名称}/spec.md`
 
 ## 背景与证据
 
