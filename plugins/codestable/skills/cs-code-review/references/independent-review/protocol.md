@@ -97,6 +97,10 @@ reviewerField _ laneB
 `NeedOwnerApproval` 写 pending approval；`LocalReview` 需要 `ApproveLocalOnly`；只有
 `MergeVerified` / `LocalReview` 可让环节 A 放行。
 
+启动命令在宿主返回 run ref 之前失败时不得伪造 `Failed ExternalRunRef`；记录为带原因的
+`Unavailable`，本轮停止自动重启并在下一次恢复时重新评估能力。已有 run ref 后失败才进入
+`Failed ref reason` 的 typed resume 路径。
+
 本协议列出的 `ocr review` CLI 正常同步执行：`OcrReady command` 直接转 `OcrFinished` / `OcrFailed`，不写 pending/ref。只有宿主明确提供可观察异步 OCR run id 时才可写 `OcrActive id`；不得自行合成 id。
 
 独立 Task agent reviewer prompt（只给原始材料，不透露主 agent 的任何 review 结论）：
@@ -163,7 +167,7 @@ OCR 不做 spec-fit 判断；mapping 后的 finding 必须经主 agent 本地事
 A、B 两环节可并行启动。一旦某环节已启动，主 agent **不能在其返回前定稿 `{slug}-review.md`、给出 `passed` 或进入通过后去向**。
 
 - 已启动的 reviewer 返回 → 逐条本地事实核验，去重，合并进报告，保留来源标注（`heterogeneous-agent` / `independent-agent` / `ocr` / `local`）。
-- reviewer 失败 / 卡住 / 权限阻塞 → 报告 `status: blocked`，记录 `pending|failed|blocked` 和原因，让用户决定：重试、等待或明确降级。
+- reviewer 失败 / 卡住 / 权限阻塞 → 报告 `status: blocked`，记录 `pending|failed|blocked`、run ref 和原因。失败 lane 只通过匹配 ref 的 `RetryFailedLane` 重试；环节 A 失败后申请降级走 `RequestSelfReviewDowngrade ref`，能力为 `Unavailable` 时走无 ref 的 `RequestUnavailableSelfReviewDowngrade`，且显式 pin 存在时两者都不得申请或批准 local-only；环节 B 可用 `RequestSkipFailedLaneB ref` 写 pending `code-review-skip-failed-ocr`，只在 `ResumeSkipFailedLaneB ref approvalRef` 同时匹配失败 ref 与命名批准后转为 `Skipped`。
 - 不要无限轮询；等通知或用户带回结果。
 - 环节 A reviewer 结果被核验并合并进报告后，按 `.codestable/reference/agent-conventions.md`
   的 Task agent 生命周期关闭该 reviewer。遇到 `agent thread limit reached` 等容量失败时，

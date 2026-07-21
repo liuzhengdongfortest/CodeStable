@@ -129,6 +129,6 @@ lane_b_reason: ""
 - Classification: {为什么是 test/docs/type/metadata/nit-only，且未改变行为、公开契约、安全、数据、并发或架构}
 ```
 
-lane 字段是中间状态的恢复事实并绑定当前 `round`：`pending` 必须带对应 ref，`unavailable` / `failed` 必须带 reason，恢复输入精确匹配 lane/ref。focused closure 复用同 round 的 completed；完整复审增加 round 并重置 lane。旧 `status: blocked` 没有字段、ref 缺失或类型错误时 fail-closed，不得推断为 Awaiting 或重复启动。
+lane 字段是中间状态的恢复事实并绑定当前 `round`：lane `pending` 必须带对应 ref，`unavailable` / `failed` 必须带 reason，`failed` 还必须保留对应 run ref；failed self-review 降级和 OCR skip decision 绑定该 ref，unavailable self-review decision 使用无 ref typed variant。两类降级分别使用同 unit `approval-report.md#code-review-local-only` / `#code-review-skip-failed-ocr`；owner 拒绝时清 pending、保留原 lane 并写 rejected fact，new request / typed retry / terminal lane result 会把同 lane 旧 decision 标为 `superseded` 后清除。批准 local-only 后 lane A 记 `skipped` 并持久化 `userAcceptedDowngrade`，不得在 lane 字段伪造 completed reviewer。focused closure 复用同 round 的 completed；完整复审增加 round 并重置 lane。旧 `status: blocked` 没有字段、lane ref 缺失或类型错误时 fail-closed，不得推断为 Awaiting、重试或重复启动。
 
 没有某类 finding 时写 `none`，不要删除章节；下一轮复审要能对比。

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,6 +97,88 @@ class Action:
     target: str
 
 
+@dataclass(frozen=True)
+class ReviewRecoveryState:
+    lane: str
+    status: str
+    run_ref: str | None
+    pending_decision: tuple[str, str | None] | None = None
+    rejected_decision: tuple[str, str | None] | None = None
+
+
+def request_review_decision(
+    state: ReviewRecoveryState, decision: str, failed_ref: str | None
+) -> ReviewRecoveryState:
+    unavailable_request = (
+        decision == "local-only-unavailable"
+        and state.status == "unavailable"
+        and failed_ref is None
+    )
+    failed_request = (
+        state.status == "failed"
+        and failed_ref is not None
+        and state.run_ref == failed_ref
+    )
+    if not (unavailable_request or failed_request):
+        raise ValueError("invalid review decision request")
+    return replace(
+        state,
+        pending_decision=(decision, failed_ref),
+        rejected_decision=None,
+    )
+
+
+def resolve_review_decision(
+    state: ReviewRecoveryState, decision: str, failed_ref: str | None, verdict: str
+) -> ReviewRecoveryState:
+    expected = (decision, failed_ref)
+    if state.status not in {"failed", "unavailable"} or state.run_ref != failed_ref:
+        raise ValueError("invalid review decision resume")
+    if state.pending_decision != expected:
+        raise ValueError("invalid review decision resume")
+    if verdict == "rejected":
+        return replace(state, pending_decision=None, rejected_decision=expected)
+    if verdict == "approved" and decision == "skip-failed-ocr":
+        return replace(
+            state,
+            status="skipped",
+            pending_decision=None,
+            rejected_decision=None,
+        )
+    if verdict == "approved" and decision in {"local-only", "local-only-unavailable"}:
+        return replace(
+            state,
+            status="local-review",
+            pending_decision=None,
+            rejected_decision=None,
+        )
+    raise ValueError("invalid review decision verdict")
+
+
+def retry_review_lane(state: ReviewRecoveryState, failed_ref: str) -> ReviewRecoveryState:
+    if state.status != "failed" or state.run_ref != failed_ref:
+        raise ValueError("invalid review retry")
+    return replace(
+        state,
+        status="ready-to-launch",
+        pending_decision=None,
+        rejected_decision=None,
+    )
+
+
+def resume_review_lane(
+    state: ReviewRecoveryState, pending_ref: str, result: str
+) -> ReviewRecoveryState:
+    if state.status != "pending" or state.run_ref != pending_ref:
+        raise ValueError("invalid lane result")
+    return replace(
+        state,
+        status=result,
+        pending_decision=None,
+        rejected_decision=None,
+    )
+
+
 def skill_text(skill: str, rel_path: str = "SKILL.md") -> str:
     return (SKILLS / skill / rel_path).read_text(encoding="utf-8")
 
@@ -137,19 +220,23 @@ def init_isolated_repo(tmp_path: Path) -> Path:
     return repo
 
 
-def frontmatter(path: Path) -> dict[str, str]:
+def frontmatter(path: Path) -> dict[str, object]:
     if not path.exists():
         return {}
     text = path.read_text(encoding="utf-8")
     if not text.startswith("---"):
         return {}
     block = text.split("---", 2)[1]
-    result = {}
-    for line in block.splitlines():
-        if ":" in line:
-            key, value = line.split(":", 1)
-            result[key.strip()] = value.strip().strip('"')
-    return result
+    result = yaml.safe_load(block)
+    return result if isinstance(result, dict) else {}
+
+
+def named_approval(path: Path, decision_id: str) -> str | None:
+    approvals = frontmatter(path).get("approvals")
+    if not isinstance(approvals, dict):
+        return None
+    status = approvals.get(decision_id)
+    return status if isinstance(status, str) else None
 
 
 def top_level_yaml(path: Path) -> dict[str, str]:
@@ -389,11 +476,34 @@ def issue_dir(repo: Path, slug: str) -> Path:
     return repo / ".codestable/issues" / f"2026-07-02-{slug}"
 
 
-def write_issue_doc(repo: Path, slug: str, name: str, status: str = "draft") -> None:
+def write_issue_doc(
+    repo: Path,
+    slug: str,
+    name: str,
+    status: str = "draft",
+    issue_path: str | None = None,
+) -> None:
+    path_field = f"issue_path: {issue_path}\n" if issue_path is not None else ""
     write(
         issue_dir(repo, slug) / f"{slug}-{name}.md",
-        f"---\ndoc_type: issue-{name}\nissue: 2026-07-02-{slug}\nstatus: {status}\n---\n# {name}\n",
+        f"---\ndoc_type: issue-{name}\nissue: 2026-07-02-{slug}\nstatus: {status}\n{path_field}---\n# {name}\n",
     )
+
+
+def write_issue_approval(
+    repo: Path,
+    slug: str,
+    *,
+    status: str,
+    approvals: dict[str, str],
+) -> Path:
+    approval_lines = "\n".join(f"  {decision}: {decision_status}" for decision, decision_status in approvals.items())
+    path = issue_dir(repo, slug) / "approval-report.md"
+    write(
+        path,
+        f"---\ndoc_type: approval-report\nstatus: {status}\napprovals:\n{approval_lines}\n---\n# Approval\n",
+    )
+    return path
 
 
 def issue_next(repo: Path, slug: str) -> Action:
@@ -403,11 +513,25 @@ def issue_next(repo: Path, slug: str) -> Action:
         return Action("load-reference", "cs-issue/references/report/protocol.md")
     if frontmatter(report).get("status") != "confirmed":
         return Action("user-checkpoint", "issue-report-confirmation")
-    analysis = directory / f"{slug}-analysis.md"
-    if not analysis.exists():
-        return Action("load-reference", "cs-issue/references/analyze/protocol.md")
-    if frontmatter(analysis).get("status") != "confirmed":
-        return Action("user-checkpoint", "issue-fix-plan-confirmation")
+    issue_path = frontmatter(report).get("issue_path") or "standard"
+    if issue_path not in {"standard", "fast-track"}:
+        return Action("blocked", "invalid-issue-path")
+    if issue_path == "fast-track":
+        fast_path_status = named_approval(directory / "approval-report.md", "issue-fast-path")
+        if fast_path_status is None:
+            return Action("needs-human", "fast-path-approval-missing")
+        if fast_path_status == "pending":
+            return Action("blocked", "fast-path-approval-pending-without-checkpoint")
+        if fast_path_status == "rejected":
+            issue_path = "standard"
+        elif fast_path_status != "approved":
+            return Action("blocked", "invalid-fast-path-approval")
+    if issue_path == "standard":
+        analysis = directory / f"{slug}-analysis.md"
+        if not analysis.exists():
+            return Action("load-reference", "cs-issue/references/analyze/protocol.md")
+        if frontmatter(analysis).get("status") != "confirmed":
+            return Action("user-checkpoint", "issue-fix-plan-confirmation")
     if not (directory / f"{slug}-fix-note.md").exists():
         return Action("load-reference", "cs-issue/references/fix/protocol.md")
     review_status = frontmatter(directory / f"{slug}-review.md").get("status")
@@ -416,8 +540,7 @@ def issue_next(repo: Path, slug: str) -> Action:
     if review_status in {"changes-requested", "blocked"}:
         return Action("load-reference", "cs-issue/references/fix/protocol.md#review-fix")
     if review_status == "passed":
-        approval = directory / "approval-report.md"
-        approval_status = frontmatter(approval).get("status")
+        approval_status = named_approval(directory / "approval-report.md", "issue-fix-completion")
         if not approval_status:
             return Action("load-reference", "cs-issue/references/fix/protocol.md#completion-checkpoint")
         if approval_status == "pending":
@@ -473,8 +596,12 @@ def docs_next(repo: Path, request: str, mode: str | None = None) -> Action:
     if mode == "api" or "api" in request:
         return Action("load-reference", "cs-docs/references/api/protocol.md")
     guide = repo / "docs/dev/widget-guide.md"
-    if guide.exists() and frontmatter(guide).get("status") == "current" and "small edit" in request:
-        return Action("focused-edit", "docs/dev/widget-guide.md")
+    if guide.exists():
+        metadata = frontmatter(guide)
+        if metadata.get("status") == "draft" and metadata.get("workflow_stage") == "focused-edit":
+            return Action("focused-edit", "docs/dev/widget-guide.md")
+        if metadata.get("status") == "current" and "small edit" in request:
+            return Action("focused-edit", "docs/dev/widget-guide.md")
     return Action("load-reference", "cs-docs/references/tutorial/protocol.md")
 
 
@@ -620,7 +747,7 @@ def test_review_outcomes_do_not_treat_waiting_or_missing_input_as_approval() -> 
         "not s.diffAttributed                               -> NeedsHuman DiffNotAttributable",
         "Just lane <- firstLaunchableLane s                 -> Launching lane",
         "Just wait <- firstPendingLane s                    -> Awaiting wait",
-        "HumanCheckpoint SelfReviewDowngrade",
+        "HumanCheckpoint (reviewDecisionCheckpoint decision)",
     ):
         assert phrase in text
     for forbidden in (
@@ -629,19 +756,23 @@ def test_review_outcomes_do_not_treat_waiting_or_missing_input_as_approval() -> 
         "HumanCheckpoint LaneStillPending",
     ):
         assert forbidden not in text
+    selector = text[text.index("selectReviewOutcome ::"):text.index("focusedClosureEligible ::")]
     guard_order = (
         "not s.specFinalized",
         "not s.diffAttributed",
+        "rejectedReviewDecision s",
+        "pendingReviewDecision s",
+        "laneAMissing s && isExplicit s.agentConfig",
         "anyLaneFailed s",
         "firstLaunchableLane s",
         "firstPendingLane s",
         "focusedClosureEligible s && hasBlocking s",
         "focusedClosureEligible s                           -> FocusedClosure Passed",
-        "laneAMissing s",
+        "laneAMissing s && not (userAcceptedDowngrade s)",
         "hasBlocking s                                      -> ReviewWritten ChangesRequested",
     )
-    assert [text.index(guard) for guard in guard_order] == sorted(
-        text.index(guard) for guard in guard_order
+    assert [selector.index(guard) for guard in guard_order] == sorted(
+        selector.index(guard) for guard in guard_order
     )
     for phrase in (
         "mergeGate (Launch agent config) _ = MergeLaunch LaneA (TaskCommand agent config)",
@@ -665,6 +796,79 @@ def test_review_outcomes_do_not_treat_waiting_or_missing_input_as_approval() -> 
     )
     assert "Blocked LaneStillPending" not in protocol
     assert "pending (RunCommitted _)" not in protocol
+
+
+def test_review_recovery_rejection_is_consumed_and_retryable() -> None:
+    failed = ReviewRecoveryState(lane="lane-a", status="failed", run_ref="agent-17")
+    pending = request_review_decision(failed, "local-only", "agent-17")
+
+    assert pending.pending_decision == ("local-only", "agent-17")
+    rejected = resolve_review_decision(pending, "local-only", "agent-17", "rejected")
+    assert rejected.status == "failed"
+    assert rejected.pending_decision is None
+    assert rejected.rejected_decision == ("local-only", "agent-17")
+
+    reopened = request_review_decision(rejected, "local-only", "agent-17")
+    assert reopened.pending_decision == ("local-only", "agent-17")
+    assert reopened.rejected_decision is None
+
+    retried = retry_review_lane(reopened, "agent-17")
+    assert retried.status == "ready-to-launch"
+    assert retried.pending_decision is None
+    assert retried.rejected_decision is None
+
+
+def test_review_retry_supersedes_pending_decision_before_new_result() -> None:
+    failed = ReviewRecoveryState(lane="lane-b", status="failed", run_ref="ocr-4")
+    pending_skip = request_review_decision(failed, "skip-failed-ocr", "ocr-4")
+
+    retried = retry_review_lane(pending_skip, "ocr-4")
+    assert retried.pending_decision is None
+    relaunched = replace(retried, status="pending", run_ref="ocr-5")
+    completed = resume_review_lane(relaunched, "ocr-5", "completed")
+    assert completed.status == "completed"
+    assert completed.pending_decision is None
+    assert completed.rejected_decision is None
+
+
+def test_review_failed_ocr_can_be_explicitly_skipped() -> None:
+    failed = ReviewRecoveryState(lane="lane-b", status="failed", run_ref="ocr-9")
+    pending = request_review_decision(failed, "skip-failed-ocr", "ocr-9")
+    skipped = resolve_review_decision(pending, "skip-failed-ocr", "ocr-9", "approved")
+
+    assert skipped.status == "skipped"
+    assert skipped.pending_decision is None
+    with pytest.raises(ValueError, match="invalid review decision request"):
+        request_review_decision(failed, "skip-failed-ocr", "ocr-stale")
+    with pytest.raises(ValueError, match="invalid review decision request"):
+        request_review_decision(skipped, "skip-failed-ocr", "ocr-9")
+
+
+def test_review_unavailable_lane_has_ref_free_downgrade_resumes() -> None:
+    unavailable = ReviewRecoveryState(lane="lane-a", status="unavailable", run_ref=None)
+    pending = request_review_decision(
+        unavailable,
+        "local-only-unavailable",
+        None,
+    )
+    approved = resolve_review_decision(
+        pending,
+        "local-only-unavailable",
+        None,
+        "approved",
+    )
+    assert approved.status == "local-review"
+    assert approved.pending_decision is None
+
+    rejected = resolve_review_decision(
+        pending,
+        "local-only-unavailable",
+        None,
+        "rejected",
+    )
+    assert rejected.status == "unavailable"
+    assert rejected.pending_decision is None
+    assert rejected.rejected_decision == ("local-only-unavailable", None)
 
 
 def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
@@ -697,6 +901,7 @@ def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
         "PersistDraftAndCheckpoint ConfirmFixPlan",
         "fast-track 不得绕过五问",
         "记录 fast-path 已批准再进入 fix",
+        "approval-report.md#issue-fast-path",
         "issue_path: undecided # undecided | standard | fast-track",
     ):
         assert phrase in report
@@ -717,7 +922,13 @@ def test_issue_fast_path_confirmation_is_persisted_and_resumable() -> None:
     assert 's.issuePath == FastPathPending                      -> Blocked "pending fast-path approval lacks checkpoint state"' in skill
     assert "ApprovalRevisionRequested Feedback" in skill
     assert "ReviseFixOptions feedback" in skill_text("cs-issue", "references/analyze/protocol.md")
-    assert "fixCompletionApproval s is ApprovalRevisionRequested _" in skill_text("cs-issue", "references/fix/protocol.md")
+    fix = skill_text("cs-issue", "references/fix/protocol.md")
+    assert "fixCompletionApproval s is ApprovalRevisionRequested _" in fix
+    assert "issuePath state in [PathUndecided, FastPathPending]" in fix
+    assert "issuePath state == FastPathApproved" in fix
+    assert "approvedFixPlanArtifact state" in fix
+    assert "issuePath state in [StandardPath, FastPathRejected]" in fix
+    assert "approval-report.md#issue-fix-completion" in fix
 
 
 def test_req_review_checkpoint_precedes_persistence() -> None:
@@ -744,6 +955,7 @@ def test_docs_checkpoint_domain_matches_stage_protocols() -> None:
     skill = skill_text("cs-docs")
     tutorial = skill_text("cs-docs", "references/tutorial/protocol.md")
     api = skill_text("cs-docs", "references/api/protocol.md")
+    focused = skill_text("cs-docs", "references/focused-edit/protocol.md")
     reasons = {
         "ReviewDraft",
         "ReviewManifest",
@@ -758,6 +970,15 @@ def test_docs_checkpoint_domain_matches_stage_protocols() -> None:
     assert 'targetAmbiguous state       = NeedsHuman "which reader?"' in tutorial
     assert "Just reason <- approvalGate state" in tutorial
     assert "Just reason <- approvalGate s" in api
+    assert 'stageProtocol FocusedEdit   = "references/focused-edit/protocol.md"' in skill
+    assert "advanceFocusedEdit :: DocsState -> EditIntent -> FocusedEditOutcome" in focused
+    assert "Just ConfirmOverwrite" in focused
+    assert "Just ConfirmContractWording" in focused
+    assert "Checkpoint ReviewDraft" in focused
+    assert "s.docStatus == Draft && s.workflowStage == Just FocusedEdit" in skill
+    assert "workflow_stage: focused-edit" in focused
+    assert "focusedEditStateValid" in focused
+    assert "focusedEditIntentValid s intent = smallEdit intent || s.workflowStage == Just FocusedEdit" in focused
     assert "ConfirmNewDoc" not in skill
     assert "ConfirmReaderAndScope" not in skill
     assert tutorial.index("targetAmbiguous state") < tutorial.index("Just reason <- approvalGate state")
@@ -939,7 +1160,11 @@ def test_acceptance_separates_evidence_causes_and_reaches_repeated_gap_handoff()
 
 def test_review_focused_closure_never_masks_failed_or_pending_lanes() -> None:
     review = skill_text("cs-code-review")
+    selector = review[review.index("selectReviewOutcome ::"):review.index("focusedClosureEligible ::")]
     ordered_guards = (
+        "rejectedReviewDecision s",
+        "pendingReviewDecision s",
+        "laneAMissing s && isExplicit s.agentConfig",
         "anyLaneFailed s",
         "firstLaunchableLane s",
         "firstPendingLane s",
@@ -947,7 +1172,7 @@ def test_review_focused_closure_never_masks_failed_or_pending_lanes() -> None:
         "focusedClosureEligible s                           -> FocusedClosure Passed",
     )
 
-    positions = [review.index(guard) for guard in ordered_guards]
+    positions = [selector.index(guard) for guard in ordered_guards]
     assert positions == sorted(positions)
     assert "anyLaneFailed s                                    -> ReviewWritten Blocked" in review
     assert "s.priorIndependentReview" in review
@@ -1252,13 +1477,67 @@ def test_issue_scenario_progresses_through_main_entry_references(tmp_path: Path)
     assert issue_next(repo, slug) == Action(
         "load-reference", "cs-issue/references/fix/protocol.md#completion-checkpoint"
     )
-    write(
-        issue_dir(repo, slug) / "approval-report.md",
-        "---\ndoc_type: approval-report\nstatus: pending\n---\n# Approval\n",
+    write_issue_approval(
+        repo,
+        slug,
+        status="pending",
+        approvals={"issue-fix-completion": "pending"},
     )
     assert issue_next(repo, slug) == Action("user-checkpoint", "issue-fix-completion")
-    replace_status(issue_dir(repo, slug) / "approval-report.md", "approved")
+    write_issue_approval(repo, slug, status="approved", approvals={"issue-fix-completion": "approved"})
     assert issue_next(repo, slug) == Action("complete", "issue-reviewed")
+
+
+def test_issue_fast_path_closes_without_analysis(tmp_path: Path) -> None:
+    repo = init_isolated_repo(tmp_path)
+    slug = "header-typo"
+
+    write_issue_doc(repo, slug, "report", status="confirmed", issue_path="fast-track")
+    assert issue_next(repo, slug) == Action("needs-human", "fast-path-approval-missing")
+    write_issue_approval(
+        repo,
+        slug,
+        status="approved",
+        approvals={"issue-fast-path": "approved"},
+    )
+    assert issue_next(repo, slug) == Action("load-reference", "cs-issue/references/fix/protocol.md")
+    write_issue_doc(repo, slug, "fix-note", status="confirmed")
+    assert issue_next(repo, slug) == Action("load-skill", "cs-code-review")
+    write_issue_doc(repo, slug, "review", status="passed")
+    assert issue_next(repo, slug) == Action(
+        "load-reference", "cs-issue/references/fix/protocol.md#completion-checkpoint"
+    )
+    write_issue_approval(
+        repo,
+        slug,
+        status="pending",
+        approvals={"issue-fast-path": "approved", "issue-fix-completion": "pending"},
+    )
+    assert issue_next(repo, slug) == Action("user-checkpoint", "issue-fix-completion")
+    write_issue_approval(
+        repo,
+        slug,
+        status="approved",
+        approvals={"issue-fast-path": "approved", "issue-fix-completion": "approved"},
+    )
+    assert issue_next(repo, slug) == Action("complete", "issue-reviewed")
+    assert not (issue_dir(repo, slug) / f"{slug}-analysis.md").exists()
+
+
+def test_rejected_fast_path_rejoins_standard_analysis_then_fix(tmp_path: Path) -> None:
+    repo = init_isolated_repo(tmp_path)
+    slug = "header-typo-rejected"
+
+    write_issue_doc(repo, slug, "report", status="confirmed", issue_path="fast-track")
+    write_issue_approval(
+        repo,
+        slug,
+        status="rejected",
+        approvals={"issue-fast-path": "rejected"},
+    )
+    assert issue_next(repo, slug) == Action("load-reference", "cs-issue/references/analyze/protocol.md")
+    write_issue_doc(repo, slug, "analysis", status="confirmed")
+    assert issue_next(repo, slug) == Action("load-reference", "cs-issue/references/fix/protocol.md")
 
 
 def test_refactor_scenario_respects_scan_design_and_human_validation_gates(tmp_path: Path) -> None:
@@ -1319,6 +1598,13 @@ def test_docs_scenario_selects_docs_entry_or_neat_hygiene(tmp_path: Path) -> Non
         "---\ndoc_type: dev-guide\nstatus: current\n---\n# Widget Guide\n",
     )
     assert docs_next(repo, "small edit to widget guide") == Action("focused-edit", "docs/dev/widget-guide.md")
+    write(
+        repo / "docs/dev/widget-guide.md",
+        "---\ndoc_type: dev-guide\nstatus: draft\nworkflow_stage: focused-edit\n---\n# Widget Guide\n",
+    )
+    assert docs_next(repo, "continue approved draft") == Action(
+        "focused-edit", "docs/dev/widget-guide.md"
+    )
     assert docs_next(repo, "sync memory and README") == Action("load-skill", "cs-docs-neat")
 
 
@@ -1436,7 +1722,7 @@ def test_review_selector_preserves_guard_order_and_scope() -> None:
     review_gate_order = (
         "reviewGate _ (Finished findings)",
         "reviewGate _ (Active ref)",
-        "reviewGate _ (Failed _) (Just ApproveLocalOnly)",
+        "reviewGate selection (Failed reason) (Just ApproveLocalOnly)",
         "reviewGate _ (Failed reason) _",
         "reviewGate (SelectionBlocked reason) NotStarted",
         "reviewGate (SelectionNeedsOwnerApproval _) NotStarted (Just ApproveLocalOnly)",
@@ -1446,6 +1732,8 @@ def test_review_selector_preserves_guard_order_and_scope() -> None:
     review_gate_positions = [selector.index(fragment) for fragment in review_gate_order]
     assert review_gate_positions == sorted(review_gate_positions)
     assert "toReviewLane (NeedOwnerApproval reason) = Left reason" in selector
+    assert "explicitPinBlocksLocal (Start _ config) = isExplicit config" in selector
+    assert "explicitPinBlocksLocal (SelectionBlocked ExplicitConfigUnavailable) = True" in selector
     assert "data ReviewVerdict = Passed | ChangesRequested | ReviewBlocked Reason" in selector
     assert_doc_contains(
         "cs-code-review",

@@ -51,12 +51,19 @@ selectTaskAgent r e
 reviewGate :: AgentSelection -> AgentRun -> Maybe OwnerApproval -> AgentDecision
 reviewGate _ (Finished findings) _ = MergeVerified findings
 reviewGate _ (Active ref) _ = Await ref
-reviewGate _ (Failed _) (Just ApproveLocalOnly) = LocalReview
+reviewGate selection (Failed reason) (Just ApproveLocalOnly)
+  | explicitPinBlocksLocal selection = Blocked (ExplicitConfigRunFailed reason)
+  | otherwise                        = LocalReview
 reviewGate _ (Failed reason) _ = Blocked reason
 reviewGate (SelectionBlocked reason) NotStarted _ = Blocked reason
 reviewGate (SelectionNeedsOwnerApproval _) NotStarted (Just ApproveLocalOnly) = LocalReview
 reviewGate (SelectionNeedsOwnerApproval reason) NotStarted _ = NeedOwnerApproval reason
 reviewGate (Start agent config) NotStarted _ = Launch agent config
+
+explicitPinBlocksLocal :: AgentSelection -> Bool
+explicitPinBlocksLocal (Start _ config) = isExplicit config
+explicitPinBlocksLocal (SelectionBlocked ExplicitConfigUnavailable) = True
+explicitPinBlocksLocal _ = False
 
 toReviewLane :: AgentDecision -> Either Reason ReviewLane
 toReviewLane (MergeVerified _) = Right IndependentLane
@@ -82,8 +89,9 @@ review 优先选择与主 agent provider 或 model family 不同的 `Heterogeneo
 可证明时才这样标记，未知配置仍算 `Independent`。异构候选不可用不阻塞独立 review，继续使用
 隔离的同类 reviewer。prompt 不带主 agent 结论；findings 经本地事实核验后才写 verdict。
 
-`SelectionBlocked ExplicitConfigUnavailable` 表示 owner 显式 pin 的配置当前不可满足；
-`ApproveLocalOnly` 不覆盖这个配置事实，owner 需要先修改或清除显式配置再重新选择。
+`SelectionBlocked ExplicitConfigUnavailable` 表示 owner 显式 pin 的配置当前不可满足；已按显式
+配置启动但运行失败时同样由 `explicitPinBlocksLocal` 保留这个约束。`ApproveLocalOnly` 不覆盖
+上述配置事实，owner 需要先修改或清除显式配置再重新选择；共享 gate 的直接消费者也不得绕过。
 
 每轮 review 都调用同一 `selectTaskAgent` / `reviewGate`。批量、赶时间、已自查或自评低风险
 都不构成 `ApproveLocalOnly`；降级前按 `approval-conventions.md` 取得 owner 明确授权。

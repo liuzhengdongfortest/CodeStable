@@ -41,7 +41,8 @@ advance FastPath _ Nothing          = PersistDraftAndCheckpoint ConfirmFixPlan
 ```
 
 `PersistDraftAndCheckpoint` 先写 `status: draft` 的 report，并按 approval 约定把同一 decision 写成
-pending；只有持久状态成功后才返回 `HumanCheckpoint`。因此 standard / fast-track 的 owner 回复都能
+pending；fast-track 使用命名决策 `approvals.issue-fast-path`（ref 为
+`approval-report.md#issue-fast-path`）。只有持久状态成功后才返回 `HumanCheckpoint`。因此 standard / fast-track 的 owner 回复都能
 从仓库恢复，不依赖聊天历史。两条路径共用第一条 `nextQuestion` guard，fast-track 不得绕过五问。
 `advance` 的 owner 参数只来自主入口已按同一 `CheckpointReason` 验证的 `ResumeIssueCheckpoint`，不得从聊天文本构造；`ReviseCheckpoint feedback` 先修订 draft 再写新 pending decision，Standard report 的 `RejectCheckpoint` 终止本次 issue，不能重发同一 checkpoint。
 
@@ -56,7 +57,7 @@ pending；只有持久状态成功后才返回 `HumanCheckpoint`。因此 standa
 3. 和用户确定 slug，日期前缀用 `currentDate`；两种路径都创建 issue 目录。
 
 进入 Standard 后不二次改判。`ProposeFastPath` 必须先向用户展示 file:line 根因与小范围方案，
-并按 approval 约定写 `approval-report.md`；得到 `ConfirmFixPlan` 后把报告写成 `status: confirmed`、
+并按 approval 约定写 `approval-report.md#issue-fast-path`；得到 `ConfirmFixPlan` 后把报告写成 `status: confirmed`、
 `issue_path: fast-track`，记录 fast-path 已批准再进入 fix。用户拒绝则记录 `Rejected`，把
 `issue_path` 写成 `standard`，写 confirmed report 后进入 analyze。普通路径同样写 `standard`。
 ---
@@ -173,9 +174,10 @@ tags: []
 
 ## 退出后
 
-告诉用户："问题报告已就绪。下一步阶段 2 根因分析，进入 `cs-issue` analyze 阶段。"
+按 confirmed report 的 `issue_path` 给出唯一下一步：
 
-别自己顺手开始分析根因——阶段间的人工 checkpoint 是工作流硬约束。
+- `standard`：告诉用户“问题报告已就绪。下一步阶段 2 根因分析，进入 `cs-issue` analyze 阶段。”别自己顺手开始分析根因，阶段间的人工 checkpoint 是硬约束。
+- `fast-track`：确认同 unit `approval-report.md#issue-fast-path` 已批准后，告诉用户“问题报告与小范围修复方案已确认。跳过 analysis，进入 `cs-issue` fix 阶段。”不得再无条件指向 analyze。
 
 ---
 
