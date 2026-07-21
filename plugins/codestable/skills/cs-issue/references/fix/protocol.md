@@ -1,6 +1,6 @@
 # Issue Fix Protocol
 
-根因和方案已经确定（标准路径在 analysis、快速通道在 report 阶段口头确认过），你的活是按方案改代码、验证效果、写下修复记录。
+根因和方案已经确定（标准路径在 analysis，快速通道在 confirmed report + approval-report），你的活是按方案改代码、验证效果、写下修复记录。
 
 fix 阶段最容易出问题的不是改代码本身，而是**改的过程中冒出的"顺手"冲动**——顺手优化、顺手重构、顺手加抽象。每项单独看说得通，但合在一个 PR 里让别人分不清"这次到底为了修 bug 改了什么"。
 
@@ -18,10 +18,13 @@ data FixOutcome
 
 selectEntry :: FixState -> FixEntry
 selectEntry state
-  | confirmedAnalysis state = Enter Standard
-  | rootCauseLocated state && fixPlanConfirmed state = Enter FastPath
-  | reportExists state      = RouteAnalyze
-  | otherwise               = RouteReport
+  | issuePath state in [PathUndecided, FastPathPending]          = RouteReport
+  | issuePath state in [StandardPath, FastPathRejected] && confirmedAnalysis state = Enter Standard
+  | issuePath state == FastPathApproved
+  , rootCauseLocated state && approvedFixPlanArtifact state     = Enter FastPath
+  | issuePath state == FastPathApproved                         = RouteReport
+  | confirmedReport state                                      = RouteAnalyze
+  | otherwise                                                  = RouteReport
 
 afterVerification :: Verification -> FixOutcome
 afterVerification Passed     = Run WriteFixNote
@@ -47,7 +50,8 @@ advance s
   | otherwise                    = Complete
 ```
 
-`PersistCheckpoint` 先复用 `approval-report.md` 写 pending `ConfirmFixCompletion`，再返回
+`PersistCheckpoint` 先复用 `approval-report.md` 写 pending 命名决策
+`approvals.issue-fix-completion`（ref 为 `approval-report.md#issue-fix-completion`），再返回
 `HumanCheckpoint`；owner 的批准 / 拒绝分别恢复为 `ApprovalApproved` / `ApprovalRejected`，`ReviseCheckpoint feedback` 恢复为 `ApprovalRevisionRequested feedback` 并回 `Apply`。
 该状态变化只消费主入口已与 `ConfirmFixCompletion` 匹配的 `ResumeIssueCheckpoint`。
 
@@ -55,7 +59,7 @@ advance s
 
 ## 执行前检查与完成 gate
 
-CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入修复前先确认 report / analysis、修复范围和当前 dirty scope，避免把无关改动混入本 issue。
+CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的检出环境推进。进入修复前先确认 confirmed report、路径对应的已批准修复方案（standard 为 analysis，fast-track 为 approval-report）和当前 dirty scope，避免把无关改动混入本 issue。
 
 修复完成、输出汇报前必须进入 `cs-code-review` 做独立 diff 评审；blocking 未清零、important 未修复或未被 owner 明确接受时不算完成。需要 commit 时按仓库既有提交规范或 owner 指示执行。
 
@@ -82,11 +86,11 @@ CodeStable 不决定分支或检出策略；按当前宿主 / owner 已选择的
 
 ## 实现期间的约束
 
-先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为就是"复现路径不再失败"，约束来自 report / analysis / fix 方案，最小充分改动只服务根因；从这三项推不出的抽象、兜底和顺手重构都不写。修复若要用 fake / 正则凑或"够跑就行"绕过根因，先做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass，按场景论证不默认降级。
+先做 `shared-conventions.md` 第 7 节的**第一性原则 pre-pass**：外部行为就是“复现路径不再失败”，约束来自 report + 路径对应的已批准修复方案，最小充分改动只服务根因；从这两项推不出的抽象、兜底和顺手重构都不写。修复若要用 fake / 正则凑或“够跑就行”绕过根因，先做 `.codestable/reference/solution-depth-conventions.md` 的方案深度 pre-pass，按场景论证不默认降级。
 
-### 只改 analysis 里声明的文件
+### 只改已确认方案声明的文件
 
-修复范围来自 analysis 第 5 节"推荐方案"的"影响面"。超出范围的文件——哪怕顺眼——**不动**。
+标准路径的修复范围来自 analysis 第 5 节“推荐方案”的“影响面”；快速通道来自 confirmed report + approval-report 中已批准方案的影响面。超出对应范围的文件——哪怕顺眼——**不动**。
 
 发现范围外值得改的记一条"顺手发现"不改代码：
 
@@ -120,7 +124,7 @@ issue-fix 比 feature-implement 更谨慎：**触发反射信号但结论是"该
 
 - [ ] **复现步骤验证**——按 report 第 2 节走一遍，问题不再出现
 - [ ] **期望行为验证**——report 第 3 节"期望行为"现在确实发生
-- [ ] **影响面回归**——analysis 第 4 节"潜在受害模块"每个走一遍最基本的冒烟路径
+- [ ] **影响面回归**——标准路径按 analysis 第 4 节、快速通道按 approval-report 已批准影响面逐项跑最基本的冒烟路径
 - [ ] **前端改动浏览器验证**（如涉及）——按 `.codestable/attention.md` 的硬要求执行，不能只 typecheck
 - [ ] **相关测试通过**——有测试覆盖到修复区域就跑一遍
 
@@ -158,14 +162,14 @@ issue-fix 比 feature-implement 更谨慎：**触发反射信号但结论是"该
 
 按 `shared-conventions.md` 第 4 节"scoped-commit"规则执行。本阶段：
 
-- **提交范围**：修复代码 + `{slug}-fix-note.md` + 本次一并更新的 report / analysis
+- **提交范围**：修复代码 + `{slug}-fix-note.md` + report + 标准路径存在的 analysis + 本次更新的 `approval-report.md`
 - 修复闭环后告诉用户"修复验证已完成，`{slug}-fix-note.md` 已落盘"，紧接着问是否需要 commit
 
 ---
 
 ## 退出后
 
-告诉用户："issue 修复完成，工作流闭环。report + analysis + fix-note 已存档。"
+按路径告诉用户已存档产物：标准路径为 `report + analysis + fix-note`；快速通道为 `report + approval-report + fix-note`，不得声称生成了不存在的 analysis。
 
 按 `shared-conventions.md` 第 3 节"issue-fix"收尾推荐顺序各问一句（用户"不用"立即跳过）：
 
@@ -183,7 +187,7 @@ issue-fix 比 feature-implement 更谨慎：**触发反射信号但结论是"该
 ## 容易踩的坑
 
 - 修完没走验证清单就宣告"修好了"
-- 顺手改了 analysis 范围外的代码
+- 顺手改了路径对应已批准方案范围外的代码
 - 修复引入新抽象 / 接口但没停下来确认
 - `{slug}-fix-note.md` 没建就宣告完成
 - 发现影响面回归有问题但写"轻微影响可忽略"——要修到干净

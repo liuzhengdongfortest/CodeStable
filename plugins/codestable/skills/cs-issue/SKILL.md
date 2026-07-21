@@ -28,7 +28,7 @@ contracts:
 
 无参数默认行为：没有 flag / 问题描述时，不猜阶段；扫描 `.codestable/issues/`、目标产物和当前 git diff，用状态机恢复下一步。若没有可恢复 issue 且用户原话也没有问题目标，返回 `NeedsHuman` 问处理哪个 issue。
 
-入口意图不覆盖仓库事实。若 report 已存在但用户从 report 兼容入口进来，继续 analyze；若代码已改但无 fix-note，进入 fix 验证/记录。
+入口意图不覆盖仓库事实。若 report 已存在但用户从 report 兼容入口进来，按 confirmed `issue_path` 恢复：standard 继续 analyze，fast-track 在同 unit `approval-report.md#issue-fast-path` 已批准时直接 fix；若代码已改但无 fix-note，进入 fix 验证/记录。
 
 ## Spec
 
@@ -62,7 +62,7 @@ data IssueState = IssueState             -- 全部从 .codestable/issues/{slug}/
   , reviewStatus : ReviewStatus
   , pendingCheckpoint : Maybe CheckpointReason -- approval-report.md 当前 pending decision
   , rejectedCheckpoint : Maybe CheckpointReason
-  , fixCompletionApproval : ApprovalStatus     -- review passed 后的最终 owner sign-off
+  , fixCompletionApproval : ApprovalStatus     -- approval-report.md#issue-fix-completion
   }
 
 data IssueOutcome
@@ -98,6 +98,9 @@ normalizeIssuePath report _
   | issuePathField report == Just StandardPath = StandardPath
   | isNothing (issuePathField report) && reportStatus report == ArtifactConfirmed = StandardPath
   | otherwise                             = PathUndecided
+
+fastPathApproval :: ApprovalReport -> ApprovalStatus
+fastPathApproval approval = namedApproval approval "issue-fast-path"
 ```
 
 `restoreIssueStage` 从仓库事实选下一步（新增能力而非坏掉的既有行为 → 路由 `cs-feat`）：
@@ -164,7 +167,7 @@ exitRecoverable   -- fix-note 必出（根因/改动/验证/遗留风险），ne
 ```text
 .codestable/issues/{YYYY-MM-DD}-{slug}/
 ├── {slug}-report.md
-├── {slug}-analysis.md
+├── {slug}-analysis.md      # standard 路径必有；fast-track 不生成
 ├── {slug}-fix-note.md
 ├── {slug}-review.md
 └── approval-report.md       # 仅需 owner 决策时；fast-path 选择从这里恢复

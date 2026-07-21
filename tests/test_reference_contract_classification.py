@@ -16,7 +16,9 @@ DECISION_SURFACE_RE = re.compile(
 
 HASKELL_CONTRACT_REFERENCES = {
     "cs-code-review/references/independent-review/protocol.md",
+    "cs-code-review/references/recovery/protocol.md",
     "cs-docs/references/api/protocol.md",
+    "cs-docs/references/focused-edit/protocol.md",
     "cs-docs/references/tutorial/protocol.md",
     "cs-epic/references/goal/protocol.md",
     "cs-epic/references/goal/support/protocol-audit.md",

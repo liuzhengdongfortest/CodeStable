@@ -414,26 +414,45 @@ def test_refactor_fails_closed_on_invalid_restored_state() -> None:
 
 def test_code_review_lane_launch_wait_and_resume_preserve_run_identity() -> None:
     review = skill("cs-code-review/SKILL.md")
+    recovery = skill("cs-code-review/references/recovery/protocol.md")
+    review_contract = f"{review}\n{recovery}"
     protocol = skill("cs-code-review/references/independent-review/protocol.md")
     report = skill("cs-code-review/references/report-template.md")
     conventions = skill("cs-onboard/references/agent-conventions.md")
 
     for phrase in (
         "data ExternalRunRef = TaskRunRef AgentRef | OcrRunRef Text",
+        "Failed ExternalRunRef Reason",
         "| Launching LaneName",
         "data ReviewWait = LaneStillPending LaneName ExternalRunRef",
         "ResumeLane LaneName ExternalRunRef LaneResult",
+        "RetryFailedLane LaneName ExternalRunRef",
+        "RequestSelfReviewDowngrade ExternalRunRef",
+        "RequestUnavailableSelfReviewDowngrade",
         "ResumeSelfReviewDowngrade ApprovalRef",
+        "RequestSkipFailedLaneB ExternalRunRef",
+        "ResumeSkipFailedLaneB ExternalRunRef ApprovalRef",
         "restoreReviewState :: RepoFacts -> Either ReviewBlocker ReviewState",
         "invalidPersistedLaneState facts = Left InvalidReviewResume",
         "fullRereviewRequired facts = Right (resetLanesForNewRound facts)",
         "restoreReviewState req.repoFacts >>= applyReviewResume req.resumeInput",
         "pendingLaneRef lane s == Just ref",
-        'approvalArtifactApproved s ref "code-review-local-only"',
+        "failedLaneRef lane s == Just ref",
+        "failedLaneRef LaneA s == Just ref",
+        "failedLaneRef LaneB s == Just ref",
+        "Just decision@(SkipFailedOcrDecision failedRef) <- pendingReviewDecision s",
+        "not (isExplicit s.agentConfig)",
+        'approvalArtifactStatus s approvalRef "code-review-local-only" == Approved',
+        'approvalArtifactStatus s approvalRef "code-review-skip-failed-ocr" == Approved',
+        "persistRejectedReviewDecision decision s",
+        "persistReviewDowngradeAndClearDecision decision s",
+        "UnavailableSelfReviewDowngradeDecision",
+        "persistLaneRetryAndSupersedeDecision lane ref s",
+        "persistLaneResultAndClearDecision lane ref result s",
         "InvalidReviewResume",
         "旧 `status: blocked` 缺 lane/ref 或非法 enum 直接 `Left InvalidReviewResume`",
     ):
-        assert phrase in review
+        assert phrase in review_contract
     for field in (
         "lane_a_state:",
         "lane_a_ref:",
@@ -454,11 +473,68 @@ def test_code_review_lane_launch_wait_and_resume_preserve_run_identity() -> None
     assert "| Await AgentRef" in conventions
     assert "reviewGate _ (Active ref) _ = Await ref" in conventions
     assert "toReviewLane (Await _) = Left AgentLaneNotReturned" in conventions
+    assert "explicitPinBlocksLocal selection" in conventions
+    assert "#code-review-local-only" in report
+    assert "#code-review-skip-failed-ocr" in report
     epic_review = skill("cs-epic/references/review/protocol.md")
     design_review = skill("cs-feat/references/design-review/protocol.md")
     assert "ref == awaitedRef" in epic_review
     assert "(Await _)" in epic_review
     assert "`Await ref` 必须把同一 `ref` 写入 `reviewer_id`" in design_review
+
+
+def test_reviewed_contract_regressions_stay_closed() -> None:
+    review = skill("cs-code-review/SKILL.md")
+    recovery = skill("cs-code-review/references/recovery/protocol.md")
+    conventions = skill("cs-onboard/references/agent-conventions.md")
+    report = skill("cs-issue/references/report/protocol.md")
+    fix = skill("cs-issue/references/fix/protocol.md")
+    epic_goal = skill("cs-epic/references/goal/protocol.md")
+    onboard = skill("cs-onboard/SKILL.md")
+
+    assert "reviewGate _ (Failed _) (Just ApproveLocalOnly)" not in conventions
+    assert conventions.index("explicitPinBlocksLocal selection") < conventions.index(
+        "otherwise                        = LocalReview"
+    )
+    selector = review[review.index("selectReviewOutcome ::"):review.index("focusedClosureEligible ::")]
+    assert selector.index("rejectedReviewDecision s") < selector.index("pendingReviewDecision s")
+    assert selector.index("pendingReviewDecision s") < selector.index("anyLaneFailed s")
+    assert selector.index("laneAMissing s && isExplicit s.agentConfig") < selector.index("anyLaneFailed s")
+    assert "failedLaneRef lane s == Just ref" in recovery
+    assert "laneFailed (Failed _ _) = True" in review
+    assert "显式 pin 的 failed / unavailable 路径都不得降级" in review
+    assert "persistLaneRetryAndSupersedeDecision" in recovery
+    assert "persistLaneResultAndClearDecision" in recovery
+    assert "persistRejectedReviewDecision" in recovery
+    assert "persistPendingReviewDecision" in recovery
+    assert "userAcceptedDowngrade = True" in recovery
+
+    assert "`issue_path: standard` 另需 analysis" in review
+    assert "approval-report.md#issue-fast-path" in review
+    assert "跳过 analysis，进入 `cs-issue` fix 阶段" in report
+    assert "不得再无条件指向 analyze" in report
+    assert "快速通道为 `report + approval-report + fix-note`" in fix
+    issue = skill("cs-issue/SKILL.md")
+    assert "standard 继续 analyze" in issue
+    assert "fast-track 在同 unit `approval-report.md#issue-fast-path` 已批准时直接 fix" in issue
+    assert "快速通道按 approval-report 已批准影响面" in fix
+    assert "issuePath state in [PathUndecided, FastPathPending]" in fix
+    assert "issuePath state in [StandardPath, FastPathRejected]" in fix
+    assert "approval-report.md#issue-fix-completion" in fix
+
+    assert "通过→`cs-feat` QA 阶段" not in review
+    assert "Standard feature 通过→accept-inline，Goal feature 通过→QA" in review
+
+    assert "status: awaiting-authorization" in epic_goal
+    assert "acceptance_authorization: approved #" not in epic_goal
+    assert "commit_authorization: approved #" not in epic_goal
+
+    assert "`easysdd/` 到 `codestable/` 再到 `.codestable/`" in onboard
+    assert "git mv <legacy-root> .codestable" in onboard
+    assert "任一旧根与 `.codestable/` 并存时" in onboard
+    assert "不输出 `git mv` 建议" in onboard
+    assert "git mv codestable .codestable" not in onboard
+    assert "git mv easysdd .codestable" not in onboard
 
 
 def test_primary_workflow_checkpoint_resumes_are_typed_matched_and_consumed() -> None:

@@ -69,6 +69,7 @@ data DocsState = DocsState              -- 全部从 docs/ + manifest.yaml + 源
   , manifest    : NoManifest | HasManifest             -- docs/api/manifest.yaml
   , entryStatus : Pending | Draft | Current | Outdated | Skipped
   , codeDrift   : InSync | Drifted       -- 相关源码/spec 是否已变
+  , workflowStage : Maybe Stage           -- draft 的临时 workflow_stage；current 时必须清除
   , pendingCheckpoint : Maybe CheckpointReason
   , rejectedCheckpoint : Maybe CheckpointReason
   }
@@ -104,6 +105,8 @@ restoreDocsStage(s, intent)
   | s.rejectedCheckpoint == Just ConfirmOverwrite       -> Completed (preservedExistingDocSummary s)
   | Just reason <- s.rejectedCheckpoint                 -> Blocked (OwnerRejectedDocsCheckpoint reason)
   | Just reason <- s.pendingCheckpoint                   -> HumanCheckpoint reason
+  | s.docStatus == Draft && s.workflowStage == Just FocusedEdit
+                                                         -> RoutedTo FocusedEdit   -- 批准后跨会话完成最小 patch
   | requestedMode intent == Just Api || wantsReference(intent)
                                                          -> RoutedTo ApiStage      -- 无 manifest 则初始化，缺条目则补
   | s.manifest == HasManifest && s.entryStatus in [Pending, Draft, Outdated]
@@ -126,7 +129,7 @@ restoreDocsStage(s, intent)
 1. **`preflight`** — 读 `.codestable/attention.md`；缺失则 `route to cs-onboard`；不得用 `AGENTS.md`/`CLAUDE.md` 代替 CodeStable attention。
 2. **`parseEntryIntent`** — 优先级 `flag > compat-preset > utterance`；`repoFacts override requestedMode`；空参不推断 mode，先按仓库事实恢复。
 3. **`restoreDocsStage`** — 扫 `docs/`、`README*`、`manifest.yaml` + 相关源码公开表面恢复 `DocsState`；先用 `applyDocsResume` 精确匹配并持久化 typed resume，再选 next stage；全局同步 / 记忆整理（非对外文档）→ `route to cs-docs-neat`。
-4. **`loadStageProtocol`** — progressive reference loading：进某 stage 才加载该 stage 一个 protocol，禁止 eager 读全部 references。
+4. **`loadStageProtocol`** — progressive reference loading：进某 stage 才按 `stageProtocol` 加载该 stage 一个 protocol，禁止 eager 读全部 references。
 5. **`executeOrRoute`** — 先读代码和既有文档再落盘；tutorial/api 生成或增量更新，`status` 落到合法值；遇 `HumanCheckpoint` 必停。
 6. **`exitRecoverable`** — 文档 `status` / manifest 状态明确、可从源码追溯，next stage 或 checkpoint reason 明确。
 
@@ -134,8 +137,13 @@ restoreDocsStage(s, intent)
 
 ## Reference 加载
 
-- tutorial：`references/tutorial/protocol.md`
-- api：`references/api/protocol.md`，必要时 `references/api/reference.md`
+```haskell
+stageProtocol :: Stage -> Protocol
+stageProtocol TutorialStage = "references/tutorial/protocol.md"
+stageProtocol ApiStage      = "references/api/protocol.md"      -- 必要时 references/api/reference.md
+stageProtocol FocusedEdit   = "references/focused-edit/protocol.md"
+stageProtocol NeatHandoff   = skill "cs-docs-neat"
+```
 
 先读代码和既有文档，再按对应模式生成或更新文档。不要凭记忆写 API。
 
